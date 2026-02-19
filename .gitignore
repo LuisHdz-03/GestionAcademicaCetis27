@@ -2,3 +2,4 @@ node_modules/
 .next/
 dist/
 backend/node_modules/
+.env.local
