@@ -10,13 +10,13 @@ import {
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/useToast";
 
-type ApiResponse<T> = {
-  data?: T;
-  message?: string;
-  error?: string;
-};
-
-export type UserRole = "admin" | "docente" | "alumno" | "guardia" | "prefecto";
+export type UserRole =
+  | "admin"
+  | "docente"
+  | "alumno"
+  | "guardia"
+  | "prefecto"
+  | "administrativo";
 
 export interface User {
   id: number;
@@ -28,10 +28,9 @@ export interface User {
 }
 
 interface LoginResponse {
-  success: boolean;
+  mensaje?: string;
   token: string;
-  usuario: User;
-  message?: string;
+  usuario: any;
 }
 
 type AuthContextType = {
@@ -44,7 +43,8 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -83,8 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             "email",
             "tipoUsuario",
             "nombre",
-            "apellidoPaterno",
           ];
+
           const missingFields = requiredFields.filter((field) => {
             const value = parsedUser[field];
             return value === undefined || value === null || value === "";
@@ -108,15 +108,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         try {
-          const response = await fetch(`${API_URL}/api/v1/health`, {
+          const response = await fetch(`${API_URL}/`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-            // Evitar caché para asegurar que verificamos el token real
             cache: "no-store",
-            // Timeout para la petición
             signal: AbortSignal.timeout(5000),
           });
 
@@ -127,14 +125,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (error) {
           console.error("Error al verificar token:", error);
-          // Si hay un error de red o el token es inválido, cerramos sesión
           localStorage.removeItem("token");
           localStorage.removeItem("usuario");
           setUser(null);
         }
       } catch (error) {
         console.error("Error inesperado en checkAuth:", error);
-        // En caso de cualquier otro error, limpiamos todo por seguridad
         if (isClient) {
           localStorage.removeItem("token");
           localStorage.removeItem("usuario");
@@ -145,15 +141,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Ejecutar la verificación de autenticación
     checkAuth();
 
-    // Limpieza en caso de que el componente se desmonte
-    return () => {
-      // Aquí podríamos cancelar la petición fetch si está pendiente
-      // usando AbortController si fuera necesario
-    };
-  }, [isClient]); // Añadimos isClient como dependencia
+    return () => {};
+  }, [isClient]);
 
   const login = async (email: string, password: string): Promise<void> => {
     if (!isClient) {
@@ -175,9 +166,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos de timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const response = await fetch(`${API_URL}/api/v1/auth/login`, {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -186,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           email: email.trim(),
           password: password,
+          plataforma: "WEB",
         }),
         signal: controller.signal,
         credentials: "include",
@@ -209,48 +201,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (!response.ok) {
-        console.error(
-          "Login failed with status:",
-          response.status,
-          "Response:",
-          result,
-        );
-        const errorMessage = result?.message || "Error en la autenticación";
-        throw new Error(
-          errorMessage.includes("inválid") || errorMessage.includes("incorrect")
-            ? "El email o contraseña son incorrectos. Verifica tus datos e intenta de nuevo."
-            : errorMessage.includes("requerido")
-              ? "Por favor, completa todos los campos requeridos."
-              : errorMessage,
-        );
+        const errorMessage =
+          result.mensaje ||
+          (result as any).error ||
+          "Error en la autenticación";
+        throw new Error(errorMessage);
       }
 
-      // Validar la respuesta
-      if (!result.success || !result.token || !result.usuario) {
+      if (!result.token || !result.usuario) {
         console.error("Invalid response format:", result);
         throw new Error(
           "La respuesta del servidor no contiene los datos esperados",
         );
       }
 
-      const { token, usuario } = result;
+      const usuarioFormateado: User = {
+        id: result.usuario.id,
+        email: email.trim(),
+        nombre: result.usuario.nombre,
+        apellidoPaterno: " ",
+        tipoUsuario: result.usuario.rol.toLowerCase() as UserRole,
+      };
 
-      // Validar el objeto de usuario
-      if (!usuario.id || !usuario.email || !usuario.tipoUsuario) {
-        throw new Error("Datos de usuario incompletos");
-      }
+      localStorage.setItem("token", result.token);
+      localStorage.setItem("usuario", JSON.stringify(usuarioFormateado));
+      setUser(usuarioFormateado);
 
-      // Guardar en localStorage
-      localStorage.setItem("token", token);
-      localStorage.setItem("usuario", JSON.stringify(usuario));
-      setUser(usuario);
-
-      // Redirigir según el rol del usuario
       const redirectPath =
-        usuario.tipoUsuario === "guardia" ? "/dashboard/scan-qr" : "/dashboard";
+        usuarioFormateado.tipoUsuario === "guardia"
+          ? "/dashboard/scan-qr"
+          : "/dashboard";
 
       router.push(redirectPath);
-
       router.refresh();
       return;
     } catch (error: unknown) {
@@ -262,44 +244,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = (): void => {
-    if (!isClient) {
-      console.warn("Intento de cierre de sesión en el servidor");
-      return;
-    }
+    if (!isClient) return;
 
-    const performLogout = async () => {
-      try {
-        // Opcional: Llamar al endpoint de logout del servidor si es necesario
-        try {
-          await fetch(`${API_URL}/api/v1/auth/logout`, {
-            method: "POST",
-            credentials: "include",
-          });
-        } catch (serverError) {
-          console.warn(
-            "No se pudo notificar al servidor del cierre de sesión:",
-            serverError,
-          );
-        }
-
-        // Limpiar el almacenamiento local
-        localStorage.removeItem("token");
-        localStorage.removeItem("usuario");
-
-        // Limpiar el estado
-        setUser(null);
-
-        // Redirigir a la página de login
-        router.push("/auth/login");
-        router.refresh();
-      } catch (error) {
-        console.error("Error durante el cierre de sesión:", error);
-        // Forzar redirección incluso si hay un error
-        router.push("/auth/login");
-      }
-    };
-
-    performLogout();
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+    setUser(null);
+    router.push("/auth/login");
+    router.refresh();
   };
 
   const value = {
