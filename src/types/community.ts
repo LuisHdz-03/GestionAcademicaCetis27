@@ -9,7 +9,7 @@ export interface Alumno {
   telefono: string;
   fechaNacimiento: string;
   curp: string;
-  matricula: string; // número de control
+  matricula: string; 
   especialidad: string;
   semestre: number;
   idGrupo?: number;

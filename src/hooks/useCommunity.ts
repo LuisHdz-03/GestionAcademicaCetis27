@@ -21,10 +21,10 @@ interface Especialidad {
   activo: boolean;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
 
 interface UseCommunityReturn {
-  // Estados
   docentes: Docente[];
   alumnos: Alumno[];
   administradores: Admin[];
@@ -33,7 +33,6 @@ interface UseCommunityReturn {
   loading: boolean;
   error: string | null;
 
-  // Funciones
   fetchDocentes: () => Promise<void>;
   fetchAlumnos: () => Promise<void>;
   fetchAdministradores: () => Promise<void>;
@@ -79,7 +78,6 @@ export function useCommunity(): UseCommunityReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Función para obtener el token de autenticación
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
     return {
@@ -88,587 +86,422 @@ export function useCommunity(): UseCommunityReturn {
     };
   };
 
-  // Obtener docentes
+  // 1. Obtener Docentes
   const fetchDocentes = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/v1/community/docentes`, {
+      const response = await fetch(`${API_URL}/docentes`, {
         headers: getAuthHeaders(),
       });
-
-      if (!response.ok) {
-        throw new Error("Error al obtener docentes");
-      }
+      if (!response.ok) throw new Error("Error al obtener docentes");
 
       const result = await response.json();
-      setDocentes(result.data || []);
+
+      // Traductor: De Prisma a React
+      const docentesMapeados = result.map((d: any) => ({
+        id: d.idDocente,
+        nombre: d.usuario?.nombre || "Sin nombre",
+        apellidoPaterno: d.usuario?.apellidoPaterno || "",
+        apellidoMaterno: d.usuario?.apellidoMaterno || "",
+        email: d.usuario?.email || "",
+        telefono: d.usuario?.telefono || "N/A",
+        fechaNacimiento: d.usuario?.fechaNacimiento || "N/A",
+        curp: "N/A", // En la BD está en usuario, si existe
+        numeroEmpleado: d.numeroEmpleado || "S/N",
+        especialidad: "General",
+        activo: d.usuario?.activo ?? true,
+      }));
+
+      setDocentes(docentesMapeados);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los docentes",
-        variant: "destructive",
-      });
+      setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
       setLoading(false);
     }
   };
 
-  // Obtener alumnos
+  // 2. Obtener Alumnos
   const fetchAlumnos = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/v1/community/alumnos`, {
+      const response = await fetch(`${API_URL}/estudiantes`, {
         headers: getAuthHeaders(),
       });
-
-      if (!response.ok) {
-        throw new Error("Error al obtener alumnos");
-      }
+      if (!response.ok) throw new Error("Error al obtener alumnos");
 
       const result = await response.json();
-      setAlumnos(result.data || []);
+
+      // Traductor: De Prisma a React
+      const alumnosMapeados = result.map((a: any) => ({
+        id: a.idEstudiante,
+        nombre: a.usuario?.nombre || "Sin nombre",
+        apellidoPaterno: a.usuario?.apellidoPaterno || "",
+        apellidoMaterno: a.usuario?.apellidoMaterno || "",
+        email: a.usuario?.email || "",
+        telefono: a.usuario?.telefono || "N/A",
+        fechaNacimiento: a.usuario?.fechaNacimiento || "N/A",
+        curp: a.curp || "N/A",
+        matricula: a.matricula || "S/N",
+        especialidad: a.grupo?.especialidad?.nombre || "Sin Asignar",
+        semestre: a.semestre || 1,
+        idGrupo: a.grupoId,
+        grupo: a.grupo?.nombre || "Sin Grupo",
+        activo: a.usuario?.activo ?? true,
+        direccion: a.usuario?.direccion || "N/A",
+      }));
+
+      setAlumnos(alumnosMapeados);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los alumnos",
-        variant: "destructive",
-      });
+      setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
       setLoading(false);
     }
   };
 
-  // Obtener administradores
+  // 3. Obtener Administradores
   const fetchAdministradores = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${API_URL}/api/v1/community/administradores`,
-        {
-          headers: getAuthHeaders(),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Error al obtener administradores");
-      }
+      const response = await fetch(`${API_URL}/administrativos`, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Error al obtener administradores");
 
       const result = await response.json();
-      setAdministradores(result.data || []);
+
+      const adminMapeados = result.map((a: any) => ({
+        id: a.idAdministrativo,
+        nombre: a.usuario?.nombre || "Sin nombre",
+        apellidoPaterno: a.usuario?.apellidoPaterno || "",
+        apellidoMaterno: a.usuario?.apellidoMaterno || "",
+        email: a.usuario?.email || "",
+        telefono: a.usuario?.telefono || "N/A",
+        fechaNacimiento: a.usuario?.fechaNacimiento || "N/A",
+        curp: "N/A",
+        numeroEmpleado: a.numeroEmpleado || "S/N",
+        cargo: a.cargo || "Administrativo",
+        activo: a.usuario?.activo ?? true,
+      }));
+
+      setAdministradores(adminMapeados);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los administradores",
-        variant: "destructive",
-      });
+      setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
       setLoading(false);
     }
   };
 
-  // Obtener especialidades
+  // 4. Obtener Especialidades
   const fetchEspecialidades = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${API_URL}/api/v1/community/especialidades`,
-        {
-          headers: getAuthHeaders(),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Error al obtener especialidades");
-      }
+      const response = await fetch(`${API_URL}/especialidades`, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Error al obtener especialidades");
 
       const result = await response.json();
-      setEspecialidades(result.data || []);
+
+      const espeMapeadas = result.map((e: any) => ({
+        id: e.idEspecialidad,
+        nombre: e.nombre,
+        codigo: e.codigo || e.nombre.substring(0, 3).toUpperCase(),
+        activo: true,
+      }));
+
+      setEspecialidades(espeMapeadas);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar las especialidades",
-        variant: "destructive",
-      });
+      setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
       setLoading(false);
     }
   };
 
-  // Crear especialidad
+  // 5. Obtener Grupos
+  const fetchGrupos = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/grupos`, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Error al obtener grupos");
+
+      const result = await response.json();
+
+      const gruposMapeados = result.map((g: any) => ({
+        id: g.idGrupo,
+        codigo: g.nombre,
+        semestre: g.grado,
+        aula: g.aula || "Por definir",
+        idEspecialidad: g.especialidadId,
+        especialidadNombre: g.especialidad?.nombre || "N/A",
+        idPeriodo: g.periodoId,
+        idDocente: 0,
+        idMateria: 0,
+        activo: true,
+      }));
+
+      setGrupos(gruposMapeados);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- MÉTODOS DE CREACIÓN, EDICIÓN Y ELIMINACIÓN (Adaptados al nuevo back) ---
+
   const createEspecialidad = async (data: {
     nombre: string;
     codigo: string;
-  }): Promise<boolean> => {
+  }) => {
     try {
-      setLoading(true);
-      const response = await fetch(
-        `${API_URL}/api/v1/community/especialidades`,
-        {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify(data),
-        },
-      );
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || "Error al crear especialidad");
-      }
-
-      await fetchEspecialidades();
-      toast({
-        title: "Éxito",
-        description: "Especialidad creada correctamente",
-        variant: "success",
-      });
-      return true;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Actualizar especialidad
-  const updateEspecialidad = async (
-    id: number,
-    data: { nombre?: string; codigo?: string; activo?: boolean },
-  ): Promise<boolean> => {
-    try {
-      setLoading(true);
-      const response = await fetch(
-        `${API_URL}/api/v1/community/especialidades/${id}`,
-        {
-          method: "PUT",
-          headers: getAuthHeaders(),
-          body: JSON.stringify(data),
-        },
-      );
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || "Error al actualizar especialidad");
-      }
-
-      await fetchEspecialidades();
-      toast({
-        title: "Éxito",
-        description: "Especialidad actualizada correctamente",
-        variant: "success",
-      });
-      return true;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Eliminar especialidad
-  const deleteEspecialidad = async (id: number): Promise<boolean> => {
-    try {
-      setLoading(true);
-      const response = await fetch(
-        `${API_URL}/api/v1/community/especialidades/${id}`,
-        {
-          method: "DELETE",
-          headers: getAuthHeaders(),
-        },
-      );
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || "Error al eliminar especialidad");
-      }
-
-      await fetchEspecialidades();
-      toast({
-        title: "Éxito",
-        description: "Especialidad eliminada correctamente",
-        variant: "success",
-      });
-      return true;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Crear docente
-  const createDocente = async (data: DocenteFormData): Promise<boolean> => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/api/v1/community/docentes`, {
+      const response = await fetch(`${API_URL}/especialidades`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify(data),
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Error al crear docente");
-      }
-
-      // Actualizar la lista de docentes
-      await fetchDocentes();
-
+      if (!response.ok) throw new Error("Error al crear especialidad");
+      await fetchEspecialidades();
       toast({
         title: "Éxito",
-        description: "Docente creado correctamente",
-        variant: "success",
-      });
-
-      return true;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateDocente = async (
-    id: number,
-    data: Partial<DocenteFormData>,
-  ): Promise<boolean> => {
-    try {
-      setLoading(true);
-      const response = await fetch(
-        `${API_URL}/api/v1/community/docentes/${id}`,
-        {
-          method: "PUT",
-          headers: getAuthHeaders(),
-          body: JSON.stringify(data),
-        },
-      );
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.message || "Error al actualizar docente");
-      await fetchDocentes();
-      toast({
-        title: "Éxito",
-        description: "Docente actualizado",
+        description: "Especialidad creada",
         variant: "success",
       });
       return true;
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
-  const deleteDocente = async (id: number): Promise<boolean> => {
+  const updateEspecialidad = async (id: number, data: any) => {
     try {
-      setLoading(true);
-      const response = await fetch(
-        `${API_URL}/api/v1/community/docentes/${id}`,
-        {
-          method: "DELETE",
-          headers: getAuthHeaders(),
-        },
-      );
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.message || "Error al eliminar docente");
-      await fetchDocentes();
-      toast({
-        title: "Éxito",
-        description: "Docente eliminado",
-        variant: "success",
+      const response = await fetch(`${API_URL}/especialidades/${id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
       });
+      if (!response.ok) throw new Error("Error al actualizar");
+      await fetchEspecialidades();
       return true;
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Crear alumno
-  const createAlumno = async (data: AlumnoFormData): Promise<boolean> => {
+  const deleteEspecialidad = async (id: number) => {
     try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/api/v1/community/alumnos`, {
+      const response = await fetch(`${API_URL}/especialidades/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Error al eliminar");
+      await fetchEspecialidades();
+      return true;
+    } catch (err) {
+      return false;
+    }
+  };
+
+  const createDocente = async (data: DocenteFormData) => {
+    try {
+      const response = await fetch(`${API_URL}/docentes`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify(data),
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Error al crear alumno");
-      }
-
-      // Actualizar la lista de alumnos
-      await fetchAlumnos();
-
+      if (!response.ok) throw new Error("Error al crear");
+      await fetchDocentes();
       toast({
         title: "Éxito",
-        description: "Alumno creado correctamente",
-        variant: "success",
-      });
-
-      return true;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateAlumno = async (
-    id: number,
-    data: Partial<AlumnoFormData>,
-  ): Promise<boolean> => {
-    try {
-      setLoading(true);
-
-      const response = await fetch(
-        `${API_URL}/api/v1/community/alumnos/${id}`,
-        {
-          method: "PUT",
-          headers: getAuthHeaders(),
-          body: JSON.stringify(data),
-        },
-      );
-      const result = await response.json();
-
-      if (!response.ok)
-        throw new Error(result.message || "Error al actualizar alumno");
-      await fetchAlumnos();
-      toast({
-        title: "Éxito",
-        description: "Alumno actualizado",
+        description: "Docente creado",
         variant: "success",
       });
       return true;
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
-  const deleteAlumno = async (id: number): Promise<boolean> => {
+  const updateDocente = async (id: number, data: Partial<DocenteFormData>) => {
     try {
-      setLoading(true);
-      const response = await fetch(
-        `${API_URL}/api/v1/community/alumnos/${id}`,
-        {
-          method: "DELETE",
-          headers: getAuthHeaders(),
-        },
-      );
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.message || "Error al eliminar alumno");
+      const response = await fetch(`${API_URL}/docentes/${id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Error al actualizar");
+      await fetchDocentes();
+      return true;
+    } catch (err) {
+      return false;
+    }
+  };
+
+  const deleteDocente = async (id: number) => {
+    try {
+      const response = await fetch(`${API_URL}/docentes/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Error al eliminar");
+      await fetchDocentes();
+      return true;
+    } catch (err) {
+      return false;
+    }
+  };
+
+  const createAlumno = async (data: AlumnoFormData) => {
+    try {
+      const response = await fetch(`${API_URL}/estudiantes`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Error al crear");
       await fetchAlumnos();
       toast({
         title: "Éxito",
-        description: "Alumno eliminado",
+        description: "Alumno creado",
         variant: "success",
       });
       return true;
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Crear administrador
-  const createAdministrador = async (data: AdminFormData): Promise<boolean> => {
+  const updateAlumno = async (id: number, data: Partial<AlumnoFormData>) => {
     try {
-      setLoading(true);
-      const response = await fetch(
-        `${API_URL}/api/v1/community/administradores`,
-        {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify(data),
-        },
-      );
+      const response = await fetch(`${API_URL}/estudiantes/${id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Error al actualizar");
+      await fetchAlumnos();
+      return true;
+    } catch (err) {
+      return false;
+    }
+  };
 
-      const result = await response.json();
+  const deleteAlumno = async (id: number) => {
+    try {
+      const response = await fetch(`${API_URL}/estudiantes/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Error al eliminar");
+      await fetchAlumnos();
+      return true;
+    } catch (err) {
+      return false;
+    }
+  };
 
-      if (!response.ok) {
-        throw new Error(result.message || "Error al crear administrador");
-      }
-
-      // Actualizar la lista de administradores
+  const createAdministrador = async (data: AdminFormData) => {
+    try {
+      const response = await fetch(`${API_URL}/administrativos`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Error al crear");
       await fetchAdministradores();
-
       toast({
         title: "Éxito",
-        description: "Administrador creado correctamente",
+        description: "Admin creado",
         variant: "success",
       });
-
       return true;
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
   const updateAdministrador = async (
     id: number,
     data: Partial<AdminFormData>,
-  ): Promise<boolean> => {
+  ) => {
     try {
-      setLoading(true);
-      const response = await fetch(
-        `${API_URL}/api/v1/community/administradores/${id}`,
-        {
-          method: "PUT",
-          headers: getAuthHeaders(),
-          body: JSON.stringify(data),
-        },
-      );
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.message || "Error al actualizar administrador");
-      await fetchAdministradores();
-      toast({
-        title: "Éxito",
-        description: "Administrador actualizado",
-        variant: "success",
+      const response = await fetch(`${API_URL}/administrativos/${id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
       });
+      if (!response.ok) throw new Error("Error al actualizar");
+      await fetchAdministradores();
       return true;
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
-  const deleteAdministrador = async (id: number): Promise<boolean> => {
+  const deleteAdministrador = async (id: number) => {
     try {
-      setLoading(true);
-      const response = await fetch(
-        `${API_URL}/api/v1/community/administradores/${id}`,
-        {
-          method: "DELETE",
-          headers: getAuthHeaders(),
-        },
-      );
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.message || "Error al eliminar administrador");
+      const response = await fetch(`${API_URL}/administrativos/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Error al eliminar");
       await fetchAdministradores();
+      return true;
+    } catch (err) {
+      return false;
+    }
+  };
+
+  const createGrupo = async (data: GrupoFormData) => {
+    try {
+      const response = await fetch(`${API_URL}/grupos`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Error al crear");
+      await fetchGrupos();
       toast({
         title: "Éxito",
-        description: "Administrador eliminado",
+        description: "Grupo creado",
         variant: "success",
       });
       return true;
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
       return false;
-    } finally {
-      setLoading(false);
     }
   };
-  // Refrescar todos los datos
+
+  const updateGrupo = async (id: number, data: Partial<GrupoFormData>) => {
+    try {
+      const response = await fetch(`${API_URL}/grupos/${id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Error al actualizar");
+      await fetchGrupos();
+      return true;
+    } catch (err) {
+      return false;
+    }
+  };
+
+  const deleteGrupo = async (id: number) => {
+    try {
+      const response = await fetch(`${API_URL}/grupos/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Error al eliminar");
+      await fetchGrupos();
+      return true;
+    } catch (err) {
+      return false;
+    }
+  };
+
   const refreshData = async () => {
     await Promise.all([
       fetchDocentes(),
@@ -677,145 +510,6 @@ export function useCommunity(): UseCommunityReturn {
       fetchGrupos(),
       fetchEspecialidades(),
     ]);
-  };
-
-  // Obtener grupos
-  const fetchGrupos = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/api/v1/community/grupos`, {
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error("Error al obtener grupos");
-      }
-
-      const result = await response.json();
-      setGrupos(result.data || []);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los grupos",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Crear grupo
-  const createGrupo = async (data: GrupoFormData): Promise<boolean> => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/api/v1/community/grupos`, {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Error al crear grupo");
-      }
-
-      await fetchGrupos();
-
-      toast({
-        title: "Éxito",
-        description: "Grupo creado correctamente",
-        variant: "success",
-      });
-
-      return true;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Actualizar grupo
-  const updateGrupo = async (
-    id: number,
-    data: Partial<GrupoFormData>,
-  ): Promise<boolean> => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/api/v1/community/grupos/${id}`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.message || "Error al actualizar grupo");
-
-      await fetchGrupos();
-      toast({
-        title: "Éxito",
-        description: "Grupo actualizado",
-        variant: "success",
-      });
-      return true;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Eliminar grupo
-  const deleteGrupo = async (id: number): Promise<boolean> => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/api/v1/community/grupos/${id}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
-
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.message || "Error al eliminar grupo");
-
-      await fetchGrupos();
-      toast({
-        title: "Éxito",
-        description: "Grupo eliminado",
-        variant: "success",
-      });
-      return true;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
   };
 
   return {
