@@ -180,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           plataforma: "WEB",
         }),
         signal: controller.signal,
-        credentials: "include",
+        //credentials: "include",
       });
 
       clearTimeout(timeoutId);

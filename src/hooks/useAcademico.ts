@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useToast } from './useToast';
+import { useState } from "react";
+import { useToast } from "./useToast";
 
 export interface MateriaDTO {
   id: number;
@@ -29,7 +29,6 @@ export interface GrupoDTO {
 export interface CreateMateriaInput {
   nombre: string;
   codigo: string;
-  // Compatibilidad: permitir enviar horas directamente o desglosadas
   horas?: number;
   horasTeoria?: number;
   horasPractica?: number;
@@ -49,7 +48,8 @@ export interface CreateGrupoInput {
   activo?: boolean;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
 
 export function useAcademico() {
   const { toast } = useToast();
@@ -59,9 +59,10 @@ export function useAcademico() {
   const [error, setError] = useState<string | null>(null);
 
   const getAuthHeaders = () => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
     return {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
     } as HeadersInit;
   };
@@ -69,16 +70,39 @@ export function useAcademico() {
   const fetchMaterias = async (especialidadCode?: string) => {
     try {
       setLoading(true);
-      const url = new URL(`${API_URL}/api/v1/academico/materias`);
-      if (especialidadCode) url.searchParams.set('especialidad', especialidadCode);
+      //rutas
+      const url = new URL(`${API_URL}/materias`);
       const res = await fetch(url.toString(), { headers: getAuthHeaders() });
+      if (!res.ok) throw new Error("Error al obtener materias");
+
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Error al obtener materias');
-      setMaterias(json.data || []);
+
+      // traemos los datos con esto
+      const materiasMapeadas: MateriaDTO[] = json.map((m: any) => ({
+        id: m.idMateria,
+        nombre: m.nombre,
+        codigo: m.codigo || m.nombre.substring(0, 3).toUpperCase(),
+        totalHoras: m.horasSemana || 0,
+        horasTeoria: m.horasSemana || 0,
+        horasPractica: 0,
+        semestre: m.semestre || 1,
+        especialidadNombre: m.especialidad?.nombre || "General",
+        especialidadCodigo: m.especialidad?.codigo || "GEN",
+        activo: true,
+      }));
+
+      // Si el frontend pidió filtrar por especialidad
+      const materiasFiltradas = especialidadCode
+        ? materiasMapeadas.filter(
+            (m) => m.especialidadCodigo === especialidadCode,
+          )
+        : materiasMapeadas;
+
+      setMaterias(materiasFiltradas);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error desconocido';
+      const msg = e instanceof Error ? e.message : "Error desconocido";
       setError(msg);
-      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      toast({ title: "Error", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -87,16 +111,34 @@ export function useAcademico() {
   const fetchGrupos = async (especialidadCode?: string) => {
     try {
       setLoading(true);
-      const url = new URL(`${API_URL}/api/v1/academico/grupos`);
-      if (especialidadCode) url.searchParams.set('especialidad', especialidadCode);
+      const url = new URL(`${API_URL}/grupos`);
       const res = await fetch(url.toString(), { headers: getAuthHeaders() });
+      if (!res.ok) throw new Error("Error al obtener grupos");
+
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Error al obtener grupos');
-      setGrupos(json.data || []);
+
+      const gruposMapeados: GrupoDTO[] = json.map((g: any) => ({
+        id: g.idGrupo,
+        nombre: g.nombre,
+        codigo: g.nombre,
+        semestre: g.grado,
+        especialidadNombre: g.especialidad?.nombre || "General",
+        especialidadCodigo: g.especialidad?.codigo || "GEN",
+        integrantes: g.estudiantes ? g.estudiantes.length : 0,
+        activo: true,
+      }));
+
+      const gruposFiltrados = especialidadCode
+        ? gruposMapeados.filter(
+            (g) => g.especialidadCodigo === especialidadCode,
+          )
+        : gruposMapeados;
+
+      setGrupos(gruposFiltrados);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error desconocido';
+      const msg = e instanceof Error ? e.message : "Error desconocido";
       setError(msg);
-      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      toast({ title: "Error", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -109,25 +151,30 @@ export function useAcademico() {
         nombre: data.nombre,
         codigo: data.codigo,
         semestre: data.semestre,
-        idEspecialidad: data.idEspecialidad,
-        activo: data.activo,
-        horas: typeof data.horas === 'number'
-          ? data.horas
-          : (Number(data.horasTeoria || 0) + Number(data.horasPractica || 0)),
+        horasSemana:
+          typeof data.horas === "number"
+            ? data.horas
+            : Number(data.horasTeoria || 0) + Number(data.horasPractica || 0),
+        especialidadId: data.idEspecialidad,
       };
 
-      const res = await fetch(`${API_URL}/api/v1/academico/materias`, {
-        method: 'POST',
+      const res = await fetch(`${API_URL}/materias`, {
+        method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Error al crear materia');
-      toast({ title: 'Éxito', description: 'Materia creada', variant: 'success' });
+      if (!res.ok) throw new Error("Error al crear materia");
+
+      toast({
+        title: "Éxito",
+        description: "Materia creada",
+        variant: "success",
+      });
+      await fetchMaterias();
       return true;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error desconocido';
-      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      const msg = e instanceof Error ? e.message : "Error desconocido";
+      toast({ title: "Error", description: msg, variant: "destructive" });
       return false;
     } finally {
       setLoading(false);
@@ -137,46 +184,79 @@ export function useAcademico() {
   const createGrupo = async (data: CreateGrupoInput) => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/v1/academico/grupos`, {
-        method: 'POST',
+      const payload = {
+        nombre: data.codigo,
+        grado: data.semestre,
+        turno: "MATUTINO",
+        aula: data.aula,
+        periodoId: data.idPeriodo,
+        especialidadId: data.idEspecialidad,
+      };
+
+      const res = await fetch(`${API_URL}/grupos`, {
+        method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Error al crear grupo');
-      toast({ title: 'Éxito', description: 'Grupo creado', variant: 'success' });
+      if (!res.ok) throw new Error("Error al crear grupo");
+
+      toast({
+        title: "Éxito",
+        description: "Grupo creado",
+        variant: "success",
+      });
+      await fetchGrupos();
       return true;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error desconocido';
-      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      const msg = e instanceof Error ? e.message : "Error desconocido";
+      toast({ title: "Error", description: msg, variant: "destructive" });
       return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const updateMateria = async (id: number, data: Partial<CreateMateriaInput>) => {
+  const updateMateria = async (
+    id: number,
+    data: Partial<CreateMateriaInput>,
+  ) => {
     try {
       setLoading(true);
-      const payload: any = { ...data };
-      if (typeof data.horas === 'number' || data.horasTeoria || data.horasPractica) {
-        payload.horas = typeof data.horas === 'number'
-          ? data.horas
-          : (Number(data.horasTeoria || 0) + Number(data.horasPractica || 0));
+      const payload: any = {
+        nombre: data.nombre,
+        codigo: data.codigo,
+        semestre: data.semestre,
+        especialidadId: data.idEspecialidad,
+      };
+
+      if (
+        typeof data.horas === "number" ||
+        data.horasTeoria ||
+        data.horasPractica
+      ) {
+        payload.horasSemana =
+          typeof data.horas === "number"
+            ? data.horas
+            : Number(data.horasTeoria || 0) + Number(data.horasPractica || 0);
       }
 
-      const res = await fetch(`${API_URL}/api/v1/academico/materias/${id}`, {
-        method: 'PUT',
+      const res = await fetch(`${API_URL}/materias/${id}`, {
+        method: "PUT",
         headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Error al actualizar materia');
-      toast({ title: 'Éxito', description: 'Materia actualizada', variant: 'success' });
+      if (!res.ok) throw new Error("Error al actualizar materia");
+
+      toast({
+        title: "Éxito",
+        description: "Materia actualizada",
+        variant: "success",
+      });
+      await fetchMaterias();
       return true;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error desconocido';
-      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      const msg = e instanceof Error ? e.message : "Error desconocido";
+      toast({ title: "Error", description: msg, variant: "destructive" });
       return false;
     } finally {
       setLoading(false);
@@ -186,17 +266,22 @@ export function useAcademico() {
   const deleteMateria = async (id: number) => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/v1/academico/materias/${id}`, {
-        method: 'DELETE',
+      const res = await fetch(`${API_URL}/materias/${id}`, {
+        method: "DELETE",
         headers: getAuthHeaders(),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Error al eliminar materia');
-      toast({ title: 'Éxito', description: 'Materia eliminada', variant: 'success' });
+      if (!res.ok) throw new Error("Error al eliminar materia");
+
+      toast({
+        title: "Éxito",
+        description: "Materia eliminada",
+        variant: "success",
+      });
+      await fetchMaterias();
       return true;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error desconocido';
-      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      const msg = e instanceof Error ? e.message : "Error desconocido";
+      toast({ title: "Error", description: msg, variant: "destructive" });
       return false;
     } finally {
       setLoading(false);
@@ -206,18 +291,31 @@ export function useAcademico() {
   const updateGrupo = async (id: number, data: Partial<CreateGrupoInput>) => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/v1/academico/grupos/${id}`, {
-        method: 'PUT',
+      const payload = {
+        nombre: data.codigo,
+        grado: data.semestre,
+        aula: data.aula,
+        periodoId: data.idPeriodo,
+        especialidadId: data.idEspecialidad,
+      };
+
+      const res = await fetch(`${API_URL}/grupos/${id}`, {
+        method: "PUT",
         headers: getAuthHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Error al actualizar grupo');
-      toast({ title: 'Éxito', description: 'Grupo actualizado', variant: 'success' });
+      if (!res.ok) throw new Error("Error al actualizar grupo");
+
+      toast({
+        title: "Éxito",
+        description: "Grupo actualizado",
+        variant: "success",
+      });
+      await fetchGrupos();
       return true;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error desconocido';
-      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      const msg = e instanceof Error ? e.message : "Error desconocido";
+      toast({ title: "Error", description: msg, variant: "destructive" });
       return false;
     } finally {
       setLoading(false);
@@ -227,17 +325,22 @@ export function useAcademico() {
   const deleteGrupo = async (id: number) => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/v1/academico/grupos/${id}`, {
-        method: 'DELETE',
+      const res = await fetch(`${API_URL}/grupos/${id}`, {
+        method: "DELETE",
         headers: getAuthHeaders(),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Error al eliminar grupo');
-      toast({ title: 'Éxito', description: 'Grupo eliminado', variant: 'success' });
+      if (!res.ok) throw new Error("Error al eliminar grupo");
+
+      toast({
+        title: "Éxito",
+        description: "Grupo eliminado",
+        variant: "success",
+      });
+      await fetchGrupos();
       return true;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error desconocido';
-      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      const msg = e instanceof Error ? e.message : "Error desconocido";
+      toast({ title: "Error", description: msg, variant: "destructive" });
       return false;
     } finally {
       setLoading(false);
@@ -259,5 +362,3 @@ export function useAcademico() {
     deleteGrupo,
   };
 }
-
-
