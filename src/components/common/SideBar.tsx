@@ -6,7 +6,7 @@ import {
   HiChevronLeft,
   HiChevronRight,
   HiClock,
-  HiDocumentText
+  HiDocumentText,
 } from "react-icons/hi2";
 import { FaGraduationCap, FaCheckCircle } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
@@ -27,51 +27,55 @@ export default function Sidebar() {
 
   // Menú de navegación dinámico basado en el tipo de usuario
   const menuItems = [
-    { 
-      icon: HiHome, 
-      label: "Dashboard", 
+    {
+      icon: HiHome,
+      label: "Dashboard",
       href: "/dashboard",
-      roles: ['admin', 'docente', 'alumno']
+      roles: ["admin", "administrativo", "docente", "alumno"],
     },
-    { 
-      icon: HiUsers, 
-      label: "Gestión Comunidad Escolar", 
+    {
+      icon: HiUsers,
+      label: "Gestión Comunidad Escolar",
       href: "/dashboard/comunidadEsc",
-      roles: ['admin', 'docente']
+      roles: ["admin", "administrativo", "docente"],
     },
-    { 
-      icon: FaGraduationCap, 
-      label: "Materias", 
+    {
+      icon: FaGraduationCap,
+      label: "Materias",
       href: "/dashboard/materias",
-      roles: ['admin', 'docente']
+      roles: ["admin", "administrativo", "docente"],
     },
-    { 
-      icon: FaCheckCircle, 
-      label: "Escanear QR", 
+    {
+      icon: FaCheckCircle,
+      label: "Escanear QR",
       href: "/dashboard/scan-qr",
-      roles: ['guardia']
+      roles: ["guardia", "admin", "administrativo"],
     },
-    { 
-      icon: HiClock, 
-      label: "Registros de Entrada", 
+    {
+      icon: HiClock,
+      label: "Registros de Entrada",
       href: "/dashboard/registros",
-      roles: ['admin', 'guardia']
+      roles: ["admin", "administrativo", "guardia"],
     },
-    { 
-      icon: HiDocumentText, 
-      label: "Reportes", 
+    {
+      icon: HiDocumentText,
+      label: "Reportes",
       href: "/dashboard/reportes",
-      roles: ['admin', 'docente']
+      roles: ["admin", "administrativo", "docente"],
     },
-    // El ítem de Horarios se mantiene oculto pero accesible por URL para compatibilidad
-    { 
-      icon: FaCheckCircle, 
-      label: "Horarios", 
+    {
+      icon: FaCheckCircle,
+      label: "Horarios",
       href: "/dashboard/horarios",
-      roles: ['admin', 'docente'],
-      hidden: true
+      roles: ["admin", "administrativo", "docente"],
+      hidden: true,
     },
-  ].filter(item => !item.hidden && (!item.roles || (user?.tipoUsuario ? item.roles.includes(user.tipoUsuario) : false)));
+  ].filter(
+    (item) =>
+      !item.hidden &&
+      (!item.roles ||
+        (user?.tipoUsuario ? item.roles.includes(user.tipoUsuario) : false)),
+  );
 
   const sidebarBgClass = "bg-[#691C32]";
   const hoverBgClass = "hover:bg-[#50172A]";
@@ -84,7 +88,7 @@ export default function Sidebar() {
         className={cn(
           sidebarBgClass,
           "border-r h-screen flex flex-col transition-all duration-300 ease-in-out",
-          isExpanded ? "w-64" : "w-16"
+          isExpanded ? "w-64" : "w-16",
         )}
       >
         {/* Header con botón de expansión */}
@@ -99,8 +103,12 @@ export default function Sidebar() {
                 />
               </div>
               <div>
-                <h2 className={cn("font-semibold text-sm", textClass)}>CETIS</h2>
-                <p className={cn("text-xs", mutedTextClass)}>Gestión Académica</p>
+                <h2 className={cn("font-semibold text-sm", textClass)}>
+                  CETIS
+                </h2>
+                <p className={cn("text-xs", mutedTextClass)}>
+                  Gestión Académica
+                </p>
               </div>
             </div>
           )}
@@ -112,11 +120,15 @@ export default function Sidebar() {
             className={cn(
               "h-8 w-8 p-0 rounded-md transition-colors duration-150 flex items-center justify-center",
               textClass,
-              hoverBgClass
+              hoverBgClass,
             )}
             aria-label={isExpanded ? "Contraer sidebar" : "Expandir sidebar"}
           >
-            {isExpanded ? <HiChevronLeft size={20} /> : <HiChevronRight size={20} />}
+            {isExpanded ? (
+              <HiChevronLeft size={20} />
+            ) : (
+              <HiChevronRight size={20} />
+            )}
           </Button>
         </div>
 
@@ -137,14 +149,14 @@ export default function Sidebar() {
                   isExpanded ? "justify-start px-3" : "justify-center px-0",
                   textClass,
                   hoverBgClass,
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
                 )}
               >
                 <a
                   href={item.href}
                   className={cn(
                     "flex items-center w-full",
-                    !isExpanded && "justify-center"
+                    !isExpanded && "justify-center",
                   )}
                 >
                   <span className="h-5 w-5 flex items-center justify-center flex-shrink-0">
@@ -183,7 +195,7 @@ export default function Sidebar() {
         <div className="p-4">
           <div
             className={cn(
-              "flex items-center space-x-3 rounded-md transition-colors duration-150"
+              "flex items-center space-x-3 rounded-md transition-colors duration-150",
             )}
           >
             <Avatar className="h-8 w-8">
@@ -197,8 +209,7 @@ export default function Sidebar() {
             {isExpanded && (
               <div className="flex-1 min-w-0">
                 <p className={cn("text-sm font-medium truncate", textClass)}>
-                  {user?.nombre || "Usuario"}{" "}
-                  {user?.apellidoPaterno || "Demo"}
+                  {user?.nombre || "Usuario"} {user?.apellidoPaterno || "Demo"}
                 </p>
                 <p className={cn("text-xs truncate", mutedTextClass)}>
                   {user?.email || "demo@example.com"}
