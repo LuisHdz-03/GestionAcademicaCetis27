@@ -96,13 +96,14 @@ export default function CommunityManagementPage() {
   // Estados para datos adicionales necesarios para grupos
   const [periodos, setPeriodos] = useState<any[]>([]);
   const [materias, setMaterias] = useState<any[]>([]);
-
+  const API_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
   // Cargar periodos y materias
   useEffect(() => {
     const fetchPeriodos = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:4000/api/v1/periodos", {
+        const res = await fetch(API_URL, {
           headers: {
             "Content-Type": "application/json",
             ...(token && { Authorization: `Bearer ${token}` }),
@@ -118,15 +119,12 @@ export default function CommunityManagementPage() {
     const fetchMaterias = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(
-          "http://localhost:4000/api/v1/academico/materias",
-          {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token && { Authorization: `Bearer ${token}` }),
-            },
+        const res = await fetch(API_URL, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
-        );
+        });
         const data = await res.json();
         if (data.success) setMaterias(data.data || []);
       } catch (error) {
