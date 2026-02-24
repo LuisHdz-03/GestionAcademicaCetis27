@@ -95,11 +95,15 @@ export default function ReportesPage() {
 
   const cargarAlumnos = async () => {
     try {
-      // NUEVA RUTA: /estudiantes
       const res = await fetch(`${API_URL}/estudiantes`, {
         headers: getAuthHeaders(),
       });
-      if (!res.ok) throw new Error("Error al obtener alumnos");
+      if (!res.ok) {
+        const errorDelBackend = await res.text(); 
+        console.error(`Status: ${res.status}`);
+        console.error(`Razón del rechazo: ${errorDelBackend}`); 
+        throw new Error("Error al obtener alumnos");
+      }
 
       const data = await res.json();
 

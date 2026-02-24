@@ -9,9 +9,30 @@ import { useAcademico } from "@/hooks/useAcademico";
 // Se eliminan datos mock y se conectan a la API
 
 export default function GestionEspecialidadesPage() {
-  const { especialidades, fetchEspecialidades, createEspecialidad, updateEspecialidad, deleteEspecialidad, docentes, fetchDocentes } = useCommunity();
-  const { materias, grupos, fetchMaterias, fetchGrupos, createMateria, createGrupo, updateMateria, deleteMateria, updateGrupo, deleteGrupo } = useAcademico();
-  const [periodos, setPeriodos] = useState<Array<{ id: number; nombre: string; activo: boolean }>>([]);
+  const {
+    especialidades,
+    fetchEspecialidades,
+    createEspecialidad,
+    updateEspecialidad,
+    deleteEspecialidad,
+    docentes,
+    fetchDocentes,
+  } = useCommunity();
+  const {
+    materias,
+    grupos,
+    fetchMaterias,
+    fetchGrupos,
+    createMateria,
+    createGrupo,
+    updateMateria,
+    deleteMateria,
+    updateGrupo,
+    deleteGrupo,
+  } = useAcademico();
+  const [periodos, setPeriodos] = useState<
+    Array<{ id: number; nombre: string; activo: boolean }>
+  >([]);
 
   const [selectedEspecialidad, setSelectedEspecialidad] = useState<string>("");
 
@@ -19,13 +40,15 @@ export default function GestionEspecialidadesPage() {
     fetchEspecialidades();
     fetchDocentes();
     // cargar periodos desde API
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    fetch(`${API_URL}/api/v1/periodos`, {
+    const API_URL =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    fetch(`${API_URL}/periodos`, {
       headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      }
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
     })
       .then(async (r) => ({ ok: r.ok, json: await r.json() }))
       .then(({ ok, json }) => {
@@ -50,25 +73,31 @@ export default function GestionEspecialidadesPage() {
 
   const activeEspecialidad = useMemo(
     () => especialidades.find((e) => e.codigo === selectedEspecialidad),
-    [especialidades, selectedEspecialidad]
+    [especialidades, selectedEspecialidad],
   );
 
   return (
     <div className="min-h-screen bg-gray-50/50 flex flex-col">
-      <TopBar onAddEspecialidad={async (data) => {
-        const ok = await createEspecialidad(data);
-        if (!selectedEspecialidad) {
-          // si no hay seleccion previa, selecciona la primera tras refrescar
-          setTimeout(() => {
-            if (especialidades.length > 0) setSelectedEspecialidad(especialidades[0].codigo);
-          }, 0);
-        }
-        return ok;
-      }} />
+      <TopBar
+        onAddEspecialidad={async (data) => {
+          const ok = await createEspecialidad(data);
+          if (!selectedEspecialidad) {
+            // si no hay seleccion previa, selecciona la primera tras refrescar
+            setTimeout(() => {
+              if (especialidades.length > 0)
+                setSelectedEspecialidad(especialidades[0].codigo);
+            }, 0);
+          }
+          return ok;
+        }}
+      />
 
       <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-200px)]">
         <EspecialidadesList
-          especialidades={especialidades.map(e => ({ nombre: e.nombre, codigo: e.codigo }))}
+          especialidades={especialidades.map((e) => ({
+            nombre: e.nombre,
+            codigo: e.codigo,
+          }))}
           selectedEspecialidad={selectedEspecialidad}
           setSelectedEspecialidad={setSelectedEspecialidad}
         />
@@ -79,10 +108,18 @@ export default function GestionEspecialidadesPage() {
             gruposData={grupos as any}
             especialidadNombre={activeEspecialidad?.nombre}
             activeEspecialidadId={activeEspecialidad?.id}
-            materiasOptions={(materias as any)?.map((m: any) => ({ id: m.id, nombre: m.nombre, codigo: m.codigo }))}
+            materiasOptions={(materias as any)?.map((m: any) => ({
+              id: m.id,
+              nombre: m.nombre,
+              codigo: m.codigo,
+            }))}
             especialidades={especialidades as any}
             docentes={docentes as any}
-            periodos={periodos.map((p: any) => ({ id: p.idPeriodo, nombre: p.nombre, activo: p.activo }))}
+            periodos={periodos.map((p: any) => ({
+              id: p.idPeriodo,
+              nombre: p.nombre,
+              activo: p.activo,
+            }))}
             onUpdateEspecialidad={async (id, data) => {
               const wasActive = activeEspecialidad?.id === id;
               const ok = await updateEspecialidad(id, data);
@@ -115,7 +152,9 @@ export default function GestionEspecialidadesPage() {
                 codigo: data.codigo,
                 horas: (data as any).horas ?? 0,
                 semestre: data.semestre,
-                idEspecialidad: activeEspecialidad ? (activeEspecialidad as any).id : undefined,
+                idEspecialidad: activeEspecialidad
+                  ? (activeEspecialidad as any).id
+                  : undefined,
                 activo: true,
               });
               if (ok) await fetchMaterias(selectedEspecialidad);
@@ -126,7 +165,11 @@ export default function GestionEspecialidadesPage() {
                 codigo: (data as any).codigo,
                 semestre: data.semestre,
                 aula: (data as any).aula,
-                idEspecialidad: (data as any).idEspecialidad || (activeEspecialidad ? (activeEspecialidad as any).id : undefined),
+                idEspecialidad:
+                  (data as any).idEspecialidad ||
+                  (activeEspecialidad
+                    ? (activeEspecialidad as any).id
+                    : undefined),
                 idPeriodo: (data as any).idPeriodo,
                 idDocente: (data as any).idDocente,
                 idMateria: (data as any).idMateria,
