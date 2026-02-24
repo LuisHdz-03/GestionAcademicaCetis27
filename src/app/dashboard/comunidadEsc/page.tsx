@@ -103,12 +103,20 @@ export default function CommunityManagementPage() {
     const fetchPeriodos = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(API_URL, {
+        // CAMBIO: Usamos API_URL
+        const res = await fetch(`${API_URL}/periodos`, {
           headers: {
             "Content-Type": "application/json",
             ...(token && { Authorization: `Bearer ${token}` }),
           },
         });
+
+        // CAMBIO: Validación crucial
+        if (!res.ok) {
+          console.error(`Error HTTP periodos: ${res.status}`);
+          return;
+        }
+
         const data = await res.json();
         if (data.success) setPeriodos(data.data || []);
       } catch (error) {
@@ -119,12 +127,20 @@ export default function CommunityManagementPage() {
     const fetchMaterias = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(API_URL, {
+        // CAMBIO: Usamos API_URL y arreglamos la ruta
+        const res = await fetch(`${API_URL}/materias`, {
           headers: {
             "Content-Type": "application/json",
             ...(token && { Authorization: `Bearer ${token}` }),
           },
         });
+
+        // CAMBIO: Validación crucial
+        if (!res.ok) {
+          console.error(`Error HTTP materias: ${res.status}`);
+          return;
+        }
+
         const data = await res.json();
         if (data.success) setMaterias(data.data || []);
       } catch (error) {
