@@ -49,7 +49,7 @@ export default function Sidebar() {
       icon: FaCheckCircle,
       label: "Escanear QR",
       href: "/dashboard/scan-qr",
-      roles: ["guardia", "admin", "administrativo"],
+      roles: ["guardia"],
     },
     {
       icon: HiClock,
