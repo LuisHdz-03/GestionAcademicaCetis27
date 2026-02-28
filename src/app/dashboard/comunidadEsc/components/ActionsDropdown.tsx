@@ -6,12 +6,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { HiEllipsisHorizontal, HiPencil, HiTrash } from "react-icons/hi2";
 import {
-  HiEllipsisHorizontal,
-  HiPencil,
-  HiTrash,
-} from "react-icons/hi2";
-import { Docente, Alumno, Administrador } from "@/app/dashboard/comunidadEsc/page";
+  Docente,
+  Alumno,
+  Administrador,
+} from "@/app/dashboard/comunidadEsc/page";
 
 interface ActionsDropdownProps {
   item: Docente | Alumno | Administrador;
