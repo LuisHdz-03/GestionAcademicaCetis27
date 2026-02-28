@@ -8,27 +8,21 @@ import Pagination from "./components/Pagination";
 import AddDocenteModal from "@/components/common/Modal/AddDocenteModal";
 import AddAlumnoModal from "@/components/common/Modal/AddAlumnoModal";
 import AddAdminModal from "@/components/common/Modal/AddAdminModal";
-import AddGrupoModal from "@/components/common/Modal/AddGrupoModal";
+// AddGrupoModal removed
 import EditDocenteModal from "@/components/common/Modal/EditDocenteModal";
 import EditAlumnoModal from "@/components/common/Modal/EditAlumnoModal";
 import EditAdminModal from "@/components/common/Modal/EditAdminModal";
-import EditGrupoModal from "@/components/common/Modal/EditGrupoModal";
+// EditGrupoModal removed
 import {
   CommunityMember,
   Docente,
   Alumno,
   Admin as Administrador,
-  Grupo,
 } from "@/types/community";
-import {
-  DocenteFormData,
-  AlumnoFormData,
-  AdminFormData,
-  GrupoFormData,
-} from "@/types/modal";
+import { DocenteFormData, AlumnoFormData, AdminFormData } from "@/types/modal";
 import { useCommunity } from "@/hooks/useCommunity";
 
-type TabType = "docentes" | "alumnos" | "administradores" | "grupos";
+type TabType = "docentes" | "alumnos" | "administradores";
 
 export default function CommunityManagementPage() {
   // --- Hook de datos ---
@@ -36,13 +30,11 @@ export default function CommunityManagementPage() {
     docentes,
     alumnos,
     administradores,
-    grupos,
     especialidades,
     loading,
     fetchDocentes,
     fetchAlumnos,
     fetchAdministradores,
-    fetchGrupos,
     fetchEspecialidades,
     createDocente,
     deleteDocente,
@@ -53,9 +45,6 @@ export default function CommunityManagementPage() {
     createAdministrador,
     deleteAdministrador,
     updateAdministrador,
-    createGrupo,
-    deleteGrupo,
-    updateGrupo,
   } = useCommunity();
 
   // --- UI States ---
@@ -69,11 +58,9 @@ export default function CommunityManagementPage() {
   const [openDocenteModal, setOpenDocenteModal] = useState(false);
   const [openAlumnoModal, setOpenAlumnoModal] = useState(false);
   const [openAdminModal, setOpenAdminModal] = useState(false);
-  const [openGrupoModal, setOpenGrupoModal] = useState(false);
   const [openEditDocente, setOpenEditDocente] = useState(false);
   const [openEditAlumno, setOpenEditAlumno] = useState(false);
   const [openEditAdmin, setOpenEditAdmin] = useState(false);
-  const [openEditGrupo, setOpenEditGrupo] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CommunityMember | null>(
     null,
   );
@@ -89,67 +76,7 @@ export default function CommunityManagementPage() {
     fetchDocentes();
     fetchAlumnos();
     fetchAdministradores();
-    fetchGrupos();
     fetchEspecialidades();
-  }, []);
-
-  // Estados para datos adicionales necesarios para grupos
-  const [periodos, setPeriodos] = useState<any[]>([]);
-  const [materias, setMaterias] = useState<any[]>([]);
-  const API_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
-  // Cargar periodos y materias
-  useEffect(() => {
-    const fetchPeriodos = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        // CAMBIO: Usamos API_URL
-        const res = await fetch(`${API_URL}/periodos`, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-        });
-
-        // CAMBIO: Validación crucial
-        if (!res.ok) {
-          console.error(`Error HTTP periodos: ${res.status}`);
-          return;
-        }
-
-        const data = await res.json();
-        if (data.success) setPeriodos(data.data || []);
-      } catch (error) {
-        console.error("Error al cargar periodos:", error);
-      }
-    };
-
-    const fetchMaterias = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        // CAMBIO: Usamos API_URL y arreglamos la ruta
-        const res = await fetch(`${API_URL}/materias`, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-        });
-
-        // CAMBIO: Validación crucial
-        if (!res.ok) {
-          console.error(`Error HTTP materias: ${res.status}`);
-          return;
-        }
-
-        const data = await res.json();
-        if (data.success) setMaterias(data.data || []);
-      } catch (error) {
-        console.error("Error al cargar materias:", error);
-      }
-    };
-
-    fetchPeriodos();
-    fetchMaterias();
   }, []);
 
   // --- Filters (dinámicos con base en BD) ---
@@ -171,12 +98,7 @@ export default function CommunityManagementPage() {
       Boolean,
     ),
   ];
-  const gruposFilters = [
-    "Todas las especialidades",
-    ...Array.from(new Set((especialidades || []).map((e) => e.nombre))).filter(
-      Boolean,
-    ),
-  ];
+  // gruposFilters removed
 
   const getCurrentData = () => {
     switch (activeTab) {
@@ -186,8 +108,6 @@ export default function CommunityManagementPage() {
         return alumnos;
       case "administradores":
         return administradores;
-      case "grupos":
-        return grupos;
     }
   };
 
@@ -199,8 +119,6 @@ export default function CommunityManagementPage() {
         return alumnosFilters;
       case "administradores":
         return administradoresFilters;
-      case "grupos":
-        return gruposFilters;
     }
   };
 
@@ -213,16 +131,8 @@ export default function CommunityManagementPage() {
         return ["Nombre", "Email", "Matrícula", "Especialidad", "Grupo"];
       case "administradores":
         return ["Nombre", "Email", "Cargo", "N° Empleado"];
-      case "grupos":
-        return [
-          "Código",
-          "Semestre",
-          "Aula",
-          "Especialidad",
-          "Docente",
-          "Materia",
-          "Integrantes",
-        ];
+      default:
+        return [];
     }
   };
   const [visibleColumns, setVisibleColumns] = useState<string[]>(
@@ -275,7 +185,6 @@ export default function CommunityManagementPage() {
     if (activeTab === "docentes") setOpenEditDocente(true);
     if (activeTab === "alumnos") setOpenEditAlumno(true);
     if (activeTab === "administradores") setOpenEditAdmin(true);
-    if (activeTab === "grupos") setOpenEditGrupo(true);
   };
   const handleDelete = async (item: CommunityMember) => {
     if (!confirm("¿Seguro que deseas eliminar este registro?")) return;
@@ -284,7 +193,6 @@ export default function CommunityManagementPage() {
     if (activeTab === "alumnos") ok = await deleteAlumno((item as any).id);
     if (activeTab === "administradores")
       ok = await deleteAdministrador((item as any).id);
-    if (activeTab === "grupos") ok = await deleteGrupo((item as any).id);
     if (ok) {
       // refresh se hace dentro de los métodos delete*
     }
@@ -312,20 +220,12 @@ export default function CommunityManagementPage() {
     }
   };
 
-  const handleCreateGrupo = async (data: GrupoFormData) => {
-    const success = await createGrupo(data);
-    if (success) {
-      setOpenGrupoModal(false);
-    }
-  };
-
   // Mostrar loading mientras se cargan los datos
   if (
     loading &&
     docentes.length === 0 &&
     alumnos.length === 0 &&
-    administradores.length === 0 &&
-    grupos.length === 0
+    administradores.length === 0
   ) {
     return (
       <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
@@ -380,13 +280,10 @@ export default function CommunityManagementPage() {
               setCurrentPage(1);
             }}
             filters={getCurrentFilters()!}
-            especialidades={especialidades}
-            grupos={grupos}
             onAddClick={() => {
               if (activeTab === "docentes") setOpenDocenteModal(true);
               if (activeTab === "alumnos") setOpenAlumnoModal(true);
               if (activeTab === "administradores") setOpenAdminModal(true);
-              if (activeTab === "grupos") setOpenGrupoModal(true);
             }}
           />
 
@@ -427,21 +324,11 @@ export default function CommunityManagementPage() {
         onOpenChange={setOpenAlumnoModal}
         onSubmit={handleCreateAlumno}
         especialidades={especialidades}
-        grupos={grupos}
       />
       <AddAdminModal
         open={openAdminModal}
         onOpenChange={setOpenAdminModal}
         onSubmit={handleCreateAdministrador}
-      />
-      <AddGrupoModal
-        open={openGrupoModal}
-        onOpenChange={setOpenGrupoModal}
-        onSubmit={handleCreateGrupo}
-        especialidades={especialidades}
-        periodos={periodos}
-        docentes={docentes}
-        materias={materias}
       />
 
       {/* Modales de edición */}
@@ -472,7 +359,6 @@ export default function CommunityManagementPage() {
             open={openEditAlumno}
             onOpenChange={setOpenEditAlumno}
             especialidades={especialidades}
-            grupos={grupos}
             initialData={
               {
                 ...(selectedItem as any),
@@ -514,20 +400,6 @@ export default function CommunityManagementPage() {
               const id = (selectedItem as any).id;
               const ok = await updateAdministrador(id, data);
               if (ok) setOpenEditAdmin(false);
-            }}
-          />
-          <EditGrupoModal
-            open={openEditGrupo}
-            onOpenChange={setOpenEditGrupo}
-            grupo={selectedItem as Grupo}
-            especialidades={especialidades}
-            periodos={periodos}
-            docentes={docentes}
-            materias={materias}
-            onSubmit={async (data) => {
-              const id = (selectedItem as any).id;
-              const ok = await updateGrupo(id, data);
-              if (ok) setOpenEditGrupo(false);
             }}
           />
         </>

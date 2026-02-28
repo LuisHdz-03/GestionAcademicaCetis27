@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import ActionsDropdown from "./ActionsDropdown";
-import { Docente, Alumno, Admin, Grupo } from "@/types/community";
+import { Docente, Alumno, Admin } from "@/types/community";
 
 // Tipo base que garantiza que todos tengan id
 interface BaseItem {
@@ -18,9 +18,9 @@ interface BaseItem {
 
 interface DataTableProps {
   activeTab: string;
-  data: (Docente | Alumno | Admin | Grupo)[];
-  handleEdit: (item: Docente | Alumno | Admin | Grupo) => void;
-  handleDelete: (item: Docente | Alumno | Admin | Grupo) => void;
+  data: (Docente | Alumno | Admin)[];
+  handleEdit: (item: Docente | Alumno | Admin) => void;
+  handleDelete: (item: Docente | Alumno | Admin) => void;
   visibleColumns: string[];
 }
 
@@ -46,25 +46,12 @@ export default function DataTable({
         ];
       case "administradores":
         return ["Nombre", "Email", "Cargo", "N° Empleado"];
-      case "grupos":
-        return [
-          "Código",
-          "Semestre",
-          "Aula",
-          "Especialidad",
-          "Docente",
-          "Materia",
-          "Integrantes",
-        ];
       default:
         return [];
     }
   };
 
-  const renderCell = (
-    column: string,
-    item: Docente | Alumno | Admin | Grupo,
-  ) => {
+  const renderCell = (column: string, item: Docente | Alumno | Admin) => {
     // Usamos el ID del item + el nombre de la columna para crear una key única por celda
     const cellKey = `${(item as BaseItem).id}-${column}`;
 
@@ -91,12 +78,6 @@ export default function DataTable({
       case "Especialidad":
         if ("especialidad" in item) {
           return <TableCell key={cellKey}>{item.especialidad}</TableCell>;
-        } else if ("especialidadNombre" in item) {
-          return (
-            <TableCell key={cellKey}>
-              {(item as Grupo).especialidadNombre}
-            </TableCell>
-          );
         }
         return <TableCell key={cellKey}></TableCell>;
       case "N° Empleado":
@@ -112,46 +93,15 @@ export default function DataTable({
           </TableCell>
         );
       case "Semestre":
-        if ("semestre" in item && "codigo" in item) {
-          return (
-            <TableCell key={cellKey}>{(item as Grupo).semestre}°</TableCell>
-          );
-        } else if ("semestre" in item) {
-          return (
-            <TableCell key={cellKey}>{(item as Alumno).semestre}°</TableCell>
-          );
+        if ("semestre" in item) {
+          return <TableCell key={cellKey}>{(item as any).semestre}°</TableCell>;
         }
         return <TableCell key={cellKey}></TableCell>;
       case "Cargo":
         return (
           <TableCell key={cellKey}>{(item as Admin).cargo || ""}</TableCell>
         );
-      case "Código":
-        return (
-          <TableCell key={cellKey}>{(item as Grupo).codigo || ""}</TableCell>
-        );
-      case "Aula":
-        return (
-          <TableCell key={cellKey}>{(item as Grupo).aula || "N/A"}</TableCell>
-        );
-      case "Docente":
-        return (
-          <TableCell key={cellKey}>
-            {(item as Grupo).docenteNombre || "N/A"}
-          </TableCell>
-        );
-      case "Materia":
-        return (
-          <TableCell key={cellKey}>
-            {(item as Grupo).materiaNombre || "N/A"}
-          </TableCell>
-        );
-      case "Integrantes":
-        return (
-          <TableCell key={cellKey}>
-            {(item as Grupo).integrantes || 0}
-          </TableCell>
-        );
+
       case "Grupo":
         return (
           <TableCell key={cellKey}>
@@ -184,7 +134,6 @@ export default function DataTable({
 
           <TableBody>
             {data.length === 0 ? (
-              // SOLUCIÓN: Agregada key a la fila de "No resultados"
               <TableRow key="no-results-row">
                 <TableCell
                   colSpan={allColumns().length + 1}
@@ -195,7 +144,6 @@ export default function DataTable({
               </TableRow>
             ) : (
               data.map((item) => (
-                // SOLUCIÓN: Asegurar que el id se use como key
                 <TableRow
                   key={(item as any).id || (item as any).email || Math.random()}
                 >

@@ -9,7 +9,6 @@ const tabs = [
   { id: "docentes", label: "Docentes" },
   { id: "alumnos", label: "Alumnos" },
   { id: "administradores", label: "Administradores" },
-  { id: "grupos", label: "Grupos" },
 ];
 
 export default function TabsSelector({ activeTab, setActiveTab }: TabsSelectorProps) {

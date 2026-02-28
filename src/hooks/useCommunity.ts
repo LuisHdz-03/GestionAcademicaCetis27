@@ -97,19 +97,19 @@ export function useCommunity(): UseCommunityReturn {
 
       const result = await response.json();
 
-      // Traductor: De Prisma a React
+      // Ajustamos el mapeo para leer los datos aplanados del back
       const docentesMapeados = result.map((d: any) => ({
-        id: d.idDocente,
-        nombre: d.usuario?.nombre || "Sin nombre",
-        apellidoPaterno: d.usuario?.apellidoPaterno || "",
-        apellidoMaterno: d.usuario?.apellidoMaterno || "",
-        email: d.usuario?.email || "",
-        telefono: d.usuario?.telefono || "N/A",
-        fechaNacimiento: d.usuario?.fechaNacimiento || "N/A",
-        curp: "N/A", // En la BD está en usuario, si existe
-        numeroEmpleado: d.numeroEmpleado || "S/N",
-        especialidad: "General",
-        activo: d.usuario?.activo ?? true,
+        id: d.id,
+        nombre: d.nombre,
+        apellidoPaterno: d.apellidoPaterno,
+        apellidoMaterno: d.apellidoMaterno,
+        email: d.email,
+        telefono: d.telefono,
+        fechaNacimiento: d.fechaNacimiento,
+        curp: d.curp,
+        numeroEmpleado: d.numeroEmpleado,
+        especialidad: d.especialidad,
+        activo: d.activo,
       }));
 
       setDocentes(docentesMapeados);
@@ -133,21 +133,21 @@ export function useCommunity(): UseCommunityReturn {
 
       // Traductor: De Prisma a React
       const alumnosMapeados = result.map((a: any) => ({
-        id: a.idEstudiante,
-        nombre: a.usuario?.nombre || "Sin nombre",
-        apellidoPaterno: a.usuario?.apellidoPaterno || "",
-        apellidoMaterno: a.usuario?.apellidoMaterno || "",
-        email: a.usuario?.email || "",
-        telefono: a.usuario?.telefono || "N/A",
-        fechaNacimiento: a.usuario?.fechaNacimiento || "N/A",
+        id: a.id,
+        nombre: a.nombre,
+        apellidoPaterno: a.apellidoPaterno,
+        apellidoMaterno: a.apellidoMaterno,
+        email: a.email,
+        telefono: a.telefono || "N/A",
+        fechaNacimiento: a.fechaNacimiento || "N/A",
         curp: a.curp || "N/A",
         matricula: a.matricula || "S/N",
-        especialidad: a.grupo?.especialidad?.nombre || "Sin Asignar",
+        especialidad: a.especialidad || "Sin Asignar",
         semestre: a.semestre || 1,
-        idGrupo: a.grupoId,
-        grupo: a.grupo?.nombre || "Sin Grupo",
-        activo: a.usuario?.activo ?? true,
-        direccion: a.usuario?.direccion || "N/A",
+        idGrupo: a.idGrupo,
+        grupo: a.grupo || "Sin Grupo",
+        activo: a.activo ?? true,
+        direccion: a.direccion || "N/A",
       }));
 
       setAlumnos(alumnosMapeados);
@@ -170,17 +170,17 @@ export function useCommunity(): UseCommunityReturn {
       const result = await response.json();
 
       const adminMapeados = result.map((a: any) => ({
-        id: a.idAdministrativo,
-        nombre: a.usuario?.nombre || "Sin nombre",
-        apellidoPaterno: a.usuario?.apellidoPaterno || "",
-        apellidoMaterno: a.usuario?.apellidoMaterno || "",
-        email: a.usuario?.email || "",
-        telefono: a.usuario?.telefono || "N/A",
-        fechaNacimiento: a.usuario?.fechaNacimiento || "N/A",
-        curp: "N/A",
-        numeroEmpleado: a.numeroEmpleado || "S/N",
-        cargo: a.cargo || "Administrativo",
-        activo: a.usuario?.activo ?? true,
+        id: a.id,
+        nombre: a.nombre,
+        apellidoPaterno: "",
+        apellidoMaterno: "",
+        email: a.email,
+        telefono: a.telefono || "N/A",
+        fechaNacimiento: a.fechaNacimiento || "N/A",
+        curp: a.curp || "N/A",
+        numeroEmpleado: a.numEmpleado,
+        cargo: a.cargo,
+        activo: a.activo,
       }));
 
       setAdministradores(adminMapeados);

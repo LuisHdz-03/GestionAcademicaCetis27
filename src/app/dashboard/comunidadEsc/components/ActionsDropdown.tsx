@@ -7,16 +7,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { HiEllipsisHorizontal, HiPencil, HiTrash } from "react-icons/hi2";
-import {
-  Docente,
-  Alumno,
-  Administrador,
-} from "@/app/dashboard/comunidadEsc/page";
+import { Docente, Alumno, Admin } from "@/types/community";
 
 interface ActionsDropdownProps {
-  item: Docente | Alumno | Administrador;
-  onEdit: (item: Docente | Alumno | Administrador) => void;
-  onDelete: (item: Docente | Alumno | Administrador) => void;
+  item: Docente | Alumno | Admin;
+  onEdit: (item: Docente | Alumno | Admin) => void;
+  onDelete: (item: Docente | Alumno | Admin) => void;
 }
 
 export default function ActionsDropdown({
