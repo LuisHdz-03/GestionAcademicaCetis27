@@ -68,14 +68,8 @@ export default function Sidebar() {
       label: "Horarios",
       href: "/dashboard/horarios",
       roles: ["admin", "administrativo", "docente"],
-      hidden: true,
     },
-  ].filter(
-    (item) =>
-      !item.hidden &&
-      (!item.roles ||
-        (user?.tipoUsuario ? item.roles.includes(user.tipoUsuario) : false)),
-  );
+  ];
 
   const sidebarBgClass = "bg-[#691C32]";
   const hoverBgClass = "hover:bg-[#50172A]";

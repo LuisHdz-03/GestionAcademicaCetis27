@@ -249,7 +249,7 @@ export function useCommunity(): UseCommunityReturn {
     }
   };
 
-  // --- MÉTODOS DE CREACIÓN, EDICIÓN Y ELIMINACIÓN (Adaptados al nuevo back) ---
+  // --- MÉTODOS DE CREACIÓN, EDICIÓN Y ELIMINACIÓN  ---
 
   const createEspecialidad = async (data: {
     nombre: string;
