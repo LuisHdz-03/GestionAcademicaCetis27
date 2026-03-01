@@ -178,11 +178,19 @@ export default function AddGrupoForm({
                   No hay períodos disponibles
                 </SelectItem>
               ) : (
-                periodos.map((periodo) => (
-                  <SelectItem key={periodo.id} value={periodo.id.toString()}>
-                    {periodo.nombre} ({periodo.codigo})
-                  </SelectItem>
-                ))
+                periodos.map((periodo, index) => {
+                  const periodId = periodo.id || (periodo as any).idPeriodo;
+
+                  if (!periodId) return null;
+
+                  return (
+                    <SelectItem key={periodId} value={periodId.toString()}>
+                      <div className="whitespace-normal break-words">
+                        {periodo.nombre} ({periodo.codigo})
+                      </div>
+                    </SelectItem>
+                  );
+                })
               )}
             </SelectContent>
           </Select>
@@ -210,7 +218,9 @@ export default function AddGrupoForm({
               ) : (
                 especialidades.map((esp) => (
                   <SelectItem key={esp.id} value={esp.id.toString()}>
-                    {esp.nombre} ({esp.codigo})
+                    <div className="whitespace-normal break-words">
+                      {esp.nombre} ({esp.codigo})
+                    </div>
                   </SelectItem>
                 ))
               )}
@@ -270,7 +280,9 @@ export default function AddGrupoForm({
               ) : (
                 materias.map((materia) => (
                   <SelectItem key={materia.id} value={materia.id.toString()}>
-                    {materia.nombre} ({materia.codigo})
+                    <div className="whitespace-normal break-words">
+                      {materia.nombre} ({materia.codigo})
+                    </div>
                   </SelectItem>
                 ))
               )}

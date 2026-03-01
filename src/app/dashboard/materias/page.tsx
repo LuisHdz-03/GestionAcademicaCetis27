@@ -12,6 +12,8 @@ export default function GestionEspecialidadesPage() {
   const {
     especialidades,
     fetchEspecialidades,
+    periodos,
+    fetchPeriodos,
     createEspecialidad,
     updateEspecialidad,
     deleteEspecialidad,
@@ -30,31 +32,13 @@ export default function GestionEspecialidadesPage() {
     updateGrupo,
     deleteGrupo,
   } = useAcademico();
-  const [periodos, setPeriodos] = useState<
-    Array<{ id: number; nombre: string; activo: boolean }>
-  >([]);
 
   const [selectedEspecialidad, setSelectedEspecialidad] = useState<string>("");
 
   useEffect(() => {
     fetchEspecialidades();
     fetchDocentes();
-    // cargar periodos desde API
-    const API_URL =
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    fetch(`${API_URL}/periodos`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    })
-      .then(async (r) => ({ ok: r.ok, json: await r.json() }))
-      .then(({ ok, json }) => {
-        if (ok) setPeriodos(json.data || []);
-      })
-      .catch(() => {});
+    fetchPeriodos();
   }, []);
 
   useEffect(() => {
@@ -66,8 +50,12 @@ export default function GestionEspecialidadesPage() {
 
   useEffect(() => {
     if (selectedEspecialidad) {
-      fetchMaterias(selectedEspecialidad);
-      fetchGrupos(selectedEspecialidad);
+      const active = especialidades.find(
+        (e) => e.codigo === selectedEspecialidad,
+      );
+      const activeId = active ? active.id : undefined;
+      fetchMaterias(activeId);
+      fetchGrupos(activeId as any);
     }
   }, [selectedEspecialidad]);
 
@@ -115,11 +103,7 @@ export default function GestionEspecialidadesPage() {
             }))}
             especialidades={especialidades as any}
             docentes={docentes as any}
-            periodos={periodos.map((p: any) => ({
-              id: p.idPeriodo,
-              nombre: p.nombre,
-              activo: p.activo,
-            }))}
+            periodos={periodos}
             onUpdateEspecialidad={async (id, data) => {
               const wasActive = activeEspecialidad?.id === id;
               const ok = await updateEspecialidad(id, data);

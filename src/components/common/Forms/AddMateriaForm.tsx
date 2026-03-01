@@ -3,7 +3,13 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 interface MateriaFormData {
   nombre: string;
   codigo: string;
@@ -23,7 +29,12 @@ interface AddMateriaFormProps {
   isEditing?: boolean;
 }
 
-export default function AddMateriaForm({ onSubmit, especialidades = [], initialData, isEditing = false }: AddMateriaFormProps) {
+export default function AddMateriaForm({
+  onSubmit,
+  especialidades = [],
+  initialData,
+  isEditing = false,
+}: AddMateriaFormProps) {
   const [formData, setFormData] = useState<MateriaFormData>({
     nombre: initialData?.nombre || "",
     codigo: initialData?.codigo || "",
@@ -54,9 +65,10 @@ export default function AddMateriaForm({ onSubmit, especialidades = [], initialD
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData({ 
-      ...formData, 
-      [name]: name === 'semestre' || name === 'horas' ? parseInt(value) || 0 : value 
+    setFormData({
+      ...formData,
+      [name]:
+        name === "semestre" || name === "horas" ? parseInt(value) || 0 : value,
     });
   };
 
@@ -73,60 +85,77 @@ export default function AddMateriaForm({ onSubmit, especialidades = [], initialD
     <form className="space-y-3" onSubmit={handleSubmit}>
       <div>
         <Label className="text-gray-700 mb-1">Nombre de la Materia *</Label>
-        <Input name="nombre" value={formData.nombre} onChange={handleChange} required />
+        <Input
+          name="nombre"
+          value={formData.nombre}
+          onChange={handleChange}
+          required
+        />
       </div>
-      
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-gray-700 mb-1">Código *</Label>
-          <Input name="codigo" value={formData.codigo} onChange={handleChange} required />
+          <Input
+            name="codigo"
+            value={formData.codigo}
+            onChange={handleChange}
+            required
+          />
         </div>
         <div>
           <Label className="text-gray-700 mb-1">Semestre *</Label>
-          <Input 
-            type="number" 
-            name="semestre" 
-            value={formData.semestre} 
-            onChange={handleChange} 
-            min="1" 
-            max="12" 
-            required 
+          <Input
+            type="number"
+            name="semestre"
+            value={formData.semestre}
+            onChange={handleChange}
+            min="1"
+            max="12"
+            required
           />
         </div>
       </div>
-      
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-gray-700 mb-1">Total de Horas *</Label>
-          <Input 
-            type="number" 
-            name="horas" 
-            value={formData.horas} 
-            onChange={handleChange} 
-            min="1" 
-            max="200" 
-            required 
+          <Input
+            type="number"
+            name="horas"
+            value={formData.horas}
+            onChange={handleChange}
+            min="1"
+            max="200"
+            required
           />
         </div>
         <div>
           <Label className="text-gray-700 mb-1">Especialidad *</Label>
-          <Select onValueChange={(value) => handleSelectChange('idEspecialidad', value)} value={formData.idEspecialidad?.toString()}>
+          <Select
+            onValueChange={(value) =>
+              handleSelectChange("idEspecialidad", value)
+            }
+            value={formData.idEspecialidad?.toString()}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Selecciona una especialidad" />
             </SelectTrigger>
             <SelectContent>
               {especialidades.map((esp) => (
                 <SelectItem key={esp.id} value={esp.id.toString()}>
-                  {esp.nombre} ({esp.codigo})
+                  <div className="whitespace-normal break-words">
+                    {esp.nombre} ({esp.codigo})
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
       </div>
-      
+
       <Button type="submit" className="w-full bg-[#691C32] text-white mt-4">
-        {isEditing ? 'Actualizar Materia' : 'Agregar Materia'}
+        {isEditing ? "Actualizar Materia" : "Agregar Materia"}
       </Button>
     </form>
   );

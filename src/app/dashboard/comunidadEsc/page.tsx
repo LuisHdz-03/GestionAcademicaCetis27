@@ -31,11 +31,13 @@ export default function CommunityManagementPage() {
     alumnos,
     administradores,
     especialidades,
+    grupos,
     loading,
     fetchDocentes,
     fetchAlumnos,
     fetchAdministradores,
     fetchEspecialidades,
+    fetchGrupos,
     createDocente,
     deleteDocente,
     updateDocente,
@@ -77,6 +79,7 @@ export default function CommunityManagementPage() {
     fetchAlumnos();
     fetchAdministradores();
     fetchEspecialidades();
+    fetchGrupos();
   }, []);
 
   // --- Filters (dinámicos con base en BD) ---
@@ -324,6 +327,7 @@ export default function CommunityManagementPage() {
         onOpenChange={setOpenAlumnoModal}
         onSubmit={handleCreateAlumno}
         especialidades={especialidades}
+        grupos={grupos}
       />
       <AddAdminModal
         open={openAdminModal}
@@ -359,6 +363,7 @@ export default function CommunityManagementPage() {
             open={openEditAlumno}
             onOpenChange={setOpenEditAlumno}
             especialidades={especialidades}
+            grupos={grupos}
             initialData={
               {
                 ...(selectedItem as any),

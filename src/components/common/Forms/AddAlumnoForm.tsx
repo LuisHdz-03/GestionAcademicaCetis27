@@ -44,7 +44,9 @@ export default function AddAlumnoForm({
     curp: initialData?.curp || "",
     numeroControl: initialData?.numeroControl || "",
     idEspecialidad: initialData?.idEspecialidad ?? 0,
-    idGrupo: initialData?.idGrupo,
+    idGrupo: initialData?.idGrupo
+      ? Number(initialData.idGrupo as any)
+      : undefined,
     direccion: initialData?.direccion || "",
     semestreActual: initialData?.semestreActual ?? 1,
     fechaIngreso: initialData?.fechaIngreso || "",
@@ -76,10 +78,17 @@ export default function AddAlumnoForm({
           idGrupo: undefined,
         });
       } else {
-        setFormData({
-          ...formData,
-          [name]: parseInt(value) || 0,
-        });
+        // Para idGrupo: buscar el grupo real por su valor para evitar NaN
+        const found = grupos.find((gr) => String(gr.id) === value);
+        if (found) {
+          setFormData({ ...formData, [name]: found.id });
+        } else {
+          const maybeNum = Number(value);
+          setFormData({
+            ...formData,
+            [name]: Number.isNaN(maybeNum) ? undefined : maybeNum,
+          });
+        }
       }
     } else {
       setFormData({ ...formData, [name]: value });
@@ -91,11 +100,24 @@ export default function AddAlumnoForm({
     onSubmit(formData);
   };
 
-  const gruposFiltrados = grupos.filter(
-    (g) =>
-      g.semestre === formData.semestreActual &&
-      g.idEspecialidad === formData.idEspecialidad,
-  );
+  const gruposFiltrados = grupos.filter((g) => {
+    // Normalizar valores: el backend puede devolver strings o números
+    const semestreGrupo = Number(g.semestre ?? (g as any).grado ?? 0);
+    const especialidadId = Number(
+      (g as any).idEspecialidad ??
+        (g as any).especialidadId ??
+        (g as any).especialidad?.id ??
+        0,
+    );
+
+    const semestreActual = Number(formData.semestreActual ?? 0);
+    const selectedEspecialidad = Number(formData.idEspecialidad ?? 0);
+
+    return (
+      semestreGrupo === semestreActual &&
+      especialidadId === selectedEspecialidad
+    );
+  });
 
   return (
     <form className="space-y-3" onSubmit={handleSubmit}>

@@ -67,7 +67,7 @@ export function useAcademico() {
     } as HeadersInit;
   };
 
-  const fetchMaterias = async (especialidadCode?: string) => {
+  const fetchMaterias = async (especialidadFilter?: string | number) => {
     try {
       setLoading(true);
       //rutas
@@ -87,16 +87,23 @@ export function useAcademico() {
         horasPractica: 0,
         semestre: m.semestre || 1,
         especialidadNombre: m.especialidad?.nombre || "General",
-        especialidadCodigo: m.especialidad?.codigo || "GEN",
+        especialidadCodigo:
+          m.especialidad?.codigo ||
+          (m.especialidadId ? String(m.especialidadId) : "GEN"),
         activo: true,
       }));
 
       // Si el frontend pidió filtrar por especialidad
-      const materiasFiltradas = especialidadCode
-        ? materiasMapeadas.filter(
-            (m) => m.especialidadCodigo === especialidadCode,
-          )
-        : materiasMapeadas;
+      let materiasFiltradas = materiasMapeadas;
+      if (typeof especialidadFilter === "string") {
+        materiasFiltradas = materiasMapeadas.filter(
+          (m) => m.especialidadCodigo === especialidadFilter,
+        );
+      } else if (typeof especialidadFilter === "number") {
+        materiasFiltradas = materiasMapeadas.filter(
+          (m: any) => Number(m.especialidadCodigo) === especialidadFilter,
+        );
+      }
 
       setMaterias(materiasFiltradas);
     } catch (e) {

@@ -268,6 +268,7 @@ export function useCommunity(): UseCommunityReturn {
 
       const periodosMapeados = result.map((p: any) => ({
         id: p.idPeriodo || p.id,
+        idPeriodo: p.idPeriodo || p.id,
         nombre: p.nombre,
         codigo: p.codigo,
         activo: p.activo,
