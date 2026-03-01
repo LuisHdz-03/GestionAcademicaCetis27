@@ -100,23 +100,10 @@ export default function AddAlumnoForm({
     onSubmit(formData);
   };
 
-  const gruposFiltrados = grupos.filter((g) => {
-    // Normalizar valores: el backend puede devolver strings o números
-    const semestreGrupo = Number(g.semestre ?? (g as any).grado ?? 0);
-    const especialidadId = Number(
-      (g as any).idEspecialidad ??
-        (g as any).especialidadId ??
-        (g as any).especialidad?.id ??
-        0,
-    );
-
-    const semestreActual = Number(formData.semestreActual ?? 0);
-    const selectedEspecialidad = Number(formData.idEspecialidad ?? 0);
-
-    return (
-      semestreGrupo === semestreActual &&
-      especialidadId === selectedEspecialidad
-    );
+  const gruposFiltrados = grupos.filter((g: any) => {
+    // Aseguramos leer el ID sin importar cómo lo haya llamado el Backend
+    const espId = g.idEspecialidad || g.especialidadId;
+    return Number(espId) === Number(formData.idEspecialidad);
   });
 
   return (

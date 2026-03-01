@@ -131,7 +131,7 @@ export function useAcademico() {
         semestre: g.grado,
         especialidadNombre: g.especialidad?.nombre || "General",
         especialidadCodigo: g.especialidad?.codigo || "GEN",
-        integrantes: g.estudiantes ? g.estudiantes.length : 0,
+        integrantes: g._count?.estudiantes || 0,
         activo: true,
       }));
 
