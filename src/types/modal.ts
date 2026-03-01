@@ -2,9 +2,9 @@ export interface AlumnoFormData {
   nombre: string;
   apellidoPaterno: string;
   apellidoMaterno: string;
-  email: string;
+  email?: string;
   telefono: string;
-  fechaNacimiento: string;
+  fechaNacimiento?: string;
   curp: string;
   numeroControl: string;
   idEspecialidad: number;
@@ -13,36 +13,36 @@ export interface AlumnoFormData {
   semestreActual: number;
   fechaIngreso?: string;
   activo: boolean;
-  password: string;
+  password?: string;
 }
 
 export interface DocenteFormData {
   nombre: string;
   apellidoPaterno: string;
   apellidoMaterno: string;
-  email: string;
+  email?: string;
   telefono: string;
-  fechaNacimiento: string;
+  fechaNacimiento?: string;
   curp: string;
   numeroEmpleado: string;
   especialidad: string;
-  fechaContratacion: string;
+  fechaContratacion?: string;
   activo: boolean;
-  password: string;
+  password?: string;
 }
 
 export interface AdminFormData {
   nombre: string;
   apellidoPaterno: string;
   apellidoMaterno: string;
-  email: string;
+  email?: string;
   telefono: string;
-  fechaNacimiento: string;
+  fechaNacimiento?: string;
   curp: string;
   numeroEmpleado: string;
   cargo: string;
   activo: boolean;
-  password: string;
+  password?: string;
 }
 
 export interface GrupoFormData {

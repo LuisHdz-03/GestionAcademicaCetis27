@@ -38,9 +38,9 @@ export default function AddAlumnoForm({
     nombre: initialData?.nombre || "",
     apellidoPaterno: initialData?.apellidoPaterno || "",
     apellidoMaterno: initialData?.apellidoMaterno || "",
-    email: initialData?.email || "",
+
     telefono: initialData?.telefono || "",
-    fechaNacimiento: initialData?.fechaNacimiento || "",
+
     curp: initialData?.curp || "",
     numeroControl: initialData?.numeroControl || "",
     idEspecialidad: initialData?.idEspecialidad ?? 0,
@@ -49,7 +49,6 @@ export default function AddAlumnoForm({
     semestreActual: initialData?.semestreActual ?? 1,
     fechaIngreso: initialData?.fechaIngreso || "",
     activo: initialData?.activo ?? true,
-    password: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,34 +131,11 @@ export default function AddAlumnoForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label className="text-gray-700 mb-1">Email *</Label>
-          <Input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div>
           <Label className="text-gray-700 mb-1">Teléfono</Label>
           <Input
             name="telefono"
             value={formData.telefono}
             onChange={handleChange}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-gray-700 mb-1">Fecha de Nacimiento *</Label>
-          <Input
-            type="date"
-            name="fechaNacimiento"
-            value={formData.fechaNacimiento}
-            onChange={handleChange}
-            required
           />
         </div>
         <div>
@@ -173,7 +149,6 @@ export default function AddAlumnoForm({
           />
         </div>
       </div>
-
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-gray-700 mb-1">Número de Control *</Label>
@@ -197,19 +172,6 @@ export default function AddAlumnoForm({
           />
         </div>
       </div>
-
-      {mode === "create" && (
-        <div>
-          <Label className="text-gray-700 mb-1">Contraseña *</Label>
-          <Input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-        </div>
-      )}
 
       <div>
         <Label className="text-gray-700 mb-1">Especialidad *</Label>

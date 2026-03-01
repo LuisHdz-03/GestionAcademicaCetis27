@@ -13,6 +13,7 @@ import {
   AdminFormData,
   GrupoFormData,
 } from "@/types/modal";
+import { headers } from "next/headers";
 
 interface Especialidad {
   id: number;
@@ -20,7 +21,12 @@ interface Especialidad {
   codigo: string;
   activo: boolean;
 }
-
+interface Periodo {
+  id: number;
+  nombre: string;
+  codigo: string;
+  activo: boolean;
+}
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
 
@@ -30,6 +36,7 @@ interface UseCommunityReturn {
   administradores: Admin[];
   grupos: Grupo[];
   especialidades: Especialidad[];
+  periodos: Periodo[];
   loading: boolean;
   error: string | null;
 
@@ -38,6 +45,7 @@ interface UseCommunityReturn {
   fetchAdministradores: () => Promise<void>;
   fetchGrupos: () => Promise<void>;
   fetchEspecialidades: () => Promise<void>;
+  fetchPeriodos: () => Promise<void>;
   createEspecialidad: (data: {
     nombre: string;
     codigo: string;
@@ -75,6 +83,7 @@ export function useCommunity(): UseCommunityReturn {
   const [administradores, setAdministradores] = useState<Admin[]>([]);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
+  const [periodos, setPeriodos] = useState<Periodo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -242,6 +251,29 @@ export function useCommunity(): UseCommunityReturn {
       }));
 
       setGrupos(gruposMapeados);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 6. obtener Periodos
+  const fetchPeriodos = async () => {
+    try {
+      const response = await fetch(`${API_URL}/periodos`, {
+        headers: getAuthHeaders(),
+      });
+      const result = await response.json();
+
+      const periodosMapeados = result.map((p: any) => ({
+        id: p.idPeriodo || p.id,
+        nombre: p.nombre,
+        codigo: p.codigo,
+        activo: p.activo,
+      }));
+
+      setPeriodos(periodosMapeados);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -508,6 +540,7 @@ export function useCommunity(): UseCommunityReturn {
       fetchAlumnos(),
       fetchAdministradores(),
       fetchGrupos(),
+      fetchPeriodos(),
       fetchEspecialidades(),
     ]);
   };
@@ -518,6 +551,7 @@ export function useCommunity(): UseCommunityReturn {
     administradores,
     grupos,
     especialidades,
+    periodos,
     loading,
     error,
     fetchDocentes,
@@ -525,6 +559,7 @@ export function useCommunity(): UseCommunityReturn {
     fetchAdministradores,
     fetchGrupos,
     fetchEspecialidades,
+    fetchPeriodos,
     createEspecialidad,
     updateEspecialidad,
     deleteEspecialidad,
