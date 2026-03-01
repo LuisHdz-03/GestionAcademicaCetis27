@@ -22,6 +22,7 @@ export interface GrupoDTO {
   semestre?: number;
   especialidadNombre?: string;
   especialidadCodigo?: string;
+  especialidadId?: number | null;
   integrantes?: number;
   activo: boolean;
 }
@@ -130,16 +131,35 @@ export function useAcademico() {
         codigo: g.nombre,
         semestre: g.grado,
         especialidadNombre: g.especialidad?.nombre || "General",
-        especialidadCodigo: g.especialidad?.codigo || "GEN",
+        especialidadCodigo:
+          g.especialidad?.codigo ||
+          (g.especialidadId ? String(g.especialidadId) : "GEN"),
+        especialidadId: g.especialidadId ?? g.especialidad?.id ?? null,
         integrantes: g._count?.estudiantes || 0,
         activo: true,
       }));
 
-      const gruposFiltrados = especialidadCode
-        ? gruposMapeados.filter(
-            (g) => g.especialidadCodigo === especialidadCode,
-          )
-        : gruposMapeados;
+      // aceptar filtro por código (string) o por id (number)
+      let gruposFiltrados = gruposMapeados;
+      if (typeof especialidadCode === "string") {
+        gruposFiltrados = gruposMapeados.filter(
+          (g) => g.especialidadCodigo === especialidadCode,
+        );
+      } else if (typeof especialidadCode === "number") {
+        gruposFiltrados = gruposMapeados.filter(
+          (g: any) =>
+            Number(g.especialidadId) === especialidadCode ||
+            Number(g.especialidadCodigo) === especialidadCode,
+        );
+      }
+
+      console.debug(
+        "fetchGrupos: mapped count=",
+        gruposMapeados.length,
+        "filtered=",
+        gruposFiltrados.length,
+        gruposFiltrados.slice(0, 5),
+      );
 
       setGrupos(gruposFiltrados);
     } catch (e) {

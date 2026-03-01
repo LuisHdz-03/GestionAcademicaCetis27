@@ -14,6 +14,8 @@ interface Grupo {
   id: number;
   codigo: string;
   semestre: number;
+  idEspecialidad: number;
+  especialidadId: number;
 }
 
 interface AddAlumnoModalProps {
@@ -24,12 +26,12 @@ interface AddAlumnoModalProps {
   grupos?: Grupo[];
 }
 
-export default function AddAlumnoModal({ 
-  open, 
-  onOpenChange, 
+export default function AddAlumnoModal({
+  open,
+  onOpenChange,
   onSubmit,
   especialidades = [],
-  grupos = []
+  grupos = [],
 }: AddAlumnoModalProps) {
   const handleSubmit = (data: AlumnoFormData) => {
     onSubmit(data);
@@ -38,13 +40,16 @@ export default function AddAlumnoModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-      </DialogTrigger>
+      <DialogTrigger asChild></DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Agregar Alumno</DialogTitle>
         </DialogHeader>
-        <AddAlumnoForm onSubmit={handleSubmit} especialidades={especialidades} grupos={grupos} />
+        <AddAlumnoForm
+          onSubmit={handleSubmit}
+          especialidades={especialidades}
+          grupos={grupos}
+        />
       </DialogContent>
     </Dialog>
   );
