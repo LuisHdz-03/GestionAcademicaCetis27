@@ -43,7 +43,17 @@ export default function AddDocenteForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+
+    const especialidadSeleccionada = especialidades.find(
+      (esp) => esp.nombre === formData.especialidad,
+    );
+    const dataToSubmit = {
+      ...formData,
+      idEspecialidad: especialidadSeleccionada
+        ? especialidadSeleccionada.id
+        : null,
+    };
+    onSubmit(dataToSubmit as any);
   };
 
   return (
@@ -95,6 +105,7 @@ export default function AddDocenteForm({
             onChange={handleChange}
             required
             maxLength={18}
+            className="uppercase"
           />
         </div>
       </div>
@@ -142,7 +153,10 @@ export default function AddDocenteForm({
         </Select>
       </div>
 
-      <Button type="submit" className="w-full bg-[#691C32] text-white mt-4">
+      <Button
+        type="submit"
+        className="w-full bg-[#691C32] hover:bg-[#4a1424] text-white mt-4"
+      >
         {mode === "create" ? "Agregar Docente" : "Guardar cambios"}
       </Button>
     </form>

@@ -127,7 +127,11 @@ export function useCommunity(): UseCommunityReturn {
         fechaNacimiento: d.fechaNacimiento,
         curp: d.curp,
         numeroEmpleado: d.numeroEmpleado,
-        especialidad: d.especialidad,
+        especialidad:
+          d.especialidad && d.especialidad !== "General"
+            ? d.especialidad
+            : "Sin Asignar",
+
         activo: d.activo,
       }));
 
