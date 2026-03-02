@@ -152,17 +152,19 @@ export default function CommunityManagementPage() {
 
   // --- Filtered Data ---
   const filteredData = getCurrentData()!.filter((item: CommunityMember) => {
+    const searchLower = searchTerm.toLowerCase();
+
     const matchesSearch =
       ("nombre" in item &&
-        item.nombre.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.nombre || "").toLowerCase().includes(searchLower)) ||
       ("email" in item &&
-        item.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.email || "").toLowerCase().includes(searchLower)) ||
       ("codigo" in item &&
-        item.codigo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.codigo || "").toLowerCase().includes(searchLower)) ||
       ("matricula" in item &&
-        item.matricula.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.matricula || "").toLowerCase().includes(searchLower)) ||
       ("numeroEmpleado" in item &&
-        item.numeroEmpleado.toLowerCase().includes(searchTerm.toLowerCase()));
+        (item.numeroEmpleado || "").toLowerCase().includes(searchLower));
 
     const matchesFilter =
       !selectedFilter ||

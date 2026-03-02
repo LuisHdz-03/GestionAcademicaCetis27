@@ -102,12 +102,18 @@ export default function DataTable({
           <TableCell key={cellKey}>{(item as Admin).cargo || ""}</TableCell>
         );
 
-      case "Grupo":
+      case "Grupo": {
+        const grupoDato = (item as Alumno).grupo;
+
+        const nombreGrupo =
+          typeof grupoDato === "object" && grupoDato !== null
+            ? (grupoDato as any).nombre
+            : grupoDato;
+
         return (
-          <TableCell key={cellKey}>
-            {(item as Alumno).grupo || "Sin grupo"}
-          </TableCell>
+          <TableCell key={cellKey}>{nombreGrupo || "Sin grupo"}</TableCell>
         );
+      }
       default:
         return null;
     }

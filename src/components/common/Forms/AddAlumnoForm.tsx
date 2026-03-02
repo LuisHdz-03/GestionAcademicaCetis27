@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,35 @@ export default function AddAlumnoForm({
     e.preventDefault();
     onSubmit(formData);
   };
+
+  useEffect(() => {
+    if (!formData.idEspecialidad || formData.idEspecialidad === 0) {
+      if (especialidades.length === 1) {
+        setFormData((fd) => ({
+          ...fd,
+          idEspecialidad: especialidades[0].id,
+          idGrupo: undefined,
+        }));
+        return;
+      }
+
+      if (grupos && grupos.length > 0) {
+        const first = grupos[0] as any;
+        const espId =
+          first.idEspecialidad ??
+          first.especialidadId ??
+          first.especialidad?.id ??
+          null;
+        if (espId) {
+          setFormData((fd) => ({
+            ...fd,
+            idEspecialidad: Number(espId),
+            idGrupo: undefined,
+          }));
+        }
+      }
+    }
+  }, [especialidades, grupos]);
 
   const gruposFiltrados = grupos.filter((g: any) => {
     // Aseguramos leer el ID sin importar cómo lo haya llamado el Backend

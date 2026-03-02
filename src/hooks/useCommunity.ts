@@ -27,6 +27,13 @@ interface Periodo {
   codigo: string;
   activo: boolean;
 }
+
+interface Materia {
+  id: number;
+  nombre: string;
+  codigo: string;
+  activo: boolean;
+}
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
 
@@ -37,6 +44,7 @@ interface UseCommunityReturn {
   grupos: Grupo[];
   especialidades: Especialidad[];
   periodos: Periodo[];
+  materias: Materia[];
   loading: boolean;
   error: string | null;
 
@@ -46,6 +54,7 @@ interface UseCommunityReturn {
   fetchGrupos: () => Promise<void>;
   fetchEspecialidades: () => Promise<void>;
   fetchPeriodos: () => Promise<void>;
+  fetchMaterias: () => Promise<void>;
   createEspecialidad: (data: {
     nombre: string;
     codigo: string;
@@ -84,6 +93,7 @@ export function useCommunity(): UseCommunityReturn {
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [periodos, setPeriodos] = useState<Periodo[]>([]);
+  const [materias, setMaterias] = useState<Materia[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -140,23 +150,37 @@ export function useCommunity(): UseCommunityReturn {
 
       const result = await response.json();
 
-      // Traductor: De Prisma a React
+      // Traductor: De Prisma a React buscando en las sub-tablas
       const alumnosMapeados = result.map((a: any) => ({
-        id: a.id,
-        nombre: a.nombre,
-        apellidoPaterno: a.apellidoPaterno,
-        apellidoMaterno: a.apellidoMaterno,
-        email: a.email,
-        telefono: a.telefono || "N/A",
-        fechaNacimiento: a.fechaNacimiento || "N/A",
-        curp: a.curp || "N/A",
+        id: a.idEstudiante || a.id,
+        nombre: a.nombre || a.usuario?.nombre || "",
+        apellidoPaterno: a.apellidoPaterno || a.usuario?.apellidoPaterno || "",
+        apellidoMaterno: a.apellidoMaterno || a.usuario?.apellidoMaterno || "",
+        email: a.email || a.usuario?.email || "",
+        telefono: a.telefono || a.usuario?.telefono || "N/A",
+        fechaNacimiento:
+          a.fechaNacimiento || a.usuario?.fechaNacimiento || "N/A",
+        curp: a.curp || a.usuario?.curp || "N/A",
+
+        // Datos académicos
         matricula: a.matricula || "S/N",
-        especialidad: a.especialidad || "Sin Asignar",
         semestre: a.semestre || 1,
-        idGrupo: a.idGrupo,
-        grupo: a.grupo || "Sin Grupo",
-        activo: a.activo ?? true,
-        direccion: a.direccion || "N/A",
+
+        // Buscamos la especialidad dentro del grupo
+        especialidad:
+          a.especialidad?.nombre ||
+          a.grupo?.especialidad?.nombre ||
+          (typeof a.especialidad === "string" ? a.especialidad : "Sin Asignar"),
+
+        // Datos del grupo
+        idGrupo: a.grupoId || a.idGrupo,
+        grupo:
+          a.grupo?.nombre ||
+          a.grupo?.codigo ||
+          (typeof a.grupo === "string" ? a.grupo : "Sin Grupo"),
+
+        activo: a.activo ?? a.usuario?.activo ?? true,
+        direccion: a.direccion || a.usuario?.direccion || "N/A",
       }));
 
       setAlumnos(alumnosMapeados);
@@ -282,6 +306,32 @@ export function useCommunity(): UseCommunityReturn {
     }
   };
 
+  // 7. obtener materias
+  const fetchMaterias = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/materias`, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Error al obtener materias");
+
+      const result = await response.json();
+
+      // Ajusta este mapeo si las propiedades en tu Backend se llaman diferente
+      const materiasMapeadas = result.map((m: any) => ({
+        id: m.idMateria || m.id,
+        nombre: m.nombre,
+        codigo: m.codigo || m.clave || "N/A",
+        activo: m.activo ?? true,
+      }));
+
+      setMaterias(materiasMapeadas);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setLoading(false);
+    }
+  };
   // --- MÉTODOS DE CREACIÓN, EDICIÓN Y ELIMINACIÓN  ---
 
   const createEspecialidad = async (data: {
@@ -371,28 +421,63 @@ export function useCommunity(): UseCommunityReturn {
     }
   };
 
+  // --- ELIMINAR DOCENTE (CON CHISMOSO) ---
   const deleteDocente = async (id: number) => {
     try {
       const response = await fetch(`${API_URL}/docentes/${id}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
-      if (!response.ok) throw new Error("Error al eliminar");
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error ||
+            errorData.mensaje ||
+            "Error desconocido al eliminar el docente",
+        );
+      }
+
       await fetchDocentes();
+      toast({
+        title: "Eliminado",
+        description: "El docente ha sido eliminado exitosamente.",
+        variant: "success",
+      });
       return true;
-    } catch (err) {
+    } catch (err: any) {
+      console.error("Fallo al eliminar docente:", err);
+      toast({
+        title: "Error al eliminar",
+        description: err.message,
+        variant: "destructive",
+      });
       return false;
     }
   };
 
   const createAlumno = async (data: AlumnoFormData) => {
     try {
+      const payload = {
+        nombre: data.nombre,
+        apellidoPaterno: data.apellidoPaterno,
+        apellidoMaterno: data.apellidoMaterno,
+        curp: data.curp,
+        telefono: data.telefono,
+        direccion: data.direccion,
+        matricula: data.numeroControl,
+        semestre: data.semestreActual,
+        grupoId: data.idGrupo,
+      };
+
       const response = await fetch(`${API_URL}/estudiantes`, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error("Error al crear");
+
+      if (!response.ok) throw new Error("Error al crear alumno");
+
       await fetchAlumnos();
       toast({
         title: "Éxito",
@@ -401,18 +486,33 @@ export function useCommunity(): UseCommunityReturn {
       });
       return true;
     } catch (err) {
+      console.error(err);
       return false;
     }
   };
 
   const updateAlumno = async (id: number, data: Partial<AlumnoFormData>) => {
     try {
+      const payload = {
+        nombre: data.nombre,
+        apellidoPaterno: data.apellidoPaterno,
+        apellidoMaterno: data.apellidoMaterno,
+        curp: data.curp,
+        telefono: data.telefono,
+        direccion: data.direccion,
+        matricula: data.numeroControl,
+        semestre: data.semestreActual,
+        grupoId: data.idGrupo,
+      };
+
       const response = await fetch(`${API_URL}/estudiantes/${id}`, {
         method: "PUT",
         headers: getAuthHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
+
       if (!response.ok) throw new Error("Error al actualizar");
+
       await fetchAlumnos();
       return true;
     } catch (err) {
@@ -420,16 +520,37 @@ export function useCommunity(): UseCommunityReturn {
     }
   };
 
+  // --- ELIMINAR ALUMNO  ---
   const deleteAlumno = async (id: number) => {
     try {
       const response = await fetch(`${API_URL}/estudiantes/${id}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
-      if (!response.ok) throw new Error("Error al eliminar");
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error ||
+            errorData.mensaje ||
+            "Error desconocido al eliminar el alumno",
+        );
+      }
+
       await fetchAlumnos();
+      toast({
+        title: "Eliminado",
+        description: "El alumno ha sido eliminado exitosamente.",
+        variant: "success",
+      });
       return true;
-    } catch (err) {
+    } catch (err: any) {
+      console.error("Fallo al eliminar alumno:", err);
+      toast({
+        title: "Error al eliminar",
+        description: err.message,
+        variant: "destructive",
+      });
       return false;
     }
   };
@@ -472,16 +593,37 @@ export function useCommunity(): UseCommunityReturn {
     }
   };
 
+  // --- ELIMINAR ADMINISTRADOR  ---
   const deleteAdministrador = async (id: number) => {
     try {
       const response = await fetch(`${API_URL}/administrativos/${id}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
-      if (!response.ok) throw new Error("Error al eliminar");
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error ||
+            errorData.mensaje ||
+            "Error desconocido al eliminar el administrador",
+        );
+      }
+
       await fetchAdministradores();
+      toast({
+        title: "Eliminado",
+        description: "El administrador ha sido eliminado exitosamente.",
+        variant: "success",
+      });
       return true;
-    } catch (err) {
+    } catch (err: any) {
+      console.error("Fallo al eliminar administrador:", err);
+      toast({
+        title: "Error al eliminar",
+        description: err.message,
+        variant: "destructive",
+      });
       return false;
     }
   };
@@ -543,6 +685,7 @@ export function useCommunity(): UseCommunityReturn {
       fetchGrupos(),
       fetchPeriodos(),
       fetchEspecialidades(),
+      fetchMaterias(),
     ]);
   };
 
@@ -553,6 +696,7 @@ export function useCommunity(): UseCommunityReturn {
     grupos,
     especialidades,
     periodos,
+    materias,
     loading,
     error,
     fetchDocentes,
@@ -561,6 +705,7 @@ export function useCommunity(): UseCommunityReturn {
     fetchGrupos,
     fetchEspecialidades,
     fetchPeriodos,
+    fetchMaterias,
     createEspecialidad,
     updateEspecialidad,
     deleteEspecialidad,

@@ -9,14 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import AddAlumnoForm from "@/components/common/Forms/AddAlumnoForm";
 import { AlumnoFormData } from "@/types/modal";
-
-interface Grupo {
-  id: number;
-  codigo: string;
-  semestre: number;
-  idEspecialidad: number;
-  especialidadId: number;
-}
+import { Grupo } from "@/types/community";
 
 interface AddAlumnoModalProps {
   open: boolean;

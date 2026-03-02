@@ -25,6 +25,7 @@ export interface GrupoDTO {
   especialidadId?: number | null;
   integrantes?: number;
   activo: boolean;
+  idEspecialidad?: number | null;
 }
 
 export interface CreateMateriaInput {
@@ -135,6 +136,7 @@ export function useAcademico() {
           g.especialidad?.codigo ||
           (g.especialidadId ? String(g.especialidadId) : "GEN"),
         especialidadId: g.especialidadId ?? g.especialidad?.id ?? null,
+        idEspecialidad: g.especialidadId ?? g.especialidad?.id ?? null,
         integrantes: g._count?.estudiantes || 0,
         activo: true,
       }));
@@ -151,6 +153,33 @@ export function useAcademico() {
             Number(g.especialidadId) === especialidadCode ||
             Number(g.especialidadCodigo) === especialidadCode,
         );
+      }
+      // permitir filtro por código (string) o por id (number o string convertible)
+      if (especialidadCode !== undefined && especialidadCode !== null) {
+        if (typeof especialidadCode === "string") {
+          const maybeNum = Number(especialidadCode);
+          if (!Number.isNaN(maybeNum)) {
+            gruposFiltrados = gruposMapeados.filter(
+              (g: any) =>
+                Number(g.idEspecialidad) === maybeNum ||
+                Number(g.especialidadId) === maybeNum ||
+                g.especialidadCodigo === especialidadCode,
+            );
+          } else {
+            gruposFiltrados = gruposMapeados.filter(
+              (g: any) =>
+                g.especialidadCodigo === especialidadCode ||
+                String(g.idEspecialidad) === especialidadCode,
+            );
+          }
+        } else if (typeof especialidadCode === "number") {
+          gruposFiltrados = gruposMapeados.filter(
+            (g: any) =>
+              Number(g.idEspecialidad) === especialidadCode ||
+              Number(g.especialidadId) === especialidadCode ||
+              Number(g.especialidadCodigo) === especialidadCode,
+          );
+        }
       }
 
       console.debug(

@@ -26,9 +26,11 @@ export default function DashboardPage() {
     docentes,
     alumnos,
     administradores,
+    materias,
     fetchDocentes,
     fetchAlumnos,
     fetchAdministradores,
+    fetchMaterias,
   } = useCommunity();
   const [hasActivePeriod, setHasActivePeriod] = useState<boolean | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -93,6 +95,7 @@ export default function DashboardPage() {
     fetchDocentes();
     fetchAlumnos();
     fetchAdministradores();
+    fetchMaterias();
   }, []);
 
   const handleCreatePeriod = () => setIsModalOpen(true);
@@ -287,7 +290,7 @@ export default function DashboardPage() {
     },
     {
       title: "Materias",
-      value: "0",
+      value: String(materias.length),
       icon: HiBookOpen,
       color: "text-green-600",
       bgColor: "bg-green-100",
