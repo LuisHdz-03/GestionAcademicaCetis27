@@ -21,6 +21,7 @@ import {
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
+import { uploadCsv } from "@/lib/upload";
 
 interface TopBarProps {
   visibleColumns: string[];
@@ -53,50 +54,38 @@ export default function TopBar({
   const [isUploading, setIsUploading] = useState(false);
 
   const enviarArchivoAlBackend = async (file: File) => {
+    setIsUploading(true);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("No hay sesión activa. Por favor, inicia sesión nuevamente.");
-        return;
-      }
-
-      setIsUploading(true); // Activar animación de espera
-
-      const formData = new FormData();
-      formData.append("archivosExcel", file);
-
       let endpoint = activeTab;
       if (activeTab === "alumnos") endpoint = "estudiantes";
+      if (activeTab === "docentes") endpoint = "docentes";
       if (activeTab === "administradores") endpoint = "administrativos";
 
-      const response = await fetch(
-        `http://localhost:4000/api/web/${endpoint}/masivo`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        },
-      );
+      const { ok, data } = await uploadCsv(file, endpoint);
 
-      const data = await response.json();
-
-      if (data.ok) {
-        alert(`✅ Éxito: Se procesaron ${data.insertados} registros.`);
-        if (data.fallidos > 0) {
-          console.warn("Registros fallidos:", data.detalles);
-          alert(`Hubo ${data.fallidos} registros fallidos. Revisa la consola.`);
+      if (ok) {
+        const insertados =
+          data?.insertados ?? data?.inserted ?? data?.successCount ?? 0;
+        const fallidos = data?.fallidos ?? data?.failed ?? 0;
+        alert(` Éxito: Se procesaron ${insertados} registros.`);
+        if (fallidos > 0) {
+          console.warn(
+            "Registros fallidos:",
+            data?.detalles ?? data?.errors ?? data?.failedDetails,
+          );
+          alert(`Hubo ${fallidos} registros fallidos. Revisa la consola.`);
         }
         window.location.reload();
       } else {
-        alert(`❌ Error: ${data.msg || "Hubo un problema con el archivo"}`);
+        alert(
+          ` Error: ${data?.msg || data?.message || "Hubo un problema con el archivo"}`,
+        );
       }
     } catch (error) {
       console.error("Error al enviar archivo:", error);
-      alert("❌ Error de conexión con el servidor.");
+      alert(" Error de conexión con el servidor.");
     } finally {
-      setIsUploading(false); // Desactivar animación de espera
+      setIsUploading(false);
     }
   };
 

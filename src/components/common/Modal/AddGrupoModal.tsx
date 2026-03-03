@@ -24,7 +24,7 @@ interface Docente {
   id: number;
   nombre: string;
   apellidoPaterno: string;
-  apellidoMaterno: string;
+  apellidoMaterno?: string;
 }
 
 interface Materia {
@@ -41,16 +41,20 @@ interface AddGrupoModalProps {
   docentes?: Docente[];
   materias?: Materia[];
   periodos?: any[];
+  initialData?: Partial<GrupoFormData>;
+  isEditing?: boolean;
 }
 
-export default function AddGrupoModal({ 
-  open, 
-  onOpenChange, 
+export default function AddGrupoModal({
+  open,
+  onOpenChange,
   onSubmit,
   especialidades = [],
   docentes = [],
   materias = [],
   periodos = [],
+  initialData,
+  isEditing = false,
 }: AddGrupoModalProps) {
   const handleSubmit = (data: GrupoFormData) => {
     onSubmit(data);
@@ -58,10 +62,11 @@ export default function AddGrupoModal({
   };
 
   // Mapear periodos al formato esperado por el formulario
-  const periodosFormateados = periodos.map(p => ({
-    idPeriodo: p.idPeriodo,
-    nombre: p.nombre,
-    codigo: p.codigo
+  const periodosFormateados = periodos.map((p) => ({
+    id: (p as any).id ?? (p as any).idPeriodo ?? 0,
+    idPeriodo: (p as any).idPeriodo ?? (p as any).id ?? 0,
+    nombre: (p as any).nombre ?? "",
+    codigo: (p as any).codigo ?? "",
   }));
 
   return (
@@ -70,13 +75,14 @@ export default function AddGrupoModal({
         <DialogHeader>
           <DialogTitle>Agregar Grupo</DialogTitle>
         </DialogHeader>
-        <AddGrupoForm 
+        <AddGrupoForm
           onSubmit={handleSubmit}
           especialidades={especialidades}
           docentes={docentes}
           materias={materias}
           periodos={periodosFormateados}
-          mode="create"
+          initialData={initialData}
+          mode={isEditing ? "edit" : "create"}
         />
       </DialogContent>
     </Dialog>

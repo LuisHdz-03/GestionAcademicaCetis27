@@ -7,16 +7,23 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import AddEspeModal from "@/components/common/Modal/AddEspeModal";
 import { HiArrowDownTray } from "react-icons/hi2";
+import { uploadCsv } from "@/lib/upload";
 
 interface TopBarProps {
-  onAddEspecialidad: (data: { nombre: string; codigo: string }) => Promise<boolean> | Promise<void>;
+  onAddEspecialidad: (data: {
+    nombre: string;
+    codigo: string;
+  }) => Promise<boolean> | Promise<void>;
 }
 
 export default function TopBar({ onAddEspecialidad }: TopBarProps) {
   const [openAddEspeModal, setOpenAddEspeModal] = useState(false);
 
   // Función que se llama cuando se envía el formulario dentro del modal
-  const handleAddEspeSubmit = async (data: { nombre: string; codigo: string }) => {
+  const handleAddEspeSubmit = async (data: {
+    nombre: string;
+    codigo: string;
+  }) => {
     const result = await onAddEspecialidad(data);
     setOpenAddEspeModal(false);
   };
@@ -36,20 +43,36 @@ export default function TopBar({ onAddEspecialidad }: TopBarProps) {
               onClick={() => {
                 const input = document.createElement("input");
                 input.type = "file";
-                input.accept = ".csv";
-                input.onchange = (e: Event) => {
-                  const file = e.target.files[0];
+                input.accept = ".csv, .xlsx";
+                input.onchange = async (e: any) => {
+                  const file = e.target.files?.[0];
                   if (!file) return;
-                  // Leer contenido del archivo (solo simulado)
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    const text = reader.result;
-                    console.log("Contenido CSV:", text); // Simula carga
-                    alert(
-                      `Archivo "${file.name}" cargado exitosamente (simulado).`
+                  if (!confirm(`¿Cargar archivo de especialidades?`)) return;
+                  try {
+                    const { ok, data } = await uploadCsv(
+                      file,
+                      "especialidades",
                     );
-                  };
-                  reader.readAsText(file);
+                    if (ok && data) {
+                      alert(
+                        ` Éxito: Se procesaron ${data.insertados ?? 0} registros.`,
+                      );
+                      if ((data.fallidos ?? 0) > 0) {
+                        console.warn("Registros fallidos:", data.detalles);
+                        alert(
+                          `Hubo ${data.fallidos} registros fallidos. Revisa la consola.`,
+                        );
+                      }
+                      window.location.reload();
+                    } else {
+                      alert(
+                        ` Error: ${data?.msg || "Hubo un problema con el archivo"}`,
+                      );
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    alert(" Error al enviar archivo.");
+                  }
                 };
                 input.click();
               }}

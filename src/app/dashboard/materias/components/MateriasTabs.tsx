@@ -20,6 +20,7 @@ import GruposTable from "./GruposTable";
 import { HiArrowDownTray } from "react-icons/hi2";
 import AddMateriaModal from "@/components/common/Modal/AddMateriaModal";
 import AddGrupoModal from "@/components/common/Modal/AddGrupoModal";
+import { MateriaFormData, GrupoFormData } from "@/types/modal";
 import EditEspecialidadModal from "@/components/common/Modal/EditEspecialidadModal";
 
 interface Materia {
@@ -56,13 +57,40 @@ interface Props {
   onDeleteGrupo?: (id: number) => Promise<boolean> | boolean;
   onUpdateEspecialidad?: (id: number, data: any) => Promise<boolean> | boolean;
   onDeleteEspecialidad?: (id: number) => Promise<boolean> | boolean;
-  especialidades?: Array<{ id: number; nombre: string; codigo: string; activo?: boolean }>;
-  docentes?: Array<{ id: number; nombre: string; apellidoPaterno: string; apellidoMaterno?: string }>;
+  especialidades?: Array<{
+    id: number;
+    nombre: string;
+    codigo: string;
+    activo?: boolean;
+  }>;
+  docentes?: Array<{
+    id: number;
+    nombre: string;
+    apellidoPaterno: string;
+    apellidoMaterno?: string;
+  }>;
   periodos?: Array<{ id: number; nombre: string; activo: boolean }>;
   materiasOptions?: Array<{ id: number; nombre: string; codigo: string }>;
 }
 
-export default function MateriasTabs({ materiasData, gruposData, especialidadNombre, activeEspecialidadId, onCreateMateria, onCreateGrupo, onUpdateMateria, onDeleteMateria, onUpdateGrupo, onDeleteGrupo, onUpdateEspecialidad, onDeleteEspecialidad, especialidades = [], docentes = [], periodos = [], materiasOptions = [] }: Props) {
+export default function MateriasTabs({
+  materiasData,
+  gruposData,
+  especialidadNombre,
+  activeEspecialidadId,
+  onCreateMateria,
+  onCreateGrupo,
+  onUpdateMateria,
+  onDeleteMateria,
+  onUpdateGrupo,
+  onDeleteGrupo,
+  onUpdateEspecialidad,
+  onDeleteEspecialidad,
+  especialidades = [],
+  docentes = [],
+  periodos = [],
+  materiasOptions = [],
+}: Props) {
   const [searchTerm, setSearchTerm] = useState("");
   const [openEditEspecialidad, setOpenEditEspecialidad] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
@@ -74,8 +102,12 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
 
   const [openMateriaModal, setOpenMateriaModal] = useState(false);
   const [openGrupoModal, setOpenGrupoModal] = useState(false);
-  const [editingMateria, setEditingMateria] = useState<Materia | null>(null);
-  const [editingGrupo, setEditingGrupo] = useState<Grupo | null>(null);
+  const [editingMateria, setEditingMateria] = useState<
+    (Partial<MateriaFormData> & { id?: number }) | null
+  >(null);
+  const [editingGrupo, setEditingGrupo] = useState<
+    (Partial<GrupoFormData> & { id?: number }) | null
+  >(null);
 
   // Paginación
   const [materiaPage, setMateriaPage] = useState(1);
@@ -86,7 +118,7 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
     setVisibleColumns((prev) =>
       prev.includes(column)
         ? prev.filter((c) => c !== column)
-        : [...prev, column]
+        : [...prev, column],
     );
   };
 
@@ -98,11 +130,11 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
   };
 
   const filteredMaterias = (materiasData ?? []).filter((m) =>
-    m.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+    m.nombre.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const filteredGrupos = (gruposData ?? []).filter((g) =>
-    (g.codigo || '').toLowerCase().includes(searchTerm.toLowerCase())
+    (g.codigo || "").toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const materiaTotal = filteredMaterias.length;
@@ -110,33 +142,41 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
   const materiaPageCount = Math.max(1, Math.ceil(materiaTotal / pageSize));
   const grupoPageCount = Math.max(1, Math.ceil(grupoTotal / pageSize));
 
-  const pagedMaterias = filteredMaterias.slice((materiaPage - 1) * pageSize, materiaPage * pageSize);
-  const pagedGrupos = filteredGrupos.slice((grupoPage - 1) * pageSize, grupoPage * pageSize);
+  const pagedMaterias = filteredMaterias.slice(
+    (materiaPage - 1) * pageSize,
+    materiaPage * pageSize,
+  );
+  const pagedGrupos = filteredGrupos.slice(
+    (grupoPage - 1) * pageSize,
+    grupoPage * pageSize,
+  );
 
-  const handleAddMateria = async (data: Materia) => {
+  const handleAddMateria = async (data: MateriaFormData): Promise<boolean> => {
     try {
       if (editingMateria && editingMateria.id && onUpdateMateria) {
-        const ok = await onUpdateMateria(editingMateria.id, data);
-        if (!ok) return;
+        const ok = await onUpdateMateria(editingMateria.id, data as any);
+        if (!ok) return false;
       } else if (onCreateMateria) {
         const ok = await onCreateMateria(data);
-        if (!ok) return;
+        if (!ok) return false;
       }
+      return true;
     } finally {
       setOpenMateriaModal(false);
       setEditingMateria(null);
     }
   };
 
-  const handleAddGrupo = async (data: Grupo) => {
+  const handleAddGrupo = async (data: GrupoFormData): Promise<boolean> => {
     try {
       if (editingGrupo && editingGrupo.id && onUpdateGrupo) {
-        const ok = await onUpdateGrupo(editingGrupo.id, data);
-        if (!ok) return;
+        const ok = await onUpdateGrupo(editingGrupo.id, data as any);
+        if (!ok) return false;
       } else if (onCreateGrupo) {
         const ok = await onCreateGrupo(data);
-        if (!ok) return;
+        if (!ok) return false;
       }
+      return true;
     } finally {
       setOpenGrupoModal(false);
       setEditingGrupo(null);
@@ -169,7 +209,7 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-[200px]">
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => {
                   if (activeEspecialidadId) {
                     setOpenEditEspecialidad(true);
@@ -179,11 +219,16 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
               >
                 Editar Especialidad
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={async () => {
                   if (activeEspecialidadId && onDeleteEspecialidad) {
-                    if (confirm(`¿Estás seguro de eliminar la especialidad "${especialidadNombre}"?`)) {
-                      const ok = await onDeleteEspecialidad(activeEspecialidadId);
+                    if (
+                      confirm(
+                        `¿Estás seguro de eliminar la especialidad "${especialidadNombre}"?`,
+                      )
+                    ) {
+                      const ok =
+                        await onDeleteEspecialidad(activeEspecialidadId);
                       if (ok) {
                         // El parent debería refrescar los datos
                       }
@@ -219,7 +264,10 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
           </TabsList>
 
           {/* Tab Materias */}
-          <TabsContent value="materias" className="flex-1 flex flex-col space-y-4 min-h-0">
+          <TabsContent
+            value="materias"
+            className="flex-1 flex flex-col space-y-4 min-h-0"
+          >
             {/* Barra de herramientas */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
               <div className="relative flex-1 max-w-3xl">
@@ -235,22 +283,27 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
               {/* Filtros / Columnas */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="h-10 px-8 min-w-[150px] whitespace-nowrap">
+                  <Button
+                    variant="outline"
+                    className="h-10 px-8 min-w-[150px] whitespace-nowrap"
+                  >
                     Filtros
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[200px]">
                   <DropdownMenuLabel>Selecciona columnas</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {["Nombre", "Código", "Total de horas", "Semestre"].map((col) => (
-                    <DropdownMenuCheckboxItem
-                      key={col}
-                      checked={visibleColumns.includes(col)}
-                      onCheckedChange={() => toggleColumn(col)}
-                    >
-                      {col}
-                    </DropdownMenuCheckboxItem>
-                  ))}
+                  {["Nombre", "Código", "Total de horas", "Semestre"].map(
+                    (col) => (
+                      <DropdownMenuCheckboxItem
+                        key={col}
+                        checked={visibleColumns.includes(col)}
+                        onCheckedChange={() => toggleColumn(col)}
+                      >
+                        {col}
+                      </DropdownMenuCheckboxItem>
+                    ),
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -263,16 +316,35 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
                 onClick={() => {
                   const input = document.createElement("input");
                   input.type = "file";
-                  input.accept = ".csv";
-                  input.onchange = (e: Event) => {
-                    const file = e.target.files[0];
+                  input.accept = ".csv, .xlsx";
+                  input.onchange = async (e: any) => {
+                    const file = e.target.files?.[0];
                     if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      console.log("Contenido CSV:", reader.result);
-                      alert(`Archivo "${file.name}" cargado exitosamente (simulado).`);
-                    };
-                    reader.readAsText(file);
+                    if (!confirm(`¿Cargar archivo de materias?`)) return;
+                    try {
+                      const { ok, data } = await import("@/lib/upload").then(
+                        (m) => m.uploadCsv(file, "materias"),
+                      );
+                      if (ok && data) {
+                        alert(
+                          `✅ Éxito: Se procesaron ${data.insertados ?? 0} registros.`,
+                        );
+                        if ((data.fallidos ?? 0) > 0) {
+                          console.warn("Registros fallidos:", data.detalles);
+                          alert(
+                            `Hubo ${data.fallidos} registros fallidos. Revisa la consola.`,
+                          );
+                        }
+                        window.location.reload();
+                      } else {
+                        alert(
+                          `❌ Error: ${data?.msg || "Hubo un problema con el archivo"}`,
+                        );
+                      }
+                    } catch (err) {
+                      console.error(err);
+                      alert("❌ Error al enviar archivo.");
+                    }
                   };
                   input.click();
                 }}
@@ -290,20 +362,28 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
             </div>
 
             {/* Tabla */}
-            <MateriasTable 
-              materias={pagedMaterias} 
+            <MateriasTable
+              materias={pagedMaterias}
               visibleColumns={visibleColumns}
               onEdit={async (m) => {
-                const materiaData = {
-                  ...m,
-                  horas: (m as any).totalHoras || (m as any).horas || 0,
-                  idEspecialidad: (m as any).idEspecialidad || 0,
-                };
+                const materiaData: Partial<MateriaFormData> & { id?: number } =
+                  {
+                    id: m.id,
+                    nombre: m.nombre,
+                    codigo: m.codigo,
+                    creditos: (m as any).creditos ?? 0,
+                    horasTeoria: (m as any).horasTeoria ?? 0,
+                    horasPractica: (m as any).horasPractica ?? 0,
+                    idEspecialidad: (m as any).idEspecialidad ?? 0,
+                    activo: (m as any).activo ?? true,
+                  };
                 setEditingMateria(materiaData as any);
                 setOpenMateriaModal(true);
               }}
               onDelete={async (m) => {
-                if (confirm(`¿Estás seguro de eliminar la materia "${m.nombre}"?`)) {
+                if (
+                  confirm(`¿Estás seguro de eliminar la materia "${m.nombre}"?`)
+                ) {
                   if (m.id && onDeleteMateria) {
                     const ok = await onDeleteMateria(m.id);
                     // El parent debería refrescar los datos
@@ -315,8 +395,10 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
             {/* Paginación Materias */}
             <div className="mt-2 flex items-center justify-between text-sm text-gray-600">
               <span>
-                Mostrando {materiaTotal === 0 ? 0 : (materiaPage - 1) * pageSize + 1}
-                -{Math.min(materiaPage * pageSize, materiaTotal)} de {materiaTotal}
+                Mostrando{" "}
+                {materiaTotal === 0 ? 0 : (materiaPage - 1) * pageSize + 1}-
+                {Math.min(materiaPage * pageSize, materiaTotal)} de{" "}
+                {materiaTotal}
               </span>
               <div className="flex items-center gap-2">
                 <Button
@@ -327,12 +409,16 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
                 >
                   Anterior
                 </Button>
-                <span>Página {materiaPage} / {materiaPageCount}</span>
+                <span>
+                  Página {materiaPage} / {materiaPageCount}
+                </span>
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={materiaPage >= materiaPageCount}
-                  onClick={() => setMateriaPage((p) => Math.min(materiaPageCount, p + 1))}
+                  onClick={() =>
+                    setMateriaPage((p) => Math.min(materiaPageCount, p + 1))
+                  }
                 >
                   Siguiente
                 </Button>
@@ -341,7 +427,10 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
           </TabsContent>
 
           {/* Tab Grupos */}
-          <TabsContent value="grupos" className="flex-1 flex flex-col space-y-4 min-h-0">
+          <TabsContent
+            value="grupos"
+            className="flex-1 flex flex-col space-y-4 min-h-0"
+          >
             {/* Barra de herramientas */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
               <div className="relative flex-1 max-w-3xl">
@@ -357,7 +446,10 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
               {/* Filtros / Columnas */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="h-10 px-8 min-w-[150px] whitespace-nowrap">
+                  <Button
+                    variant="outline"
+                    className="h-10 px-8 min-w-[150px] whitespace-nowrap"
+                  >
                     Filtros
                   </Button>
                 </DropdownMenuTrigger>
@@ -385,16 +477,35 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
                 onClick={() => {
                   const input = document.createElement("input");
                   input.type = "file";
-                  input.accept = ".csv";
-                  input.onchange = (e: Event) => {
-                    const file = e.target.files[0];
+                  input.accept = ".csv, .xlsx";
+                  input.onchange = async (e: any) => {
+                    const file = e.target.files?.[0];
                     if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      console.log("Contenido CSV:", reader.result);
-                      alert(`Archivo "${file.name}" cargado exitosamente (simulado).`);
-                    };
-                    reader.readAsText(file);
+                    if (!confirm(`¿Cargar archivo de grupos?`)) return;
+                    try {
+                      const { ok, data } = await import("@/lib/upload").then(
+                        (m) => m.uploadCsv(file, "grupos"),
+                      );
+                      if (ok && data) {
+                        alert(
+                          ` Éxito: Se procesaron ${data.insertados ?? 0} registros.`,
+                        );
+                        if ((data.fallidos ?? 0) > 0) {
+                          console.warn("Registros fallidos:", data.detalles);
+                          alert(
+                            `Hubo ${data.fallidos} registros fallidos. Revisa la consola.`,
+                          );
+                        }
+                        window.location.reload();
+                      } else {
+                        alert(
+                          ` Error: ${data?.msg || "Hubo un problema con el archivo"}`,
+                        );
+                      }
+                    } catch (err) {
+                      console.error(err);
+                      alert(" Error al enviar archivo.");
+                    }
                   };
                   input.click();
                 }}
@@ -412,22 +523,27 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
             </div>
 
             {/* Tabla */}
-            <GruposTable 
-              grupos={pagedGrupos} 
+            <GruposTable
+              grupos={pagedGrupos}
               visibleColumns={visibleColumns}
               onEdit={async (g) => {
-                const grupoData = {
-                  ...g,
-                  idEspecialidad: (g as any).idEspecialidad || 0,
-                  idPeriodo: (g as any).idPeriodo || 0,
-                  idDocente: (g as any).idDocente || 0,
-                  idMateria: (g as any).idMateria || 0,
+                const grupoData: Partial<GrupoFormData> & { id?: number } = {
+                  id: g.id,
+                  codigo: g.codigo,
+                  semestre: g.semestre,
+                  idEspecialidad: (g as any).idEspecialidad ?? 0,
+                  idPeriodo: (g as any).idPeriodo ?? 0,
+                  idDocente: (g as any).idDocente ?? 0,
+                  idMateria: (g as any).idMateria ?? 0,
+                  activo: (g as any).activo ?? true,
                 };
                 setEditingGrupo(grupoData as any);
                 setOpenGrupoModal(true);
               }}
               onDelete={async (g) => {
-                if (confirm(`¿Estás seguro de eliminar el grupo "${g.codigo}"?`)) {
+                if (
+                  confirm(`¿Estás seguro de eliminar el grupo "${g.codigo}"?`)
+                ) {
                   if (g.id && onDeleteGrupo) {
                     const ok = await onDeleteGrupo(g.id);
                     // El parent debería refrescar los datos
@@ -439,8 +555,9 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
             {/* Paginación Grupos */}
             <div className="mt-2 flex items-center justify-between text-sm text-gray-600">
               <span>
-                Mostrando {grupoTotal === 0 ? 0 : (grupoPage - 1) * pageSize + 1}
-                -{Math.min(grupoPage * pageSize, grupoTotal)} de {grupoTotal}
+                Mostrando{" "}
+                {grupoTotal === 0 ? 0 : (grupoPage - 1) * pageSize + 1}-
+                {Math.min(grupoPage * pageSize, grupoTotal)} de {grupoTotal}
               </span>
               <div className="flex items-center gap-2">
                 <Button
@@ -451,12 +568,16 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
                 >
                   Anterior
                 </Button>
-                <span>Página {grupoPage} / {grupoPageCount}</span>
+                <span>
+                  Página {grupoPage} / {grupoPageCount}
+                </span>
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={grupoPage >= grupoPageCount}
-                  onClick={() => setGrupoPage((p) => Math.min(grupoPageCount, p + 1))}
+                  onClick={() =>
+                    setGrupoPage((p) => Math.min(grupoPageCount, p + 1))
+                  }
                 >
                   Siguiente
                 </Button>
@@ -467,27 +588,27 @@ export default function MateriasTabs({ materiasData, gruposData, especialidadNom
       </Card>
 
       {/* Modales */}
-      <AddMateriaModal 
-        open={openMateriaModal} 
+      <AddMateriaModal
+        open={openMateriaModal}
         onOpenChange={(open) => {
           setOpenMateriaModal(open);
           if (!open) setEditingMateria(null);
-        }} 
-        onSubmit={handleAddMateria} 
-        especialidades={especialidades} 
+        }}
+        onSubmit={handleAddMateria}
+        especialidades={especialidades}
         initialData={editingMateria || undefined}
         isEditing={!!editingMateria}
       />
-      <AddGrupoModal 
-        open={openGrupoModal} 
+      <AddGrupoModal
+        open={openGrupoModal}
         onOpenChange={(open) => {
           setOpenGrupoModal(open);
           if (!open) setEditingGrupo(null);
-        }} 
-        onSubmit={handleAddGrupo} 
-        especialidades={especialidades} 
-        docentes={docentes} 
-        materias={materiasOptions} 
+        }}
+        onSubmit={handleAddGrupo}
+        especialidades={especialidades}
+        docentes={docentes}
+        materias={materiasOptions}
         periodos={periodos}
         initialData={editingGrupo || undefined}
         isEditing={!!editingGrupo}

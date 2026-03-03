@@ -59,9 +59,11 @@ export interface GrupoFormData {
 export interface MateriaFormData {
   nombre: string;
   codigo: string;
-  creditos: number;
-  horasTeoria: number;
-  horasPractica: number;
+  semestre?: number;
+  horas?: number;
+  creditos?: number;
+  horasTeoria?: number;
+  horasPractica?: number;
   idEspecialidad: number;
   activo: boolean;
 }

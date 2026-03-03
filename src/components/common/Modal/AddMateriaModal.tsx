@@ -6,31 +6,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import AddMateriaForm from "@/components/common/Forms/AddMateriaForm";
-
-interface MateriaFormData {
-  nombre: string;
-  codigo: string;
-  semestre: number;
-  horas: number;
-  idEspecialidad: number;
-  activo: boolean;
-  creditos?: number;
-  horasTeoria?: number;
-  horasPractica?: number;
-}
+import { MateriaFormData } from "@/types/modal";
 
 interface AddMateriaModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: MateriaFormData) => void;
+  onSubmit: (data: MateriaFormData) => Promise<boolean> | boolean | void;
   especialidades?: Array<{ id: number; nombre: string; codigo: string }>;
   initialData?: Partial<MateriaFormData>;
   isEditing?: boolean;
 }
 
-export default function AddMateriaModal({ 
-  open, 
-  onOpenChange, 
+export default function AddMateriaModal({
+  open,
+  onOpenChange,
   onSubmit,
   especialidades = [],
   initialData,
@@ -44,9 +33,16 @@ export default function AddMateriaModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar Materia' : 'Agregar Materia'}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Editar Materia" : "Agregar Materia"}
+          </DialogTitle>
         </DialogHeader>
-        <AddMateriaForm onSubmit={handleSubmit} especialidades={especialidades} initialData={initialData} isEditing={isEditing} />
+        <AddMateriaForm
+          onSubmit={handleSubmit}
+          especialidades={especialidades}
+          initialData={initialData}
+          isEditing={isEditing}
+        />
       </DialogContent>
     </Dialog>
   );
