@@ -82,6 +82,12 @@ interface UseCommunityReturn {
   createGrupo: (data: GrupoFormData) => Promise<boolean>;
   updateGrupo: (id: number, data: Partial<GrupoFormData>) => Promise<boolean>;
   deleteGrupo: (id: number) => Promise<boolean>;
+  asignarClase: (data: {
+    grupoId: number;
+    materiaId: number;
+    docenteId: number;
+    horario: string;
+  }) => Promise<boolean>;
   refreshData: () => Promise<void>;
 }
 
@@ -425,7 +431,7 @@ export function useCommunity(): UseCommunityReturn {
     }
   };
 
-  // --- ELIMINAR DOCENTE (CON CHISMOSO) ---
+  // --- ELIMINAR DOCENTE  ---
   const deleteDocente = async (id: number) => {
     try {
       const response = await fetch(`${API_URL}/docentes/${id}`, {
@@ -680,6 +686,53 @@ export function useCommunity(): UseCommunityReturn {
       return false;
     }
   };
+  // -- METODO PARA ASIGNAR CLASES --
+  const asignarClase = async (data: {
+    grupoId: number;
+    materiaId: number;
+    docenteId: number;
+    horario: string;
+  }) => {
+    try {
+      // buscamos el periodo
+      const periodoActivo = periodos.find((p) => p.activo);
+      if (!periodoActivo)
+        throw new Error("No hay periodo activo para asignar una clase");
+
+      const payload = {
+        ...data,
+        periodoId: periodoActivo.id,
+      };
+
+      const response = await fetch(`${API_URL}/clases`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.msg || errorData.error || "Error al asignar las clases",
+        );
+      }
+
+      toast({
+        title: "Exito!",
+        description: "Docente asignado al grupo exitosamente",
+        variant: "success",
+      });
+
+      return true;
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
 
   const refreshData = async () => {
     await Promise.all([
@@ -725,6 +778,7 @@ export function useCommunity(): UseCommunityReturn {
     createGrupo,
     updateGrupo,
     deleteGrupo,
+    asignarClase,
     refreshData,
   };
 }
