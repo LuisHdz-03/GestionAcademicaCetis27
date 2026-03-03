@@ -45,6 +45,7 @@ interface UseCommunityReturn {
   especialidades: Especialidad[];
   periodos: Periodo[];
   materias: Materia[];
+  clases: any[];
   loading: boolean;
   error: string | null;
 
@@ -55,6 +56,7 @@ interface UseCommunityReturn {
   fetchEspecialidades: () => Promise<void>;
   fetchPeriodos: () => Promise<void>;
   fetchMaterias: () => Promise<void>;
+  fetchClases: () => Promise<void>;
   createEspecialidad: (data: {
     nombre: string;
     codigo: string;
@@ -100,6 +102,7 @@ export function useCommunity(): UseCommunityReturn {
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [periodos, setPeriodos] = useState<Periodo[]>([]);
   const [materias, setMaterias] = useState<Materia[]>([]);
+  const [clases, setClases] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -275,6 +278,7 @@ export function useCommunity(): UseCommunityReturn {
         id: g.idGrupo,
         codigo: g.nombre,
         semestre: g.grado,
+        turno: g.turno,
         aula: g.aula || "Por definir",
         idEspecialidad: g.especialidadId,
         especialidadNombre: g.especialidad?.nombre || "N/A",
@@ -342,6 +346,25 @@ export function useCommunity(): UseCommunityReturn {
       setLoading(false);
     }
   };
+
+  // 8. Obtener Clases
+  const fetchClases = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/clases`, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Error al obtener clases");
+
+      const result = await response.json();
+      setClases(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // --- MÉTODOS DE CREACIÓN, EDICIÓN Y ELIMINACIÓN  ---
 
   const createEspecialidad = async (data: {
@@ -754,6 +777,7 @@ export function useCommunity(): UseCommunityReturn {
     especialidades,
     periodos,
     materias,
+    clases,
     loading,
     error,
     fetchDocentes,
@@ -763,6 +787,7 @@ export function useCommunity(): UseCommunityReturn {
     fetchEspecialidades,
     fetchPeriodos,
     fetchMaterias,
+    fetchClases,
     createEspecialidad,
     updateEspecialidad,
     deleteEspecialidad,

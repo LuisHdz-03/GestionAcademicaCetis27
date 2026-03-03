@@ -59,7 +59,8 @@ export default function AsignarClaseForm({
                 key={g.idGrupo || g.id}
                 value={String(g.idGrupo || g.id)}
               >
-                {g.nombre}-{g.turno} ({g.especialidadNombre || "Tronco comun"})
+                {g.codigo} - {g.turno} ({g.especialidadNombre || "Tronco comun"}
+                )
               </SelectItem>
             ))}
           </SelectContent>
