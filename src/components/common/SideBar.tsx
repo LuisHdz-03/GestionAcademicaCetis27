@@ -32,31 +32,31 @@ export default function Sidebar() {
       icon: HiHome,
       label: "Dashboard",
       href: "/dashboard",
-      roles: ["admin", "administrativo"],
+      roles: ["administrativo"],
     },
     {
       icon: HiUsers,
       label: "Gestión Comunidad Escolar",
       href: "/dashboard/comunidadEsc",
-      roles: ["admin", "administrativo"],
+      roles: ["administrativo"],
     },
     {
       icon: FaGraduationCap,
       label: "Materias",
       href: "/dashboard/materias",
-      roles: ["admin", "administrativo"],
+      roles: ["administrativo"],
     },
     {
       icon: FaCheckCircle,
       label: "Horarios",
       href: "/dashboard/horarios",
-      roles: ["admin", "administrativo"],
+      roles: ["administrativo"],
     },
     {
       icon: MdQrCodeScanner,
       label: "Escanear QR",
       href: "/dashboard/scan-qr",
-      roles: ["guardia", "admin"],
+      roles: ["guardia", "administrativo"],
     },
     {
       icon: HiClock,
@@ -68,15 +68,12 @@ export default function Sidebar() {
       icon: HiDocumentText,
       label: "Reportes",
       href: "/dashboard/reportes",
-      roles: ["admin", "administrativo", "docente"],
+      roles: ["administrativo", "docente"],
     },
   ];
 
-  // 👇 AQUÍ ESTÁ LA MAGIA DEL FILTRADO DE ROLES 👇
-  // Solo pasamos los items donde el arreglo "roles" incluya el rol del usuario logueado.
   const itemsPermitidos = menuItems.filter((item) => {
-    // Nota: Asegúrate de que en tu BD el rol se llame 'rol' o 'role', y ajústalo aquí si es necesario.
-    const rolUsuario = user?.rol?.toLowerCase() || user?.role?.toLowerCase();
+    const rolUsuario = user?.tipoUsuario?.toLowerCase();
     return rolUsuario && item.roles.includes(rolUsuario);
   });
 
