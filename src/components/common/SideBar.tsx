@@ -21,6 +21,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import Link from "next/link";
 
 export default function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -152,7 +153,7 @@ export default function Sidebar() {
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
                 )}
               >
-                <a
+                <Link
                   href={item.href}
                   className={cn(
                     "flex items-center w-full",
@@ -167,7 +168,7 @@ export default function Sidebar() {
                       {item.label}
                     </span>
                   )}
-                </a>
+                </Link>
               </Button>
             );
 
