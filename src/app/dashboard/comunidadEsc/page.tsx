@@ -53,6 +53,7 @@ export default function CommunityManagementPage() {
   const [activeTab, setActiveTab] = useState<TabType>("docentes");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -175,7 +176,17 @@ export default function CommunityManagementPage() {
         item.especialidadNombre === selectedFilter) ||
       ("cargo" in item && item.cargo === selectedFilter);
 
-    return matchesSearch && matchesFilter;
+    const matchesStatus =
+      !statusFilter ||
+      statusFilter === "todos" ||
+      (statusFilter === "activos" &&
+        "activo" in item &&
+        (item as any).activo === true) ||
+      (statusFilter === "inactivos" &&
+        "activo" in item &&
+        (item as any).activo === false);
+
+    return matchesSearch && matchesFilter && matchesStatus;
   });
 
   // --- Pagination ---
@@ -259,6 +270,7 @@ export default function CommunityManagementPage() {
               setActiveTab(tab as TabType);
               setSearchTerm("");
               setSelectedFilter("");
+              setStatusFilter("");
               setCurrentPage(1);
               setVisibleColumns(defaultVisibleColumns(tab as TabType));
             }}
@@ -277,6 +289,11 @@ export default function CommunityManagementPage() {
             selectedFilter={selectedFilter}
             onFilterChange={(val) => {
               setSelectedFilter(val);
+              setCurrentPage(1);
+            }}
+            statusFilter={statusFilter}
+            onStatusFilterChange={(val) => {
+              setStatusFilter(val);
               setCurrentPage(1);
             }}
             itemsPerPage={itemsPerPage}

@@ -31,6 +31,8 @@ interface TopBarProps {
   onSearchChange: (val: string) => void;
   selectedFilter: string;
   onFilterChange: (val: string) => void;
+  statusFilter?: string;
+  onStatusFilterChange?: (val: string) => void;
   itemsPerPage: number;
   setItemsPerPage: (n: number) => void;
   filters: string[];
@@ -45,6 +47,8 @@ export default function TopBar({
   onSearchChange,
   selectedFilter,
   onFilterChange,
+  statusFilter,
+  onStatusFilterChange,
   itemsPerPage,
   setItemsPerPage,
   filters,
@@ -151,6 +155,22 @@ export default function TopBar({
             ))}
           </SelectContent>
         </Select>
+
+        {activeTab === "alumnos" && onStatusFilterChange && (
+          <Select
+            value={statusFilter || "todos"}
+            onValueChange={onStatusFilterChange}
+            disabled={isUploading}
+          >
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="activos">Activos</SelectItem>
+              <SelectItem value="inactivos">Inactivos</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* DERECHA: Botones de Acción */}

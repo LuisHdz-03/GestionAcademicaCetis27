@@ -91,7 +91,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchActivePeriod();
-    // cargar conteos reales
     fetchDocentes();
     fetchAlumnos();
     fetchAdministradores();
