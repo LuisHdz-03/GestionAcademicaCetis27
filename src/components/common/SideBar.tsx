@@ -9,6 +9,7 @@ import {
   HiDocumentText,
 } from "react-icons/hi2";
 import { FaGraduationCap, FaCheckCircle } from "react-icons/fa";
+import { MdQrCodeScanner } from "react-icons/md"; // <-- Nuevo ícono importado
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -31,25 +32,31 @@ export default function Sidebar() {
       icon: HiHome,
       label: "Dashboard",
       href: "/dashboard",
-      roles: ["admin", "administrativo", "docente", "alumno"],
+      roles: ["admin", "administrativo"],
     },
     {
       icon: HiUsers,
       label: "Gestión Comunidad Escolar",
       href: "/dashboard/comunidadEsc",
-      roles: ["admin", "administrativo", "docente"],
+      roles: ["admin", "administrativo"],
     },
     {
       icon: FaGraduationCap,
       label: "Materias",
       href: "/dashboard/materias",
-      roles: ["admin", "administrativo", "docente"],
+      roles: ["admin", "administrativo"],
     },
     {
       icon: FaCheckCircle,
+      label: "Horarios",
+      href: "/dashboard/horarios",
+      roles: ["admin", "administrativo"],
+    },
+    {
+      icon: MdQrCodeScanner,
       label: "Escanear QR",
       href: "/dashboard/scan-qr",
-      roles: ["guardia"],
+      roles: ["guardia", "admin"],
     },
     {
       icon: HiClock,
@@ -63,13 +70,15 @@ export default function Sidebar() {
       href: "/dashboard/reportes",
       roles: ["admin", "administrativo", "docente"],
     },
-    {
-      icon: FaCheckCircle,
-      label: "Horarios",
-      href: "/dashboard/horarios",
-      roles: ["admin", "administrativo", "docente"],
-    },
   ];
+
+  // 👇 AQUÍ ESTÁ LA MAGIA DEL FILTRADO DE ROLES 👇
+  // Solo pasamos los items donde el arreglo "roles" incluya el rol del usuario logueado.
+  const itemsPermitidos = menuItems.filter((item) => {
+    // Nota: Asegúrate de que en tu BD el rol se llame 'rol' o 'role', y ajústalo aquí si es necesario.
+    const rolUsuario = user?.rol?.toLowerCase() || user?.role?.toLowerCase();
+    return rolUsuario && item.roles.includes(rolUsuario);
+  });
 
   const sidebarBgClass = "bg-[#691C32]";
   const hoverBgClass = "hover:bg-[#50172A]";
@@ -128,9 +137,9 @@ export default function Sidebar() {
 
         <Separator className="border-[#F2D7D5]" />
 
-        {/* Menu Items */}
+        {/* Menu Items (Usando la lista filtrada) */}
         <nav className="flex-1 p-3 space-y-1">
-          {menuItems.map((item, index) => {
+          {itemsPermitidos.map((item, index) => {
             const Icon = item.icon;
 
             const menuButton = (
@@ -203,7 +212,7 @@ export default function Sidebar() {
             {isExpanded && (
               <div className="flex-1 min-w-0">
                 <p className={cn("text-sm font-medium truncate", textClass)}>
-                  {user?.nombre || "Usuario"} {user?.apellidoPaterno || "Demo"}
+                  {user?.nombre || "Usuario"} {user?.apellidoPaterno || ""}
                 </p>
                 <p className={cn("text-xs truncate", mutedTextClass)}>
                   {user?.email || "demo@example.com"}
