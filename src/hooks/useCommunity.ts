@@ -126,23 +126,27 @@ export function useCommunity(): UseCommunityReturn {
       const result = await response.json();
 
       // Ajustamos el mapeo para leer los datos aplanados del back
-      const docentesMapeados = result.map((d: any) => ({
-        id: d.id,
-        nombre: d.nombre,
-        apellidoPaterno: d.apellidoPaterno,
-        apellidoMaterno: d.apellidoMaterno,
-        email: d.email,
-        telefono: d.telefono,
-        fechaNacimiento: d.fechaNacimiento,
-        curp: d.curp,
-        numeroEmpleado: d.numeroEmpleado,
-        especialidad:
-          d.especialidad && d.especialidad !== "General"
-            ? d.especialidad
-            : "Sin Asignar",
+      const docentesMapeados = result.map((d: any) => {
+        const rawEsp = d.especialidad ?? d.especialidadNombre ?? d.Especialidad;
+        const espNombre =
+          typeof rawEsp === "string" ? rawEsp : (rawEsp?.nombre ?? "");
 
-        activo: d.activo,
-      }));
+        return {
+          id: d.id,
+          nombre: d.nombre,
+          apellidoPaterno: d.apellidoPaterno,
+          apellidoMaterno: d.apellidoMaterno,
+          email: d.email,
+          telefono: d.telefono,
+          fechaNacimiento: d.fechaNacimiento,
+          curp: d.curp,
+          numeroEmpleado: d.numeroEmpleado,
+          especialidad:
+            espNombre && espNombre !== "General" ? espNombre : "Sin Asignar",
+          fechaContratacion: d.fechaContratacion,
+          activo: d.activo,
+        };
+      });
 
       setDocentes(docentesMapeados);
     } catch (err) {
@@ -170,30 +174,23 @@ export function useCommunity(): UseCommunityReturn {
         apellidoPaterno: a.apellidoPaterno || a.usuario?.apellidoPaterno || "",
         apellidoMaterno: a.apellidoMaterno || a.usuario?.apellidoMaterno || "",
         email: a.email || a.usuario?.email || "",
-        telefono: a.telefono || a.usuario?.telefono || "N/A",
-        fechaNacimiento:
-          a.fechaNacimiento || a.usuario?.fechaNacimiento || "N/A",
-        curp: a.curp || a.usuario?.curp || "N/A",
-
-        // Datos académicos
-        matricula: a.matricula || "S/N",
+        telefono: a.telefono || a.usuario?.telefono || "",
+        fechaNacimiento: a.fechaNacimiento || a.usuario?.fechaNacimiento || "",
+        curp: a.curp || a.usuario?.curp || "",
+        matricula: a.matricula || "",
         semestre: a.semestre || 1,
+        fechaIngreso: a.fechaIngreso || "",
+        idEspecialidad:
+          a.especialidad?.idEspecialidad || a.grupo?.especialidadId || 0,
 
-        // Buscamos la especialidad dentro del grupo
         especialidad:
           a.especialidad?.nombre ||
           a.grupo?.especialidad?.nombre ||
-          (typeof a.especialidad === "string" ? a.especialidad : "Sin Asignar"),
-
-        // Datos del grupo
-        idGrupo: a.grupoId || a.idGrupo,
-        grupo:
-          a.grupo?.nombre ||
-          a.grupo?.codigo ||
-          (typeof a.grupo === "string" ? a.grupo : "Sin Grupo"),
-
+          "Sin Asignar",
+        idGrupo: a.grupoId || a.idGrupo || 0,
+        grupo: a.grupo?.nombre || "Sin Grupo",
         activo: a.activo ?? a.usuario?.activo ?? true,
-        direccion: a.direccion || a.usuario?.direccion || "N/A",
+        direccion: a.direccion || a.usuario?.direccion || "",
       }));
 
       setAlumnos(alumnosMapeados);
@@ -218,8 +215,8 @@ export function useCommunity(): UseCommunityReturn {
       const adminMapeados = result.map((a: any) => ({
         id: a.id,
         nombre: a.nombre,
-        apellidoPaterno: "",
-        apellidoMaterno: "",
+        apellidoPaterno: a.apellidoPaterno || "",
+        apellidoMaterno: a.apellidoMaterno || "",
         email: a.email,
         telefono: a.telefono || "N/A",
         fechaNacimiento: a.fechaNacimiento || "N/A",

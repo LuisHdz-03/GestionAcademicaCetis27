@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -25,6 +25,10 @@ export default function AddDocenteForm({
   mode = "create",
   initialData,
 }: AddDocenteFormProps) {
+  // Solo limpiar "Sin Asignar", el resto se pasa directo
+  const limpiarEsp = (nombre?: string) =>
+    nombre && nombre !== "Sin Asignar" ? nombre : "";
+
   const [formData, setFormData] = useState<DocenteFormData>({
     nombre: initialData?.nombre || "",
     apellidoPaterno: initialData?.apellidoPaterno || "",
@@ -32,10 +36,29 @@ export default function AddDocenteForm({
     telefono: initialData?.telefono || "",
     curp: initialData?.curp || "",
     numeroEmpleado: initialData?.numeroEmpleado || "",
-    especialidad: initialData?.especialidad || "",
+    especialidad: limpiarEsp(initialData?.especialidad),
     fechaContratacion: initialData?.fechaContratacion || "",
     activo: initialData?.activo ?? true,
   });
+
+  useEffect(() => {
+    if (initialData && mode === "edit") {
+      setFormData((prev) => ({
+        ...prev,
+        nombre: initialData.nombre || "",
+        apellidoPaterno: initialData.apellidoPaterno || "",
+        apellidoMaterno: initialData.apellidoMaterno || "",
+        telefono: initialData.telefono || "",
+        curp: initialData.curp || "",
+        numeroEmpleado: initialData.numeroEmpleado || "",
+        especialidad: limpiarEsp(initialData.especialidad),
+        fechaContratacion: initialData.fechaContratacion
+          ? String(initialData.fechaContratacion).substring(0, 10)
+          : "",
+        activo: initialData.activo ?? true,
+      }));
+    }
+  }, [initialData, mode]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -135,6 +158,7 @@ export default function AddDocenteForm({
       <div>
         <Label className="text-gray-700 mb-1">Especialidad *</Label>
         <Select
+          key={formData.especialidad || "__empty__"}
           value={formData.especialidad}
           onValueChange={(value) =>
             setFormData({ ...formData, especialidad: value })

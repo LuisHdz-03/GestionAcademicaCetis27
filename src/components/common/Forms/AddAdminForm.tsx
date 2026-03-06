@@ -46,6 +46,13 @@ export default function AddAdminForm({
     "Prefecto",
   ];
 
+  // Si el cargo actual del admin no está en la lista, agregarlo
+  const cargoActual = formData.cargo;
+  const todosLosCargos =
+    cargoActual && !cargosDisponibles.includes(cargoActual)
+      ? [cargoActual, ...cargosDisponibles]
+      : cargosDisponibles;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -124,12 +131,16 @@ export default function AddAdminForm({
         </div>
         <div>
           <Label className="text-gray-700 mb-1">Cargo *</Label>
-          <Select onValueChange={(value) => handleSelectChange("cargo", value)}>
+          <Select
+            key={formData.cargo || "__empty__"}
+            value={formData.cargo}
+            onValueChange={(value) => handleSelectChange("cargo", value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Selecciona un cargo" />
             </SelectTrigger>
             <SelectContent>
-              {cargosDisponibles.map((cargo) => (
+              {todosLosCargos.map((cargo) => (
                 <SelectItem key={cargo} value={cargo}>
                   {cargo}
                 </SelectItem>
