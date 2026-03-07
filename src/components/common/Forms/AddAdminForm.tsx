@@ -42,7 +42,6 @@ export default function AddAdminForm({
     "Coordinador",
     "Jefe de Departamento",
     "Secretario",
-    "Tesorero",
     "Prefecto",
   ];
 

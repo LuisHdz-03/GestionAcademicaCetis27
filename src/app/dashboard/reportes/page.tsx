@@ -58,15 +58,36 @@ export default function ReportesPage() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // 👇 ARREGLO DE TYPESCRIPT: Usamos el rol principal del usuario
-  const rolUsuario =
-    user?.tipoUsuario?.toUpperCase() || (user as any)?.rol?.toUpperCase() || "";
+  const normalizarTexto = (texto: string) => {
+    return texto
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .trim();
+  };
 
-  // Permitimos generar reportes a Docentes, Directivos y Administrativos
+  const tipoUsuario = normalizarTexto(
+    user?.tipoUsuario || (user as any)?.rol || "",
+  );
+  const cargoUsuario = normalizarTexto((user as any)?.cargo || "");
+
+  const cargosPermitidosParaReportar = [
+    "DIRECTOR",
+    "SUBDIRECTORA ACADEMICA",
+    "COORDINADOR",
+    "COORDINADOR ACADEMICO",
+    "JEFE DE DEPARTAMENTO",
+    "PREFECTO",
+    "ADMINISTRATIVO",
+    "ADMINISTRADOR",
+    "ADMIN",
+    "DIRECTIVO",
+  ];
+
   const puedeGenerarReporte =
-    rolUsuario === "DOCENTE" ||
-    rolUsuario === "ADMINISTRATIVO" ||
-    rolUsuario === "DIRECTIVO";
+    tipoUsuario === "DOCENTE" ||
+    tipoUsuario === "ADMINISTRATIVO" ||
+    cargosPermitidosParaReportar.includes(cargoUsuario);
 
   const [alumnos, setAlumnos] = useState<Alumno[]>([]);
   const [reportesRecientes, setReportesRecientes] = useState<Reporte[]>([]);
@@ -216,9 +237,15 @@ export default function ReportesPage() {
       setMostrarSugerencias(false);
 
       const grupoTexto = alumno.grupo || "Sin grupo";
-      const fechaActual = new Date().toISOString().split("T")[0];
 
-      const esDocente = user?.tipoUsuario === "docente";
+      const now = new Date();
+      const fechaActual = new Date(
+        now.getTime() - now.getTimezoneOffset() * 60000,
+      )
+        .toISOString()
+        .split("T")[0];
+
+      const esDocente = tipoUsuario === "DOCENTE";
       const nombreMaestro = esDocente
         ? `${user?.nombre || ""} ${user?.apellidoPaterno || ""}`.trim()
         : "";
@@ -234,7 +261,7 @@ export default function ReportesPage() {
         titulo: `Reporte de conducta - ${nombreCompleto}`,
       }));
     },
-    [user],
+    [user, tipoUsuario],
   );
 
   const handleChange = (
@@ -262,10 +289,10 @@ export default function ReportesPage() {
 
     setLoading(true);
     try {
-      // 👇 ARREGLO DE TYPESCRIPT: Forzamos (user as any) para sacar el cargo si existe
       const cargoReal =
-        (user as any)?.cargo ||
-        (user?.tipoUsuario === "docente" ? "DOCENTE" : "ADMINISTRATIVO");
+        tipoUsuario === "DOCENTE"
+          ? "DOCENTE"
+          : cargoUsuario || "ADMINISTRATIVO";
       const nombreQuienReporta =
         `${cargoReal} - ${user?.nombre} ${user?.apellidoPaterno}`.toUpperCase();
 
@@ -367,6 +394,12 @@ export default function ReportesPage() {
   };
 
   const handlePrintReporte = (reporte: Reporte) => {
+    const fechaCorregida = new Date(
+      reporte.fechaReporte.includes("T")
+        ? reporte.fechaReporte
+        : reporte.fechaReporte + "T12:00:00",
+    ).toLocaleDateString("es-MX");
+
     const dataForPrint = {
       nombreAlumno: reporte.nombreEstudiante,
       folio: reporte.matriculaEstudiante,
@@ -374,7 +407,7 @@ export default function ReportesPage() {
       grupo: reporte.grupoEstudiante || "",
       motivoReporte: reporte.descripcion,
       accionesTomadas: reporte.acciones,
-      fecha: new Date(reporte.fechaReporte).toLocaleDateString("es-MX"),
+      fecha: fechaCorregida,
       lugarEncontraba: "",
       leClasesReportado: "",
       nombreFirmaAlumno: "",
@@ -685,7 +718,7 @@ export default function ReportesPage() {
                       onChange={handleChange}
                     />
                   </div>
-                  {rolUsuario !== "DOCENTE" && (
+                  {tipoUsuario !== "DOCENTE" && (
                     <>
                       <div>
                         <Label>Nombre del Tutor Escolar:</Label>
@@ -768,9 +801,12 @@ export default function ReportesPage() {
                   {reportesRecientes.map((reporte) => (
                     <TableRow key={reporte.idReporte}>
                       <TableCell>
-                        {new Date(reporte.fechaReporte).toLocaleDateString(
-                          "es-MX",
-                        )}
+                        {/* 👇 SOLUCIÓN DE FECHA EN LA TABLA */}
+                        {new Date(
+                          reporte.fechaReporte.includes("T")
+                            ? reporte.fechaReporte
+                            : reporte.fechaReporte + "T12:00:00",
+                        ).toLocaleDateString("es-MX")}
                       </TableCell>
                       <TableCell>
                         <span className="font-medium block">
@@ -878,7 +914,7 @@ export default function ReportesPage() {
                     <span className="font-bold text-gray-500 block">
                       Reportado por:
                     </span>
-                    <p className="mt-1 font-semibold">
+                    <p className="mt-1 font-semibold text-blue-900">
                       {reporteVisualizacion.reportadoPor}
                     </p>
                   </div>
@@ -892,7 +928,7 @@ export default function ReportesPage() {
               >
                 🖨️ Re-Imprimir PDF
               </Button>
-              {rolUsuario !== "DOCENTE" &&
+              {tipoUsuario !== "DOCENTE" &&
                 reporteVisualizacion.estatus !== "RESUELTO" && (
                   <Button
                     className="bg-green-600 hover:bg-green-700 text-white"

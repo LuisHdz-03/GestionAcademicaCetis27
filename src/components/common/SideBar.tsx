@@ -9,7 +9,7 @@ import {
   HiDocumentText,
 } from "react-icons/hi2";
 import { FaGraduationCap, FaCheckCircle } from "react-icons/fa";
-import { MdQrCodeScanner } from "react-icons/md"; // <-- Nuevo ícono importado
+import { MdQrCodeScanner } from "react-icons/md";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -27,56 +27,105 @@ export default function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(true);
   const { user } = useAuth();
 
-  // Menú de navegación dinámico basado en el tipo de usuario
+  // 1. Función para normalizar texto (limpiar acentos)
+  const normalizarTexto = (texto: string) => {
+    if (!texto) return "";
+    return texto
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .trim();
+  };
+
+  // 2. Extraer rol y cargo real de la base de datos
+  const tipoUsuario = normalizarTexto(
+    user?.tipoUsuario || (user as any)?.rol || "",
+  );
+  const cargoUsuario = normalizarTexto(user?.cargo || "");
+
+  // 3. Agrupamos los cargos para no repetir código
+  const cargosDirectivos = [
+    "DIRECTOR",
+    "SUBDIRECTORA ACADEMICA",
+    "COORDINADOR",
+    "COORDINADOR ACADEMICO",
+  ];
+
+  const cargosAdministrativosGrales = [
+    ...cargosDirectivos,
+    "JEFE DE DEPARTAMENTO",
+    "SECRETARIO",
+  ];
+
+  // 4. Validador de permisos
+  const tienePermiso = (itemRoles: string[], itemCargos: string[] = []) => {
+    // Si es DOCENTE y la opción permite docentes, pasa directo.
+    if (tipoUsuario === "DOCENTE" && itemRoles.includes("DOCENTE")) {
+      return true;
+    }
+    // Si es ADMINISTRATIVO, comprobamos que su cargo esté autorizado para esa opción.
+    if (tipoUsuario === "ADMINISTRATIVO" && itemCargos.includes(cargoUsuario)) {
+      return true;
+    }
+    return false;
+  };
+
+  // 5. Configuración exacta de Módulos
   const menuItems = [
     {
       icon: HiHome,
       label: "Dashboard",
       href: "/dashboard",
-      roles: ["administrativo"],
+      roles: ["ADMINISTRATIVO"],
+      cargos: cargosDirectivos, // Solo directivos ven métricas
     },
     {
       icon: HiUsers,
-      label: "Gestión Comunidad Escolar",
+      label: "Gestión Comunidad",
       href: "/dashboard/comunidadEsc",
-      roles: ["administrativo"],
+      roles: ["ADMINISTRATIVO"],
+      cargos: cargosAdministrativosGrales, // Control escolar y directivos
     },
     {
       icon: FaGraduationCap,
       label: "Materias",
       href: "/dashboard/materias",
-      roles: ["administrativo"],
+      roles: ["ADMINISTRATIVO"],
+      cargos: cargosAdministrativosGrales,
     },
     {
       icon: FaCheckCircle,
       label: "Horarios",
       href: "/dashboard/horarios",
-      roles: ["administrativo"],
+      roles: ["ADMINISTRATIVO"],
+      cargos: cargosAdministrativosGrales,
     },
     {
       icon: MdQrCodeScanner,
       label: "Escanear QR",
       href: "/dashboard/scan-qr",
-      roles: ["guardia", "administrativo"],
+      roles: ["ADMINISTRATIVO"],
+      cargos: ["PREFECTO"], // EXCLUSIVO DEL PREFECTO
     },
     {
       icon: HiClock,
       label: "Registros de Entrada",
       href: "/dashboard/registros",
-      roles: ["admin", "administrativo", "guardia"],
+      roles: ["ADMINISTRATIVO"],
+      cargos: ["PREFECTO", ...cargosAdministrativosGrales], // Todos los administrativos pueden consultar quién entró
     },
     {
       icon: HiDocumentText,
       label: "Reportes",
       href: "/dashboard/reportes",
-      roles: ["administrativo", "docente"],
+      roles: ["DOCENTE", "ADMINISTRATIVO"],
+      cargos: ["PREFECTO", ...cargosAdministrativosGrales], // Docs y Admins (El secretario lo ve, pero la página de Reportes le ocultará el botón de CREAR)
     },
   ];
 
-  const itemsPermitidos = menuItems.filter((item) => {
-    const rolUsuario = user?.tipoUsuario?.toLowerCase();
-    return rolUsuario && item.roles.includes(rolUsuario);
-  });
+  const itemsPermitidos = menuItems.filter((item) =>
+    tienePermiso(item.roles, item.cargos),
+  );
 
   const sidebarBgClass = "bg-[#691C32]";
   const hoverBgClass = "hover:bg-[#50172A]";
@@ -92,7 +141,6 @@ export default function Sidebar() {
           isExpanded ? "w-64" : "w-16",
         )}
       >
-        {/* Header con botón de expansión */}
         <div className="flex items-center justify-between p-4">
           {isExpanded && (
             <div className="flex items-center space-x-3">
@@ -123,7 +171,6 @@ export default function Sidebar() {
               textClass,
               hoverBgClass,
             )}
-            aria-label={isExpanded ? "Contraer sidebar" : "Expandir sidebar"}
           >
             {isExpanded ? (
               <HiChevronLeft size={20} />
@@ -135,11 +182,9 @@ export default function Sidebar() {
 
         <Separator className="border-[#F2D7D5]" />
 
-        {/* Menu Items (Usando la lista filtrada) */}
         <nav className="flex-1 p-3 space-y-1">
           {itemsPermitidos.map((item, index) => {
             const Icon = item.icon;
-
             const menuButton = (
               <Button
                 key={index}
@@ -185,14 +230,12 @@ export default function Sidebar() {
                 </Tooltip>
               );
             }
-
             return menuButton;
           })}
         </nav>
 
         <Separator className="border-[#F2D7D5]" />
 
-        {/* Footer con usuario */}
         <div className="p-4">
           <div
             className={cn(
@@ -213,7 +256,7 @@ export default function Sidebar() {
                   {user?.nombre || "Usuario"} {user?.apellidoPaterno || ""}
                 </p>
                 <p className={cn("text-xs truncate", mutedTextClass)}>
-                  {user?.email || "demo@example.com"}
+                  {cargoUsuario || tipoUsuario || "Rol no definido"}
                 </p>
               </div>
             )}

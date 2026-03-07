@@ -25,6 +25,7 @@ export interface User {
   apellidoPaterno: string;
   apellidoMaterno?: string;
   tipoUsuario: UserRole;
+  cargo?: string;
 }
 
 interface LoginResponse {
@@ -97,6 +98,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           usuario = parsedUser as User;
+
+          // Si es administrativo y no tiene cargo guardado, obtenerlo
+          if (usuario.tipoUsuario === "administrativo" && !usuario.cargo) {
+            try {
+              const adminRes = await fetch(`${API_URL}/administrativos`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+                signal: AbortSignal.timeout(5000),
+              });
+              if (adminRes.ok) {
+                const admins = await adminRes.json();
+                const miPerfil = admins.find(
+                  (a: any) => a.id === usuario.id || a.email === usuario.email,
+                );
+                if (miPerfil?.cargo) {
+                  usuario.cargo = miPerfil.cargo;
+                  // Actualizar localStorage con el cargo
+                  localStorage.setItem("usuario", JSON.stringify(usuario));
+                }
+              }
+            } catch {
+              console.warn("No se pudo obtener el cargo del administrativo");
+            }
+          }
+
           setUser(usuario);
         } catch (error) {
           console.error("Error al validar usuario:", error);
@@ -219,9 +247,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: result.usuario.id,
         email: email.trim(),
         nombre: result.usuario.nombre,
-        apellidoPaterno: " ",
+        apellidoPaterno: result.usuario.apellidoPaterno || " ",
         tipoUsuario: result.usuario.rol.toLowerCase() as UserRole,
+        cargo: result.usuario.cargo || result.usuario.datos?.cargo || "",
       };
+
+      // Si es administrativo y no vino cargo del login, buscarlo en /administrativos
+      if (
+        usuarioFormateado.tipoUsuario === "administrativo" &&
+        !usuarioFormateado.cargo
+      ) {
+        try {
+          const adminRes = await fetch(`${API_URL}/administrativos`, {
+            headers: {
+              Authorization: `Bearer ${result.token}`,
+              "Content-Type": "application/json",
+            },
+            signal: AbortSignal.timeout(5000),
+          });
+          if (adminRes.ok) {
+            const admins = await adminRes.json();
+            const miPerfil = admins.find(
+              (a: any) =>
+                a.id === usuarioFormateado.id ||
+                a.email === usuarioFormateado.email,
+            );
+            if (miPerfil?.cargo) {
+              usuarioFormateado.cargo = miPerfil.cargo;
+            }
+          }
+        } catch {
+          // Si falla, continuamos sin cargo
+          console.warn("No se pudo obtener el cargo del administrativo");
+        }
+      }
 
       localStorage.setItem("token", result.token);
       localStorage.setItem("usuario", JSON.stringify(usuarioFormateado));
