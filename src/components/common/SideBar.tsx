@@ -77,14 +77,14 @@ export default function Sidebar() {
       label: "Dashboard",
       href: "/dashboard",
       roles: ["ADMINISTRATIVO"],
-      cargos: cargosDirectivos, // Solo directivos ven métricas
+      cargos: cargosDirectivos,
     },
     {
       icon: HiUsers,
       label: "Gestión Comunidad",
       href: "/dashboard/comunidadEsc",
       roles: ["ADMINISTRATIVO"],
-      cargos: cargosAdministrativosGrales, // Control escolar y directivos
+      cargos: cargosAdministrativosGrales, 
     },
     {
       icon: FaGraduationCap,
@@ -105,21 +105,21 @@ export default function Sidebar() {
       label: "Escanear QR",
       href: "/dashboard/scan-qr",
       roles: ["ADMINISTRATIVO"],
-      cargos: ["PREFECTO"], // EXCLUSIVO DEL PREFECTO
+      cargos: ["PREFECTO"], 
     },
     {
       icon: HiClock,
       label: "Registros de Entrada",
       href: "/dashboard/registros",
       roles: ["ADMINISTRATIVO"],
-      cargos: ["PREFECTO", ...cargosAdministrativosGrales], // Todos los administrativos pueden consultar quién entró
+      cargos: ["PREFECTO", ...cargosAdministrativosGrales],
     },
     {
       icon: HiDocumentText,
       label: "Reportes",
       href: "/dashboard/reportes",
       roles: ["DOCENTE", "ADMINISTRATIVO"],
-      cargos: ["PREFECTO", ...cargosAdministrativosGrales], // Docs y Admins (El secretario lo ve, pero la página de Reportes le ocultará el botón de CREAR)
+      cargos: ["PREFECTO", ...cargosAdministrativosGrales], 
     },
   ];
 
