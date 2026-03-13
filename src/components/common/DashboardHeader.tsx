@@ -1,14 +1,28 @@
 "use client";
 
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/useToast";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
 
 interface DashboardHeaderProps {
   nombreUsuario: string;
@@ -21,77 +35,236 @@ export default function DashboardHeader({
   tipoUsuario,
   avatarUrl,
 }: DashboardHeaderProps) {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const { toast } = useToast();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [passwords, setPasswords] = useState({
+    actual: "",
+    nueva: "",
+    confirmar: "",
+  });
 
   const headerBg = "#691C32";
   const textColor = "#FFFFFF";
   const mutedTextColor = "#F2D7D5";
   const hoverBg = "#50172A";
-  const dangerBg = "#801C2C";
 
-  const handleLogout = () => {
-    logout();
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswords({ ...passwords, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (passwords.nueva !== passwords.confirmar) {
+      toast({
+        title: "Error",
+        description: "Las contraseñas nuevas no coinciden.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwords.nueva.length < 6) {
+      toast({
+        title: "Atención",
+        description: "La nueva contraseña debe tener al menos 6 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/auth/cambiar-password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({
+          idUsuario: user?.id || (user as any)?.idUsuario, // <-- Asegurado idUsuario
+          passwordActual: passwords.actual,
+          passwordNueva: passwords.nueva,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Error al cambiar la contraseña");
+      }
+
+      toast({
+        title: "Éxito",
+        description: "Tu contraseña ha sido actualizada correctamente.",
+        variant: "success",
+      });
+
+      setIsModalOpen(false);
+      setPasswords({ actual: "", nueva: "", confirmar: "" });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <header className="border-b px-5 py-1" style={{ backgroundColor: headerBg }}>
-      <div className="flex items-center justify-between">
-        {/* Título */}
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: textColor }}>
-            Gestión Académica
-          </h1>
-          <p className="text-sm mt-1" style={{ color: mutedTextColor }}>
-            {tipoUsuario}
-          </p>
-        </div>
+    <>
+      <header
+        className="border-b px-5 py-1"
+        style={{ backgroundColor: headerBg }}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: textColor }}>
+              Gestión Académica
+            </h1>
+            <p className="text-sm mt-1" style={{ color: mutedTextColor }}>
+              {tipoUsuario}
+            </p>
+          </div>
 
-        {/* Área derecha con perfil y dropdown */}
-        <div className="flex items-center space-x-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <div className="flex items-center space-x-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center space-x-2 hover:bg-[#50172A] rounded-md"
+                  style={{ color: textColor }}
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={avatarUrl} />
+                    <AvatarFallback
+                      style={{
+                        backgroundColor: mutedTextColor,
+                        color: headerBg,
+                      }}
+                    >
+                      {nombreUsuario
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="hidden md:block text-left">
+                    <p
+                      className="text-sm font-medium"
+                      style={{ color: textColor }}
+                    >
+                      {nombreUsuario}
+                    </p>
+                    <p className="text-xs" style={{ color: mutedTextColor }}>
+                      {tipoUsuario}
+                    </p>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent
+                align="end"
+                className="w-56 rounded-md shadow-lg"
+                style={{
+                  backgroundColor: headerBg,
+                  color: textColor,
+                  border: `1px solid ${hoverBg}`,
+                }}
+              >
+                {/* Usamos onSelect en lugar de onClick. 
+                  e.preventDefault() evita que Radix cierre el dropdown antes de que React abra el modal.
+                */}
+                <DropdownMenuItem
+                  className="text-sm rounded-md cursor-pointer hover:bg-[#50172A]"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setIsModalOpen(true);
+                  }}
+                >
+                  Cambiar Contraseña
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-[#50172A]" />
+                <DropdownMenuItem
+                  className="text-sm rounded-md cursor-pointer hover:bg-[#801C2C]"
+                  onSelect={() => logout()}
+                >
+                  Cerrar Sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </header>
+
+      {/* Modal para cambiar contraseña movido FUERA del dropdown */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#691C32] text-xl">
+              Cambiar Contraseña
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="actual">Contraseña Actual</Label>
+              <Input
+                id="actual"
+                name="actual"
+                type="password"
+                required
+                value={passwords.actual}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="nueva">Nueva Contraseña</Label>
+              <Input
+                id="nueva"
+                name="nueva"
+                type="password"
+                required
+                value={passwords.nueva}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmar">Confirmar Nueva Contraseña</Label>
+              <Input
+                id="confirmar"
+                name="confirmar"
+                type="password"
+                required
+                value={passwords.confirmar}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
               <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center space-x-2 hover:bg-[#50172A] rounded-md"
-                style={{ color: textColor }}
+                type="button"
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
               >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={avatarUrl} />
-                  <AvatarFallback style={{ backgroundColor: mutedTextColor, color: headerBg }}>
-                    {nombreUsuario.split(" ").map(n => n[0]).join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium" style={{ color: textColor }}>
-                    {nombreUsuario}
-                  </p>
-                  <p className="text-xs" style={{ color: mutedTextColor }}>
-                    {tipoUsuario}
-                  </p>
-                </div>
+                Cancelar
               </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent
-              align="end"
-              className="w-56 rounded-md shadow-lg"
-              style={{
-                backgroundColor: headerBg,
-                color: textColor,
-                border: `1px solid ${hoverBg}`,
-              }}
-            >
-              <DropdownMenuItem
-                className="text-sm rounded-md cursor-pointer hover:bg-[#801C2C]"
-                onClick={handleLogout}
+              <Button
+                type="submit"
+                disabled={loading}
+                className="bg-[#691C32] hover:bg-[#50172A] text-white"
               >
-                Cerrar Sesión
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-    </header>
+                {loading ? "Actualizando..." : "Guardar Cambios"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

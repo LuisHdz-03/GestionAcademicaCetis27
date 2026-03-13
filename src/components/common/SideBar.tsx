@@ -7,6 +7,7 @@ import {
   HiChevronRight,
   HiClock,
   HiDocumentText,
+  HiClipboardDocumentCheck,
 } from "react-icons/hi2";
 import { FaGraduationCap, FaCheckCircle } from "react-icons/fa";
 import { MdQrCodeScanner } from "react-icons/md";
@@ -84,7 +85,7 @@ export default function Sidebar() {
       label: "Gestión Comunidad",
       href: "/dashboard/comunidadEsc",
       roles: ["ADMINISTRATIVO"],
-      cargos: cargosAdministrativosGrales, 
+      cargos: cargosAdministrativosGrales,
     },
     {
       icon: FaGraduationCap,
@@ -105,7 +106,7 @@ export default function Sidebar() {
       label: "Escanear QR",
       href: "/dashboard/scan-qr",
       roles: ["ADMINISTRATIVO"],
-      cargos: ["PREFECTO"], 
+      cargos: ["PREFECTO"],
     },
     {
       icon: HiClock,
@@ -119,7 +120,14 @@ export default function Sidebar() {
       label: "Reportes",
       href: "/dashboard/reportes",
       roles: ["DOCENTE", "ADMINISTRATIVO"],
-      cargos: ["PREFECTO", ...cargosAdministrativosGrales], 
+      cargos: ["PREFECTO", ...cargosAdministrativosGrales],
+    },
+    {
+      icon: HiClipboardDocumentCheck,
+      label: "Pase de lista",
+      href: "/dashboard/paseLista",
+      roles: ["DOCENTE", "ADMINISTRATIVO"],
+      cargos: ["PREFECTO", ...cargosAdministrativosGrales],
     },
   ];
 
