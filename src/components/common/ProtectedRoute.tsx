@@ -1,22 +1,40 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  rolesPermitidos?: string[];
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+export default function ProtectedRoute({
+  children,
+  rolesPermitidos,
+}: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/auth/login');
+    if (!isLoading) {
+      if (!user) {
+        router.push("/auth/login");
+        return;
+      }
+
+      if (rolesPermitidos && rolesPermitidos.length > 0) {
+        const rolUsuario = String(
+          user?.tipoUsuario || (user as any)?.rol || "",
+        ).toUpperCase();
+        const rolesNormalizados = rolesPermitidos.map((r) => r.toUpperCase());
+
+        if (!rolesNormalizados.includes(rolUsuario)) {
+          router.replace("/dashboard");
+        }
+      }
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, router, rolesPermitidos]);
 
   if (isLoading) {
     return (
@@ -30,7 +48,17 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!user) {
-    return null; // El useEffect se encargará de redirigir
+    return null;
+  }
+
+  if (rolesPermitidos && rolesPermitidos.length > 0) {
+    const rolUsuario = String(
+      user?.tipoUsuario || (user as any)?.rol || "",
+    ).toUpperCase();
+    const rolesNormalizados = rolesPermitidos.map((r) => r.toUpperCase());
+    if (!rolesNormalizados.includes(rolUsuario)) {
+      return null;
+    }
   }
 
   return <>{children}</>;
