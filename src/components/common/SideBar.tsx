@@ -120,7 +120,7 @@ export default function Sidebar() {
       label: "Reportes",
       href: "/dashboard/reportes",
       roles: ["DOCENTE", "ADMINISTRATIVO"],
-      cargos: ["PREFECTO", ...cargosAdministrativosGrales],
+      cargos: cargosAdministrativosGrales,
     },
     {
       icon: HiClipboardDocumentCheck,
@@ -134,7 +134,7 @@ export default function Sidebar() {
       label: "Pase de lista",
       href: "/dashboard/paseLista",
       roles: ["ADMINISTRATIVO"],
-      cargos: ["PREFECTO", ...cargosAdministrativosGrales],
+      cargos: cargosAdministrativosGrales,
     },
   ];
 

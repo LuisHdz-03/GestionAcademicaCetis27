@@ -286,8 +286,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("usuario", JSON.stringify(usuarioFormateado));
       setUser(usuarioFormateado);
 
+      const esPrefecto =
+        usuarioFormateado.tipoUsuario === "administrativo" &&
+        (usuarioFormateado.cargo || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toUpperCase()
+          .trim() === "PREFECTO";
+
       const redirectPath =
-        usuarioFormateado.tipoUsuario === "guardia"
+        usuarioFormateado.tipoUsuario === "guardia" || esPrefecto
           ? "/dashboard/scan-qr"
           : "/dashboard";
 
@@ -307,9 +315,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
-    setUser(null);
-    router.push("/auth/login");
-    router.refresh();
+    // Redirigir antes de limpiar el estado para evitar pantalla en blanco
+    window.location.replace("/auth/login");
   };
 
   const value = {

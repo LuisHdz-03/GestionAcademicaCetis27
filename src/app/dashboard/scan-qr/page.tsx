@@ -115,7 +115,19 @@ export default function ScanQRPage() {
     }
   };
 
-  if (user?.tipoUsuario !== "guardia" && user?.tipoUsuario !== "admin") {
+  const esPrefecto =
+    user?.tipoUsuario === "administrativo" &&
+    (user?.cargo || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .trim() === "PREFECTO";
+
+  if (
+    user?.tipoUsuario !== "guardia" &&
+    user?.tipoUsuario !== "admin" &&
+    !esPrefecto
+  ) {
     return (
       <div className="flex flex-col items-center justify-center h-full pt-20">
         <div className="text-center p-8 max-w-md bg-white rounded-lg shadow-md">
@@ -144,31 +156,30 @@ export default function ScanQRPage() {
             <p className="text-gray-600">Pistola Lectora de QR Activada</p>
           </div>
           <span className="px-3 py-1 bg-slate-100 text-slate-800 text-sm font-medium rounded-full">
-            Oficial: {user?.nombre}
+            {user?.cargo
+              ? user.cargo.charAt(0).toUpperCase() +
+                user.cargo.slice(1).toLowerCase()
+              : user?.tipoUsuario
+                ? user.tipoUsuario.charAt(0).toUpperCase() +
+                  user.tipoUsuario.slice(1).toLowerCase()
+                : "Oficial"}
+            : {user?.nombre}
           </span>
         </div>
 
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-          {/* Zona del input */}
-          <div className="p-6 bg-blue-50 border-b border-blue-100">
-            <label
-              htmlFor="tokenQR"
-              className="block text-sm font-semibold text-blue-900 mb-2 text-center"
-            >
-              Alinee el escáner y dispare el código QR de la credencial
-            </label>
-            <input
-              ref={inputRef}
-              type="text"
-              id="tokenQR"
-              className="w-full text-center text-lg py-3 rounded-lg border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 transition-all opacity-50 focus:opacity-100"
-              placeholder="Esperando escaneo..."
-              onKeyDown={handleKeyDown}
-              disabled={isLoading}
-              autoComplete="off"
-              autoFocus
-            />
-          </div>
+          {/* Input oculto — solo recibe datos de la pistola lectora */}
+          <input
+            ref={inputRef}
+            type="text"
+            className="sr-only"
+            onKeyDown={handleKeyDown}
+            disabled={isLoading}
+            autoComplete="off"
+            autoFocus
+            readOnly={false}
+            tabIndex={-1}
+          />
 
           {/* Zona de resultados */}
           <div className="p-8 min-h-[300px] flex flex-col items-center justify-center bg-gray-50">
@@ -191,15 +202,6 @@ export default function ScanQRPage() {
                   Acceso Rechazado
                 </h3>
                 <p className="text-red-500 font-medium">{error}</p>
-                <button
-                  onClick={() => {
-                    setError(null);
-                    inputRef.current?.focus();
-                  }}
-                  className="mt-6 text-sm text-gray-500 underline"
-                >
-                  Limpiar e intentar de nuevo
-                </button>
               </div>
             ) : resultadoAcceso ? (
               <div className="text-center w-full max-w-sm">
@@ -242,7 +244,7 @@ export default function ScanQRPage() {
                   Sistema en Espera
                 </h3>
                 <p className="text-sm">
-                  El cursor debe estar en la caja de texto arriba.
+                  Apunte la pistola lectora al código QR de la credencial.
                 </p>
               </div>
             )}
