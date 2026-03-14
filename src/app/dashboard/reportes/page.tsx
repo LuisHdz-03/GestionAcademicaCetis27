@@ -36,6 +36,9 @@ interface Alumno {
   idGrupo?: number;
   grupo?: string;
   idEspecialidad: number;
+  telefono?: string;
+  nombreTutor?: string;
+  nombrePapaMamaTutor?: string;
 }
 
 interface Reporte {
@@ -90,6 +93,7 @@ export default function ReportesPage() {
     cargosPermitidosParaReportar.includes(cargoUsuario);
 
   const [alumnos, setAlumnos] = useState<Alumno[]>([]);
+  const [clasesDocente, setClasesDocente] = useState<any[]>([]);
   const [reportesRecientes, setReportesRecientes] = useState<Reporte[]>([]);
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState<Alumno | null>(
     null,
@@ -136,28 +140,137 @@ export default function ReportesPage() {
   useEffect(() => {
     cargarAlumnos();
     cargarReportesRecientes();
-  }, []);
+  }, [user]);
 
   const cargarAlumnos = async () => {
     try {
-      const res = await fetch(`${API_URL}/estudiantes`, {
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error("Error al obtener alumnos");
-      const data = await res.json();
+      let alumnosMapeados: Alumno[] = [];
 
-      const alumnosMapeados: Alumno[] = data.map((a: any) => ({
-        id: a.idEstudiante,
-        nombre: a.usuario?.nombre || "Sin nombre",
-        apellidoPaterno: a.usuario?.apellidoPaterno || "",
-        apellidoMaterno: a.usuario?.apellidoMaterno || "",
-        matricula: a.matricula || "S/N",
-        especialidad: a.grupo?.especialidad?.nombre || "Sin Asignar",
-        semestre: a.semestre || 1,
-        idGrupo: a.grupoId,
-        grupo: a.grupo?.nombre || "Sin Grupo",
-        idEspecialidad: a.grupo?.especialidadId || 0,
-      }));
+      if (tipoUsuario === "DOCENTE") {
+        // Solo alumnos de los grupos donde el docente imparte clase
+        const idUsuario = user?.id || (user as any)?.idUsuario;
+        if (!idUsuario) return;
+
+        const resClases = await fetch(
+          `${API_URL}/clases/docente/${idUsuario}`,
+          { headers: getAuthHeaders() },
+        );
+        if (!resClases.ok)
+          throw new Error("Error al obtener clases del docente");
+        const clases = await resClases.json();
+        setClasesDocente(Array.isArray(clases) ? clases : []);
+
+        // Cargar catálogo de especialidades para resolver nombres
+        let especialidadNombreMap = new Map<number, string>();
+        try {
+          const resEsp = await fetch(`${API_URL}/especialidades`, {
+            headers: getAuthHeaders(),
+          });
+          if (resEsp.ok) {
+            const dataEsp = await resEsp.json();
+            (Array.isArray(dataEsp) ? dataEsp : []).forEach((e: any) => {
+              const id = e.idEspecialidad || e.id;
+              const nombre = e.nombre || e.descripcion || "Sin Asignar";
+              if (id) especialidadNombreMap.set(id, nombre);
+            });
+          }
+        } catch {
+          // Si falla, se usará "Sin Asignar" como fallback
+        }
+
+        // Construir mapa grupoId → info del grupo (desde las clases ya cargadas)
+        const infoGrupoMap = new Map<
+          number,
+          { nombre: string; especialidad: string; especialidadId: number }
+        >();
+        (Array.isArray(clases) ? clases : []).forEach((c: any) => {
+          const gId = c.grupoId || c.grupo?.idGrupo || c.grupo?.id;
+          if (gId && !infoGrupoMap.has(gId)) {
+            const espId =
+              c.grupo?.especialidadId || c.materias?.especialidadId || 0;
+            infoGrupoMap.set(gId, {
+              nombre: c.grupo?.nombre || "Sin Grupo",
+              especialidad:
+                c.grupo?.especialidad?.nombre ||
+                c.grupo?.especialidades?.nombre ||
+                especialidadNombreMap.get(espId) ||
+                "Sin Asignar",
+              especialidadId: espId,
+            });
+          }
+        });
+
+        // Obtener IDs de grupos únicos
+        const grupoIds = [...infoGrupoMap.keys()];
+
+        // Cargar alumnos de cada grupo y deduplicar
+        const alumnosMap = new Map<number, Alumno>();
+        await Promise.all(
+          grupoIds.map(async (grupoId) => {
+            const res = await fetch(`${API_URL}/estudiantes/grupo/${grupoId}`, {
+              headers: getAuthHeaders(),
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            const infoGrupo = infoGrupoMap.get(grupoId);
+            (Array.isArray(data) ? data : []).forEach((a: any) => {
+              const id = a.idEstudiante || a.id;
+              if (!alumnosMap.has(id)) {
+                alumnosMap.set(id, {
+                  id,
+                  nombre: a.usuario?.nombre || a.nombre || "Sin nombre",
+                  apellidoPaterno:
+                    a.usuario?.apellidoPaterno || a.apellidoPaterno || "",
+                  apellidoMaterno:
+                    a.usuario?.apellidoMaterno || a.apellidoMaterno || "",
+                  matricula: a.matricula || "S/N",
+                  // Priorizar dato del objeto anidado; si no viene, usar el del mapa de clases
+                  especialidad:
+                    a.grupo?.especialidad?.nombre ||
+                    infoGrupo?.especialidad ||
+                    "Sin Asignar",
+                  semestre: a.semestre || 1,
+                  idGrupo: a.grupoId || grupoId,
+                  grupo: a.grupo?.nombre || infoGrupo?.nombre || "Sin Grupo",
+                  idEspecialidad:
+                    a.grupo?.especialidadId || infoGrupo?.especialidadId || 0,
+                  telefono: a.telefono || a.usuario?.telefono || "",
+                  nombreTutor: a.nombreTutor || a.tutor?.nombre || "",
+                  nombrePapaMamaTutor:
+                    a.nombrePapaMamaTutor ||
+                    a.nombreContacto ||
+                    a.padre?.nombre ||
+                    "",
+                });
+              }
+            });
+          }),
+        );
+        alumnosMapeados = Array.from(alumnosMap.values());
+      } else {
+        // Administrativos: todos los alumnos
+        const res = await fetch(`${API_URL}/estudiantes`, {
+          headers: getAuthHeaders(),
+        });
+        if (!res.ok) throw new Error("Error al obtener alumnos");
+        const data = await res.json();
+        alumnosMapeados = data.map((a: any) => ({
+          id: a.idEstudiante,
+          nombre: a.usuario?.nombre || "Sin nombre",
+          apellidoPaterno: a.usuario?.apellidoPaterno || "",
+          apellidoMaterno: a.usuario?.apellidoMaterno || "",
+          matricula: a.matricula || "S/N",
+          especialidad: a.grupo?.especialidad?.nombre || "Sin Asignar",
+          semestre: a.semestre || 1,
+          idGrupo: a.grupoId,
+          grupo: a.grupo?.nombre || "Sin Grupo",
+          idEspecialidad: a.grupo?.especialidadId || 0,
+          telefono: a.telefono || a.usuario?.telefono || "",
+          nombreTutor: a.nombreTutor || a.tutor?.nombre || "",
+          nombrePapaMamaTutor:
+            a.nombrePapaMamaTutor || a.nombreContacto || a.padre?.nombre || "",
+        }));
+      }
 
       setAlumnos(alumnosMapeados);
     } catch (error) {
@@ -250,6 +363,22 @@ export default function ReportesPage() {
         ? `${user?.nombre || ""} ${user?.apellidoPaterno || ""}`.trim()
         : "";
 
+      // Calcular "¿Le da clases al alumno?" automáticamente para docentes
+      let leClasesReportado = "";
+      if (esDocente && clasesDocente.length > 0 && alumno.idGrupo) {
+        const materiasDelGrupo = clasesDocente
+          .filter(
+            (c: any) =>
+              (c.grupoId || c.grupo?.idGrupo || c.grupo?.id) === alumno.idGrupo,
+          )
+          .map((c: any) => c.materias?.nombre || c.materia?.nombre || "")
+          .filter(Boolean);
+        leClasesReportado =
+          materiasDelGrupo.length > 0
+            ? `Sí - ${materiasDelGrupo.join(", ")}`
+            : "No";
+      }
+
       setFormData((prev) => ({
         ...prev,
         nombreAlumno: nombreCompleto,
@@ -258,10 +387,15 @@ export default function ReportesPage() {
         grupo: grupoTexto,
         fecha: fechaActual,
         nombreFirmaMaestro: nombreMaestro,
+        nombreFirmaAlumno: nombreCompleto,
+        leClasesReportado,
+        nombreTutor: alumno.nombreTutor || "",
+        nombrePapaMamaTutor: alumno.nombrePapaMamaTutor || "",
+        telefono: alumno.telefono || "",
         titulo: `Reporte de conducta - ${nombreCompleto}`,
       }));
     },
-    [user, tipoUsuario],
+    [user, tipoUsuario, clasesDocente],
   );
 
   const handleChange = (
@@ -585,7 +719,7 @@ export default function ReportesPage() {
         <Card className="max-w-5xl mx-auto border-[#691C32]/20">
           <CardHeader className="bg-[#691C32] text-white rounded-t-lg">
             <CardTitle className="text-xl font-bold text-center">
-              LLENAR REPORTE (Sincronizado con App Móvil)
+              LLENAR REPORTE
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
@@ -926,7 +1060,7 @@ export default function ReportesPage() {
                 variant="outline"
                 onClick={() => handlePrintReporte(reporteVisualizacion)}
               >
-                🖨️ Re-Imprimir PDF
+                Re-Imprimir PDF
               </Button>
               {tipoUsuario !== "DOCENTE" &&
                 reporteVisualizacion.estatus !== "RESUELTO" && (
@@ -936,7 +1070,7 @@ export default function ReportesPage() {
                       marcarComoRevisado(reporteVisualizacion.idReporte)
                     }
                   >
-                    ✅ Marcar como Resuelto
+                    Marcar como Resuelto
                   </Button>
                 )}
             </div>

@@ -124,9 +124,16 @@ export default function Sidebar() {
     },
     {
       icon: HiClipboardDocumentCheck,
+      label: "Mis Clases",
+      href: "/dashboard/mis-clases",
+      roles: ["DOCENTE"],
+      cargos: [],
+    },
+    {
+      icon: HiClipboardDocumentCheck,
       label: "Pase de lista",
       href: "/dashboard/paseLista",
-      roles: ["DOCENTE", "ADMINISTRATIVO"],
+      roles: ["ADMINISTRATIVO"],
       cargos: ["PREFECTO", ...cargosAdministrativosGrales],
     },
   ];
