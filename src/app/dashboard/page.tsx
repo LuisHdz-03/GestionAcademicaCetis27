@@ -16,6 +16,14 @@ import CreatePeriodModal from "@/components/common/Modal/CreatePeriodModal";
 import SuccessModal from "@/components/common/Modal/SuccessModal";
 import { useToast } from "@/hooks/useToast";
 import { useCommunity } from "@/hooks/useCommunity";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
@@ -97,9 +105,58 @@ export default function DashboardPage() {
     fetchMaterias();
   }, []);
 
+  // cosas para editar el periodo
   const handleCreatePeriod = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // ESTADOS CORREGIDOS PARA TERMINAR EL PERIODO
+  const [isClosePeriodModalOpen, setIsClosePeriodModalOpen] = useState(false);
+  const [isClosingPeriod, setIsClosingPeriod] = useState(false);
+
+  const handleClosePeriodSubmit = async () => {
+    if (!activePeriod) return;
+    setIsClosingPeriod(true);
+
+    try {
+      // CORRECCIÓN AQUÍ: activePeriod.idPeriodo
+      const res = await fetch(
+        `${API_URL}/periodos/${activePeriod.idPeriodo}/cerrar`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+        },
+      );
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.error || "Error al cerrar el periodo");
+      }
+
+      toast({
+        title: "Periodo cerrado exitosamente",
+        description: result.mensaje || "Los alumnos han sido promovidos",
+        variant: "success",
+        duration: 6000,
+      });
+
+      setIsClosePeriodModalOpen(false);
+
+      setActivePeriod(null);
+      setHasActivePeriod(false);
+      fetchAlumnos();
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+        duration: 6000,
+      });
+    } finally {
+      setIsClosingPeriod(false);
+    }
+  };
 
   const handlePeriodSubmit = async (data: {
     nombre: string;
@@ -109,7 +166,6 @@ export default function DashboardPage() {
     try {
       setIsModalOpen(false);
 
-      // Adaptamos al backend
       const payload = { ...data, activo: true };
 
       const res = await fetch(`${API_URL}/periodos`, {
@@ -230,11 +286,9 @@ export default function DashboardPage() {
     }
   };
 
-  // Loading
   if (hasActivePeriod === null)
     return <p className="text-center mt-20">Cargando dashboard...</p>;
 
-  // Empty State
   if (!hasActivePeriod) {
     return (
       <>
@@ -278,7 +332,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Dashboard normal
   const stats = [
     {
       title: "Alumnos activos",
@@ -310,7 +363,6 @@ export default function DashboardPage() {
     },
   ];
 
-  // Normalizar fecha (maneja 'YYYY-MM-DD' sin zona horaria)
   const toDate = (value?: string) => {
     if (!value) return null;
     const hasTime = value.includes("T");
@@ -318,7 +370,6 @@ export default function DashboardPage() {
     return Number.isNaN(d.getTime()) ? null : d;
   };
 
-  // Progreso del período
   const computeProgress = () => {
     if (!activePeriod)
       return {
@@ -379,6 +430,7 @@ export default function DashboardPage() {
       daysToStart: 0,
     } as const;
   };
+
   const {
     percent: periodPercent,
     daysLeft: periodDaysLeft,
@@ -423,16 +475,25 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Período activo */}
       <Card className="bg-white shadow-md rounded-lg flex flex-col mb-6">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold text-gray-800">
               Estado del periodo actual
             </CardTitle>
-            <Button variant="outline" size="sm" onClick={handleEditPeriod}>
-              Editar período
-            </Button>
+            <div className="m-3 flex gap-3">
+              <Button variant="outline" size="sm" onClick={handleEditPeriod}>
+                Editar período
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setIsClosePeriodModalOpen(true)}
+                className="bg-red-600 hover:bg-red-700 text-white border-0"
+              >
+                Terminar período
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="flex-1 space-y-2 text-sm text-gray-700">
@@ -494,7 +555,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Acciones rápidas */}
       <Card className="bg-white shadow-sm rounded-lg mb-6">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-semibold text-gray-800">
@@ -515,7 +575,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Actividad reciente */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="pb-2">
@@ -573,6 +632,7 @@ export default function DashboardPage() {
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
       />
+
       <CreatePeriodModal
         isOpen={isEditModalOpen}
         onClose={handleCloseEditModal}
@@ -586,6 +646,69 @@ export default function DashboardPage() {
         onDelete={handleDeletePeriod}
         periodoId={activePeriod?.idPeriodo}
       />
+
+      <Dialog
+        open={isClosePeriodModalOpen}
+        onOpenChange={setIsClosePeriodModalOpen}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 text-xl font-bold">
+              ¡Advertencia Crítica!
+            </DialogTitle>
+            <DialogDescription className="text-gray-700 mt-2 text-base">
+              Estás a punto de cerrar el período académico{" "}
+              <strong className="text-gray-900">
+                "{activePeriod?.nombre}"
+              </strong>
+              . Esta acción provocará lo siguiente en la base de datos:
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Sacamos la lista y el div fuera del DialogDescription */}
+          <div className="text-gray-700">
+            <ul className="list-disc ml-5 space-y-2 text-sm">
+              <li>
+                Los alumnos de <strong>1ro a 5to semestre</strong> subirán al
+                siguiente semestre automáticamente.
+              </li>
+              <li>
+                Se limpiarán los grupos de todos los alumnos para la nueva
+                asignación.
+              </li>
+              <li>
+                Los alumnos de <strong>6to semestre</strong> serán dados de baja
+                (Egresados).
+              </li>
+              <li>Este período quedará inactivo.</li>
+            </ul>
+            <div className="mt-5 p-3 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm font-semibold">
+              Esta acción es irreversible. ¿Estás completamente seguro de
+              continuar?
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4 flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsClosePeriodModalOpen(false)}
+              disabled={isClosingPeriod}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleClosePeriodSubmit}
+              disabled={isClosingPeriod}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isClosingPeriod
+                ? "Procesando cambios..."
+                : "Sí, cerrar período y promover"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

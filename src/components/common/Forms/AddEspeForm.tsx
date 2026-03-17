@@ -11,10 +11,15 @@ interface AddEspeFormProps {
   initialData?: Partial<EspecialidadFormData>;
 }
 
-export default function AddEspeForm({ onSubmit, mode = "create", initialData }: AddEspeFormProps) {
+export default function AddEspeForm({
+  onSubmit,
+  mode = "create",
+  initialData,
+}: AddEspeFormProps) {
   const [formData, setFormData] = useState<EspecialidadFormData>({
     nombre: initialData?.nombre || "",
     codigo: initialData?.codigo || "",
+    descripcion: initialData?.descripcion || "",
     activo: initialData?.activo ?? true,
   });
 
@@ -23,6 +28,7 @@ export default function AddEspeForm({ onSubmit, mode = "create", initialData }: 
       setFormData({
         nombre: initialData.nombre || "",
         codigo: initialData.codigo || "",
+        descripcion: initialData.descripcion || "",
         activo: initialData.activo ?? true,
       });
     }
@@ -40,7 +46,9 @@ export default function AddEspeForm({ onSubmit, mode = "create", initialData }: 
   return (
     <form className="space-y-3" onSubmit={handleSubmit}>
       <div>
-        <Label className="text-gray-700 mb-1">Nombre de la Especialidad *</Label>
+        <Label className="text-gray-700 mb-1">
+          Nombre de la Especialidad *
+        </Label>
         <Input
           name="nombre"
           placeholder="Ej: Ingeniería en Sistemas Computacionales"
@@ -61,7 +69,17 @@ export default function AddEspeForm({ onSubmit, mode = "create", initialData }: 
           maxLength={10}
         />
       </div>
-      
+
+      <div>
+        <Label className="text-gray-700 mb-1">Descripción</Label>
+        <Input
+          name="descripcion"
+          placeholder="Ej: Tecnología e informática"
+          value={formData.descripcion}
+          onChange={handleChange}
+        />
+      </div>
+
       <Button type="submit" className="w-full bg-[#691C32] text-white mt-4">
         {mode === "edit" ? "Actualizar Especialidad" : "Agregar Especialidad"}
       </Button>

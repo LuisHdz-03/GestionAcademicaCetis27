@@ -174,6 +174,7 @@ export default function AddAlumnoForm({
             name="telefono"
             value={formData.telefono}
             onChange={handleChange}
+            maxLength={10}
           />
         </div>
         <div>

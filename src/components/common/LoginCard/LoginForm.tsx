@@ -1,20 +1,23 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { HiEye, HiEyeSlash } from "react-icons/hi2"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { HiEye, HiEyeSlash } from "react-icons/hi2";
 
 interface LoginFormProps {
   onSubmit: (data: { email: string; password: string }) => void;
   isLoading?: boolean;
 }
 
-export default function LoginForm({ onSubmit, isLoading = false }: LoginFormProps) {
+export default function LoginForm({
+  onSubmit,
+  isLoading = false,
+}: LoginFormProps) {
   const [formData, setFormData] = useState({
     email: "",
-    password: ""
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -26,7 +29,7 @@ export default function LoginForm({ onSubmit, isLoading = false }: LoginFormProp
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -61,7 +64,7 @@ export default function LoginForm({ onSubmit, isLoading = false }: LoginFormProp
             onChange={handleChange}
             disabled={isLoading}
             required
-            className="w-full pr-10"
+            className="w-full pr-10 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
           />
           <Button
             type="button"
@@ -81,8 +84,8 @@ export default function LoginForm({ onSubmit, isLoading = false }: LoginFormProp
       </div>
 
       {/* Botón Submit */}
-      <Button 
-        type="submit" 
+      <Button
+        type="submit"
         className="w-full bg-[#691C32] hover:bg-[#8E2B4B]"
         disabled={isLoading}
       >

@@ -104,6 +104,7 @@ export default function AddAdminForm({
             name="telefono"
             value={formData.telefono}
             onChange={handleChange}
+            maxLength={10}
           />
         </div>
         <div>

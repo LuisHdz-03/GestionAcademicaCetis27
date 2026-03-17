@@ -118,6 +118,7 @@ export default function AddDocenteForm({
             name="telefono"
             value={formData.telefono}
             onChange={handleChange}
+            maxLength={10}
           />
         </div>
         <div>
