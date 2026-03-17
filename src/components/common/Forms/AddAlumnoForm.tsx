@@ -97,6 +97,15 @@ export default function AddAlumnoForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.telefono && formData.telefono.length !== 10) {
+      alert("El número de teléfono debe tener exactamente 10 dígitos.");
+      return;
+    }
+    if (formData.curp && formData.curp.length !== 18) {
+      alert("La CURP debe tener exactamente 18 caracteres.");
+      return;
+    }
     onSubmit(formData);
   };
 
@@ -173,7 +182,12 @@ export default function AddAlumnoForm({
           <Input
             name="telefono"
             value={formData.telefono}
-            onChange={handleChange}
+            onChange={(e) => {
+              const valorLimpio = e.target.value
+                .replace(/\D/g, "")
+                .slice(0, 10);
+              setFormData({ ...formData, telefono: valorLimpio });
+            }}
             maxLength={10}
           />
         </div>
@@ -182,7 +196,13 @@ export default function AddAlumnoForm({
           <Input
             name="curp"
             value={formData.curp}
-            onChange={handleChange}
+            onChange={(e) => {
+              const valorLimpio = e.target.value
+                .toUpperCase()
+                .replace(/[^A-Z0-9]/g, "")
+                .slice(0, 18);
+              setFormData({ ...formData, curp: valorLimpio });
+            }}
             required
             maxLength={18}
           />
