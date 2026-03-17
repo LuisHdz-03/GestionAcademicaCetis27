@@ -90,6 +90,17 @@ interface UseCommunityReturn {
     docenteId: number;
     horario: string;
   }) => Promise<boolean>;
+  editarClase: (
+    id: number,
+    data: {
+      grupoId: number;
+      materiaId: number;
+      docenteId: number;
+      horario: string;
+    },
+  ) => Promise<boolean>;
+  eliminarClase: (id: number) => Promise<boolean>;
+  cerrarPeriodo: (idPeriodo: number) => Promise<boolean>;
   refreshData: () => Promise<void>;
 }
 
@@ -754,6 +765,110 @@ export function useCommunity(): UseCommunityReturn {
     }
   };
 
+  // -- METODO PARA EDITAR CLASES --
+  const editarClase = async (
+    id: number,
+    data: {
+      grupoId: number;
+      materiaId: number;
+      docenteId: number;
+      horario: string;
+    },
+  ) => {
+    try {
+      const response = await fetch(`${API_URL}/clases/${id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.msg || errorData.error || "Error al editar la clase",
+        );
+      }
+
+      toast({
+        title: "Éxito!",
+        description: "Clase actualizada correctamente",
+        variant: "success",
+      });
+
+      return true;
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  // -- METODO PARA ELIMINAR CLASES --
+  const eliminarClase = async (id: number) => {
+    try {
+      const response = await fetch(`${API_URL}/clases/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) throw new Error("Error al eliminar la clase");
+
+      toast({
+        title: "Éxito!",
+        description: "Clase eliminada correctamente",
+        variant: "success",
+      });
+
+      return true;
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  // -- METODO PARA CERRAR PERIODO Y PROMOVER ALUMNOS --
+  const cerrarPeriodo = async (idPeriodo: number) => {
+    try {
+      const response = await fetch(`${API_URL}/periodos/${idPeriodo}/cerrar`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          result.error || result.mensaje || "Error al cerrar el periodo",
+        );
+      }
+
+      toast({
+        title: "Periodo cerrado exitosamente",
+        description:
+          result.mensaje || "Los alumnos han sido promovidos correctamente.",
+        variant: "success",
+        duration: 6000,
+      });
+
+      return true;
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+        duration: 6000,
+      });
+      return false;
+    }
+  };
+
   const refreshData = async () => {
     await Promise.all([
       fetchDocentes(),
@@ -801,6 +916,9 @@ export function useCommunity(): UseCommunityReturn {
     updateGrupo,
     deleteGrupo,
     asignarClase,
+    editarClase,
+    eliminarClase,
+    cerrarPeriodo,
     refreshData,
   };
 }

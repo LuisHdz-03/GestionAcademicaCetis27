@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import AddClaseModal from "@/components/common/Modal/AddClaseModal";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Pencil } from "lucide-react";
 
 export default function HorariosPage() {
   const {
@@ -28,10 +28,13 @@ export default function HorariosPage() {
     fetchPeriodos,
     fetchClases,
     asignarClase,
+    editarClase,
     loading,
   } = useCommunity();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [claseEditar, setClaseEditar] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
@@ -50,8 +53,25 @@ export default function HorariosPage() {
     }
   };
 
-  // buscar horarios en tiempo real
+  const handleEditarClase = async (data: any) => {
+    if (!claseEditar) return;
+    const exito = await editarClase(claseEditar.idClase, data);
+    if (exito) {
+      setIsEditModalOpen(false);
+      setClaseEditar(null);
+      fetchClases();
+    }
+  };
+
+  const abrirEditar = (clase: any) => {
+    setClaseEditar(clase);
+    setIsEditModalOpen(true);
+  };
+
   const clasesFiltradas = clases?.filter((c: any) => {
+    if (!c.periodo || c.periodo.activo === false) {
+      return false;
+    }
     const buscar = searchTerm.toLowerCase();
     const grupo = c.grupo?.nombre?.toLowerCase() || "";
     const materia = c.materias?.nombre?.toLowerCase() || "";
@@ -111,13 +131,16 @@ export default function HorariosPage() {
                     <TableHead className="bg-[#691C32] text-white font-semibold py-3">
                       Horario
                     </TableHead>
+                    <TableHead className="bg-[#691C32] text-white font-semibold py-3 w-20 text-center">
+                      Acciones
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading && clasesFiltradas?.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={4}
+                        colSpan={5}
                         className="text-center py-8 text-gray-500"
                       >
                         Cargando clases...
@@ -126,7 +149,7 @@ export default function HorariosPage() {
                   ) : clasesFiltradas?.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={4}
+                        colSpan={5}
                         className="text-center py-8 text-gray-500"
                       >
                         No se encontraron clases registradas.
@@ -149,6 +172,17 @@ export default function HorariosPage() {
                         <TableCell className="text-gray-600">
                           {clase.horario || "Sin definir"}
                         </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-[#691C32] hover:bg-[#691C32]/10"
+                            onClick={() => abrirEditar(clase)}
+                            title="Editar clase"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -166,6 +200,20 @@ export default function HorariosPage() {
         materias={materias}
         docentes={docentes}
         onSubmit={handleAsignarClase}
+      />
+
+      <AddClaseModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setClaseEditar(null);
+        }}
+        grupos={grupos}
+        materias={materias}
+        docentes={docentes}
+        onSubmit={handleEditarClase}
+        mode="edit"
+        claseEditar={claseEditar}
       />
     </div>
   );

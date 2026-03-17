@@ -133,8 +133,8 @@ export default function Sidebar() {
       icon: HiClipboardDocumentCheck,
       label: "Pase de lista",
       href: "/dashboard/paseLista",
-      roles: ["ADMINISTRATIVO"],
-      cargos: cargosAdministrativosGrales,
+      roles: ["DOCENTE"],
+      cargos: [],
     },
   ];
 

@@ -39,6 +39,8 @@ export default function DashboardPage() {
     fetchAlumnos,
     fetchAdministradores,
     fetchMaterias,
+    fetchClases,
+    cerrarPeriodo,
   } = useCommunity();
   const [hasActivePeriod, setHasActivePeriod] = useState<boolean | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -118,44 +120,17 @@ export default function DashboardPage() {
     if (!activePeriod) return;
     setIsClosingPeriod(true);
 
-    try {
-      // CORRECCIÓN AQUÍ: activePeriod.idPeriodo
-      const res = await fetch(
-        `${API_URL}/periodos/${activePeriod.idPeriodo}/cerrar`,
-        {
-          method: "POST",
-          headers: getAuthHeaders(),
-        },
-      );
-      const result = await res.json();
+    const exito = await cerrarPeriodo(activePeriod.idPeriodo);
 
-      if (!res.ok) {
-        throw new Error(result.error || "Error al cerrar el periodo");
-      }
-
-      toast({
-        title: "Periodo cerrado exitosamente",
-        description: result.mensaje || "Los alumnos han sido promovidos",
-        variant: "success",
-        duration: 6000,
-      });
-
+    if (exito) {
       setIsClosePeriodModalOpen(false);
-
       setActivePeriod(null);
       setHasActivePeriod(false);
       fetchAlumnos();
-    } catch (err: any) {
-      console.error(err);
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "destructive",
-        duration: 6000,
-      });
-    } finally {
-      setIsClosingPeriod(false);
+      fetchClases();
     }
+
+    setIsClosingPeriod(false);
   };
 
   const handlePeriodSubmit = async (data: {

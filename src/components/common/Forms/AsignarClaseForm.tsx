@@ -17,6 +17,13 @@ interface AsignarClaseFormProps {
   materias: any[];
   docentes: any[];
   onSubmit: (data: any) => void;
+  mode?: "create" | "edit";
+  initialData?: {
+    grupoId?: number;
+    materiaId?: number;
+    docenteId?: number;
+    horario?: string;
+  };
 }
 
 export default function AsignarClaseForm({
@@ -24,12 +31,14 @@ export default function AsignarClaseForm({
   materias,
   docentes,
   onSubmit,
+  mode = "create",
+  initialData,
 }: AsignarClaseFormProps) {
   const [formData, setFormData] = useState({
-    grupoId: "",
-    materiaId: "",
-    docenteId: "",
-    horario: "",
+    grupoId: initialData?.grupoId ? String(initialData.grupoId) : "",
+    materiaId: initialData?.materiaId ? String(initialData.materiaId) : "",
+    docenteId: initialData?.docenteId ? String(initialData.docenteId) : "",
+    horario: initialData?.horario || "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -122,7 +131,7 @@ export default function AsignarClaseForm({
         type="submit"
         className="w-full bg-[#691C32] hover:bg-[#4a1424] text-white"
       >
-        Vincular Docente a Grupo
+        {mode === "edit" ? "Guardar Cambios" : "Vincular Docente a Grupo"}
       </Button>
     </form>
   );

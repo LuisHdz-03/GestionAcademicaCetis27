@@ -14,6 +14,8 @@ interface AddClaseModalProps {
   materias: any[];
   docentes: any[];
   onSubmit: (data: any) => void;
+  mode?: "create" | "edit";
+  claseEditar?: any;
 }
 
 export default function AddClaseModal({
@@ -23,17 +25,20 @@ export default function AddClaseModal({
   materias,
   docentes,
   onSubmit,
+  mode = "create",
+  claseEditar,
 }: AddClaseModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="text-2xl text-[#691C32]">
-            Vincular Nueva Clase
+            {mode === "edit" ? "Editar Clase" : "Vincular Nueva Clase"}
           </DialogTitle>
           <DialogDescription>
-            Asigna un docente a un grupo y especifica la materia que va a
-            impartir.
+            {mode === "edit"
+              ? "Modifica los datos de la clase asignada."
+              : "Asigna un docente a un grupo y especifica la materia que va a impartir."}
           </DialogDescription>
         </DialogHeader>
 
@@ -42,6 +47,18 @@ export default function AddClaseModal({
           materias={materias}
           docentes={docentes}
           onSubmit={onSubmit}
+          mode={mode}
+          initialData={
+            claseEditar
+              ? {
+                  grupoId: claseEditar.grupoId || claseEditar.grupo?.idGrupo,
+                  materiaId:
+                    claseEditar.materiaId || claseEditar.materias?.idMateria,
+                  docenteId: claseEditar.docenteId || claseEditar.docente?.id,
+                  horario: claseEditar.horario || "",
+                }
+              : undefined
+          }
         />
       </DialogContent>
     </Dialog>
