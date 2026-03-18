@@ -84,8 +84,6 @@ export default function CommunityManagementPage() {
 
   // Estado para el formulario de info adicional
   const [extraFormData, setExtraFormData] = useState({
-    fotoUrl: "",
-    datosVerificados: false,
     credencialFechaEmision: "",
     credencialFechaExpiracion: "",
     tutorNombre: "",
@@ -238,11 +236,7 @@ export default function CommunityManagementPage() {
     // Cargar datos existentes del alumno
     const alumno = item as any;
 
-    
-
     setExtraFormData({
-      fotoUrl: alumno.fotoUrl || "",
-      datosVerificados: alumno.datosVerificados || false,
       credencialFechaEmision: formatDate(alumno.credencialFechaEmision),
       credencialFechaExpiracion: formatDate(alumno.credencialFechaExpiracion),
       tutorNombre: alumno.tutor?.nombre || "",

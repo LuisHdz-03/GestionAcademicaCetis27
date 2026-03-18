@@ -35,7 +35,7 @@ export default function AddAlumnoForm({
   mode = "create",
   initialData,
 }: AddAlumnoFormProps) {
-  const { toast } = useToast(); // 2. INICIALIZAMOS EL TOAST
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState<AlumnoFormData>({
     nombre: initialData?.nombre || "",
