@@ -12,6 +12,8 @@ import {
   HiAcademicCap,
 } from "react-icons/hi2";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import CreatePeriodModal from "@/components/common/Modal/CreatePeriodModal";
 import SuccessModal from "@/components/common/Modal/SuccessModal";
 import { useToast } from "@/hooks/useToast";
@@ -30,6 +32,8 @@ const API_URL =
 
 export default function DashboardPage() {
   const { toast } = useToast();
+  const router = useRouter();
+  const { user } = useAuth();
   const {
     docentes,
     alumnos,
@@ -45,6 +49,7 @@ export default function DashboardPage() {
   const [hasActivePeriod, setHasActivePeriod] = useState<boolean | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isCheckingPermissions, setIsCheckingPermissions] = useState(true);
 
   const [activePeriod, setActivePeriod] = useState<{
     idPeriodo: number;
@@ -98,6 +103,59 @@ export default function DashboardPage() {
       setHasActivePeriod(false);
     }
   };
+
+  useEffect(() => {
+    if (!user) return;
+
+    const normalizarTexto = (texto: string) => {
+      if (!texto) return "";
+      return texto
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .trim();
+    };
+
+    const tipoUsuario = normalizarTexto(
+      user?.tipoUsuario || (user as any)?.rol || "",
+    );
+    const cargoUsuario = normalizarTexto(user?.cargo || "");
+
+    const cargosDirectivos = [
+      "DIRECTOR",
+      "SUBDIRECTORA ACADEMICA",
+      "COORDINADOR",
+      "COORDINADOR ACADEMICO",
+    ];
+
+    const cargosAdministrativosGrales = [
+      ...cargosDirectivos,
+      "JEFE DE DEPARTAMENTO",
+      "SECRETARIO",
+    ];
+
+    // Solo ADMINISTRATIVO con cargos directivos puede ver el dashboard
+    const tieneDashboardAcceso =
+      tipoUsuario === "ADMINISTRATIVO" &&
+      cargosDirectivos.includes(cargoUsuario);
+
+    if (!tieneDashboardAcceso) {
+      // Redirigir según rol/cargo a su primera opción disponible
+      if (tipoUsuario === "DOCENTE") {
+        router.push("/dashboard/mis-clases");
+      } else if (cargoUsuario === "PREFECTO") {
+        router.push("/dashboard/scan-qr");
+      } else if (cargosAdministrativosGrales.includes(cargoUsuario)) {
+        router.push("/dashboard/comunidadEsc");
+      } else {
+        // Si no tiene ningún permiso específico, redirigir a una página por defecto
+        router.push("/dashboard/reportes");
+      }
+    } else {
+      // Tiene permiso, permitir ver el dashboard
+      setIsCheckingPermissions(false);
+    }
+  }, [user, router]);
 
   useEffect(() => {
     fetchActivePeriod();
@@ -413,6 +471,18 @@ export default function DashboardPage() {
     phase: periodPhase,
     daysToStart,
   } = computeProgress();
+
+  // Mostrar loader mientras se verifican permisos
+  if (isCheckingPermissions) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-[#691C32] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando permisos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
