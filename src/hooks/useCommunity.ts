@@ -74,6 +74,24 @@ interface UseCommunityReturn {
   deleteDocente: (id: number) => Promise<boolean>;
   createAlumno: (data: AlumnoFormData) => Promise<boolean>;
   updateAlumno: (id: number, data: Partial<AlumnoFormData>) => Promise<boolean>;
+  updateAlumnoExtra: (
+    id: number,
+    data: {
+      fotoUrl?: string;
+      datosVerificados?: boolean;
+      credencialFechaEmision?: string;
+      credencialFechaExpiracion?: string;
+      tutor?: {
+        nombre?: string;
+        apellidoPaterno?: string;
+        apellidoMaterno?: string;
+        telefono?: string;
+        email?: string;
+        parentesco?: string;
+        direccion?: string;
+      };
+    },
+  ) => Promise<boolean>;
   deleteAlumno: (id: number) => Promise<boolean>;
   createAdministrador: (data: AdminFormData) => Promise<boolean>;
   updateAdministrador: (
@@ -178,7 +196,6 @@ export function useCommunity(): UseCommunityReturn {
 
       const result = await response.json();
 
-      // Traductor: De Prisma a React buscando en las sub-tablas
       const alumnosMapeados = result.map((a: any) => ({
         id: a.idEstudiante || a.id,
         nombre: a.nombre || a.usuario?.nombre || "",
@@ -202,6 +219,11 @@ export function useCommunity(): UseCommunityReturn {
         grupo: a.grupo?.nombre || "Sin Grupo",
         activo: a.activo ?? a.usuario?.activo ?? true,
         direccion: a.direccion || a.usuario?.direccion || "",
+        fotoUrl: a.fotoUrl || "",
+        datosVerificados: a.datosVerificados || false,
+        credencialFechaEmision: a.credencialFechaEmision || null,
+        credencialFechaExpiracion: a.credencialFechaExpiracion || null,
+        tutor: a.tutor || null,
       }));
 
       setAlumnos(alumnosMapeados);
@@ -561,6 +583,63 @@ export function useCommunity(): UseCommunityReturn {
     }
   };
 
+  // --- ACTUALIZAR INFO ADICIONAL ALUMNO ---
+  const updateAlumnoExtra = async (
+    id: number,
+    data: {
+      credencialFechaEmision?: string;
+      credencialFechaExpiracion?: string;
+      tutor?: {
+        nombre?: string;
+        apellidoPaterno?: string;
+        apellidoMaterno?: string;
+        telefono?: string;
+        email?: string;
+        parentesco?: string;
+        direccion?: string;
+      };
+    },
+  ) => {
+    try {
+      const payload: any = {};
+
+      // Solo agregar campos que tengan valor
+      if (data.credencialFechaEmision)
+        payload.credencialFechaEmision = data.credencialFechaEmision;
+      if (data.credencialFechaExpiracion)
+        payload.credencialFechaExpiracion = data.credencialFechaExpiracion;
+      if (data.tutor) payload.tutor = data.tutor;
+
+      const response = await fetch(`${API_URL}/estudiantes/${id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || "Error al actualizar información adicional",
+        );
+      }
+
+      await fetchAlumnos();
+      toast({
+        title: "Éxito",
+        description: "Información adicional actualizada correctamente",
+        variant: "success",
+      });
+      return true;
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   // --- ELIMINAR ALUMNO  ---
   const deleteAlumno = async (id: number) => {
     try {
@@ -908,6 +987,7 @@ export function useCommunity(): UseCommunityReturn {
     deleteDocente,
     createAlumno,
     updateAlumno,
+    updateAlumnoExtra,
     deleteAlumno,
     createAdministrador,
     updateAdministrador,

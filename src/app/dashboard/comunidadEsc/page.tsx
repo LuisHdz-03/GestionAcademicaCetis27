@@ -1,6 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import TabsSelector from "./components/TabsSelector";
 import TopBar from "./components/TopBar";
 import DataTable from "./components/DataTable";
@@ -44,6 +56,7 @@ export default function CommunityManagementPage() {
     createAlumno,
     deleteAlumno,
     updateAlumno,
+    updateAlumnoExtra,
     createAdministrador,
     deleteAdministrador,
     updateAdministrador,
@@ -64,9 +77,25 @@ export default function CommunityManagementPage() {
   const [openEditDocente, setOpenEditDocente] = useState(false);
   const [openEditAlumno, setOpenEditAlumno] = useState(false);
   const [openEditAdmin, setOpenEditAdmin] = useState(false);
+  const [openEditAlumnoExtra, setOpenEditAlumnoExtra] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CommunityMember | null>(
     null,
   );
+
+  // Estado para el formulario de info adicional
+  const [extraFormData, setExtraFormData] = useState({
+    fotoUrl: "",
+    datosVerificados: false,
+    credencialFechaEmision: "",
+    credencialFechaExpiracion: "",
+    tutorNombre: "",
+    tutorApellidoPaterno: "",
+    tutorApellidoMaterno: "",
+    tutorTelefono: "",
+    tutorEmail: "",
+    tutorParentesco: "",
+    tutorDireccion: "",
+  });
 
   const formatDate = (value?: string) => {
     if (!value) return "";
@@ -202,6 +231,32 @@ export default function CommunityManagementPage() {
     if (activeTab === "alumnos") setOpenEditAlumno(true);
     if (activeTab === "administradores") setOpenEditAdmin(true);
   };
+
+  const handleEditExtra = (item: CommunityMember) => {
+    setSelectedItem(item);
+
+    // Cargar datos existentes del alumno
+    const alumno = item as any;
+
+    
+
+    setExtraFormData({
+      fotoUrl: alumno.fotoUrl || "",
+      datosVerificados: alumno.datosVerificados || false,
+      credencialFechaEmision: formatDate(alumno.credencialFechaEmision),
+      credencialFechaExpiracion: formatDate(alumno.credencialFechaExpiracion),
+      tutorNombre: alumno.tutor?.nombre || "",
+      tutorApellidoPaterno: alumno.tutor?.apellidoPaterno || "",
+      tutorApellidoMaterno: alumno.tutor?.apellidoMaterno || "",
+      tutorTelefono: alumno.tutor?.telefono || "",
+      tutorEmail: alumno.tutor?.email || "",
+      tutorParentesco: alumno.tutor?.parentesco || "",
+      tutorDireccion: alumno.tutor?.direccion || "",
+    });
+
+    setOpenEditAlumnoExtra(true);
+  };
+
   const handleDelete = async (item: CommunityMember) => {
     if (!confirm("¿Seguro que deseas eliminar este registro?")) return;
     let ok = false;
@@ -315,6 +370,7 @@ export default function CommunityManagementPage() {
             data={currentData}
             handleEdit={handleEdit}
             handleDelete={handleDelete}
+            handleEditExtra={handleEditExtra}
             visibleColumns={visibleColumns}
           />
 
@@ -426,6 +482,242 @@ export default function CommunityManagementPage() {
               if (ok) setOpenEditAdmin(false);
             }}
           />
+
+          {/* Modal para editar información adicional del alumno */}
+          <Dialog
+            open={openEditAlumnoExtra}
+            onOpenChange={setOpenEditAlumnoExtra}
+          >
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-2xl text-[#691C32]">
+                  Información Adicional del Alumno
+                </DialogTitle>
+                <DialogDescription>
+                  Edita datos complementarios como foto, credencial y tutor.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                <div className="text-sm text-gray-700 mb-4 p-3 bg-gray-50 rounded-md">
+                  <p>
+                    <strong>Alumno:</strong>{" "}
+                    {selectedItem &&
+                      `${(selectedItem as any).nombre} ${(selectedItem as any).apellidoPaterno}`}
+                  </p>
+                  <p>
+                    <strong>Matrícula:</strong>{" "}
+                    {(selectedItem as any)?.matricula}
+                  </p>
+                </div>
+
+                {/* Fechas de credencial */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="credencialEmision">
+                      Fecha emisión credencial
+                    </Label>
+                    <Input
+                      id="credencialEmision"
+                      type="date"
+                      value={extraFormData.credencialFechaEmision}
+                      onChange={(e) =>
+                        setExtraFormData({
+                          ...extraFormData,
+                          credencialFechaEmision: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="credencialExpiracion">
+                      Fecha expiración credencial
+                    </Label>
+                    <Input
+                      id="credencialExpiracion"
+                      type="date"
+                      value={extraFormData.credencialFechaExpiracion}
+                      onChange={(e) =>
+                        setExtraFormData({
+                          ...extraFormData,
+                          credencialFechaExpiracion: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Separador */}
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="font-semibold text-gray-900 mb-4">
+                    Información del Tutor
+                  </h3>
+                </div>
+
+                {/* Nombre del tutor */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label htmlFor="tutorNombre">Nombre</Label>
+                    <Input
+                      id="tutorNombre"
+                      value={extraFormData.tutorNombre}
+                      onChange={(e) =>
+                        setExtraFormData({
+                          ...extraFormData,
+                          tutorNombre: e.target.value,
+                        })
+                      }
+                      placeholder="Nombre"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tutorApellidoPaterno">
+                      Apellido Paterno
+                    </Label>
+                    <Input
+                      id="tutorApellidoPaterno"
+                      value={extraFormData.tutorApellidoPaterno}
+                      onChange={(e) =>
+                        setExtraFormData({
+                          ...extraFormData,
+                          tutorApellidoPaterno: e.target.value,
+                        })
+                      }
+                      placeholder="Apellido Paterno"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tutorApellidoMaterno">
+                      Apellido Materno
+                    </Label>
+                    <Input
+                      id="tutorApellidoMaterno"
+                      value={extraFormData.tutorApellidoMaterno}
+                      onChange={(e) =>
+                        setExtraFormData({
+                          ...extraFormData,
+                          tutorApellidoMaterno: e.target.value,
+                        })
+                      }
+                      placeholder="Apellido Materno"
+                    />
+                  </div>
+                </div>
+
+                {/* Contacto del tutor */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="tutorTelefono">Teléfono</Label>
+                    <Input
+                      id="tutorTelefono"
+                      value={extraFormData.tutorTelefono}
+                      onChange={(e) =>
+                        setExtraFormData({
+                          ...extraFormData,
+                          tutorTelefono: e.target.value,
+                        })
+                      }
+                      placeholder="Teléfono"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tutorEmail">Email</Label>
+                    <Input
+                      id="tutorEmail"
+                      type="email"
+                      value={extraFormData.tutorEmail}
+                      onChange={(e) =>
+                        setExtraFormData({
+                          ...extraFormData,
+                          tutorEmail: e.target.value,
+                        })
+                      }
+                      placeholder="correo@ejemplo.com"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="tutorParentesco">Parentesco</Label>
+                  <Input
+                    id="tutorParentesco"
+                    value={extraFormData.tutorParentesco}
+                    onChange={(e) =>
+                      setExtraFormData({
+                        ...extraFormData,
+                        tutorParentesco: e.target.value,
+                      })
+                    }
+                    placeholder="Padre, Madre, Tutor, etc."
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="tutorDireccion">Dirección</Label>
+                  <Input
+                    id="tutorDireccion"
+                    value={extraFormData.tutorDireccion}
+                    onChange={(e) =>
+                      setExtraFormData({
+                        ...extraFormData,
+                        tutorDireccion: e.target.value,
+                      })
+                    }
+                    placeholder="Dirección completa"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setOpenEditAlumnoExtra(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="bg-[#691C32] hover:bg-[#8E2B4B]"
+                  onClick={async () => {
+                    if (!selectedItem) return;
+
+                    const alumnoId = (selectedItem as any).id;
+
+                    // Preparar datos del tutor solo si hay al menos un campo
+                    const hasTutorData =
+                      extraFormData.tutorNombre ||
+                      extraFormData.tutorApellidoPaterno ||
+                      extraFormData.tutorTelefono;
+
+                    const tutorData = hasTutorData
+                      ? {
+                          nombre: extraFormData.tutorNombre,
+                          apellidoPaterno: extraFormData.tutorApellidoPaterno,
+                          apellidoMaterno: extraFormData.tutorApellidoMaterno,
+                          telefono: extraFormData.tutorTelefono,
+                          email: extraFormData.tutorEmail,
+                          parentesco: extraFormData.tutorParentesco,
+                          direccion: extraFormData.tutorDireccion,
+                        }
+                      : undefined;
+
+                    const success = await updateAlumnoExtra(alumnoId, {
+                      credencialFechaEmision:
+                        extraFormData.credencialFechaEmision || undefined,
+                      credencialFechaExpiracion:
+                        extraFormData.credencialFechaExpiracion || undefined,
+                      tutor: tutorData,
+                    });
+
+                    if (success) {
+                      setOpenEditAlumnoExtra(false);
+                    }
+                  }}
+                >
+                  Guardar Cambios
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </div>

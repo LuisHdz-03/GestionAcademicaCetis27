@@ -21,6 +21,7 @@ interface DataTableProps {
   data: (Docente | Alumno | Admin)[];
   handleEdit: (item: Docente | Alumno | Admin) => void;
   handleDelete: (item: Docente | Alumno | Admin) => void;
+  handleEditExtra?: (item: Docente | Alumno | Admin) => void;
   visibleColumns: string[];
 }
 
@@ -29,6 +30,7 @@ export default function DataTable({
   data,
   handleEdit,
   handleDelete,
+  handleEditExtra,
   visibleColumns,
 }: DataTableProps) {
   const allColumns = () => {
@@ -161,6 +163,8 @@ export default function DataTable({
                       item={item}
                       onEdit={handleEdit}
                       onDelete={handleDelete}
+                      showEditExtra={activeTab === "alumnos"}
+                      onEditExtra={handleEditExtra}
                     />
                   </TableCell>
                 </TableRow>

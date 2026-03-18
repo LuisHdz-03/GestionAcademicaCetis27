@@ -59,6 +59,7 @@ export default function AddGrupoForm({
   const [formData, setFormData] = useState<GrupoFormData>({
     codigo: initialData?.codigo || "",
     semestre: initialData?.semestre || 1,
+    turno: initialData?.turno || "MATUTINO",
     aula: initialData?.aula || "",
     idPeriodo: initialData?.idPeriodo || 0,
     idDocente: initialData?.idDocente || 0,
@@ -72,6 +73,7 @@ export default function AddGrupoForm({
       setFormData({
         codigo: initialData.codigo || "",
         semestre: initialData.semestre || 1,
+        turno: initialData.turno || "MATUTINO",
         aula: initialData.aula || "",
         idPeriodo: initialData.idPeriodo || 0,
         idDocente: initialData.idDocente || 0,
@@ -156,6 +158,25 @@ export default function AddGrupoForm({
           onChange={handleChange}
           placeholder="Ej: A-101, B-205"
         />
+      </div>
+
+      <div>
+        <Label className="text-gray-700 mb-1">Turno *</Label>
+        <Select
+          onValueChange={(value) =>
+            setFormData({ ...formData, turno: value as GrupoFormData["turno"] })
+          }
+          value={formData.turno}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecciona un turno" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="MATUTINO">Matutino</SelectItem>
+            <SelectItem value="VESPERTINO">Vespertino</SelectItem>
+            <SelectItem value="MIXTO">Mixto</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

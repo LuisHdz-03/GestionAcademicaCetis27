@@ -48,6 +48,7 @@ export interface AdminFormData {
 export interface GrupoFormData {
   codigo: string;
   semestre: number;
+  turno: "MATUTINO" | "VESPERTINO" | "MIXTO";
   aula: string;
   idEspecialidad: number;
   idPeriodo: number;
