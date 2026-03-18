@@ -8,6 +8,7 @@ import {
   HiClock,
   HiDocumentText,
   HiClipboardDocumentCheck,
+  HiQueueList, // 1. IMPORTAMOS EL ÍCONO PARA LA BITÁCORA
 } from "react-icons/hi2";
 import { FaGraduationCap, FaCheckCircle } from "react-icons/fa";
 import { MdQrCodeScanner } from "react-icons/md";
@@ -120,6 +121,14 @@ export default function Sidebar() {
       label: "Reportes",
       href: "/dashboard/reportes",
       roles: ["DOCENTE", "ADMINISTRATIVO"],
+      cargos: cargosAdministrativosGrales,
+    },
+
+    {
+      icon: HiQueueList,
+      label: "Bitácora",
+      href: "/dashboard/bitacora",
+      roles: ["ADMINISTRATIVO"],
       cargos: cargosAdministrativosGrales,
     },
     {

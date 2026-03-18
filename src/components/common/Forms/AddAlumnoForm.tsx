@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlumnoFormData } from "@/types/modal";
+import { useToast } from "@/hooks/useToast";
 
 interface Grupo {
   id: number;
@@ -34,13 +35,13 @@ export default function AddAlumnoForm({
   mode = "create",
   initialData,
 }: AddAlumnoFormProps) {
+  const { toast } = useToast(); // 2. INICIALIZAMOS EL TOAST
+
   const [formData, setFormData] = useState<AlumnoFormData>({
     nombre: initialData?.nombre || "",
     apellidoPaterno: initialData?.apellidoPaterno || "",
     apellidoMaterno: initialData?.apellidoMaterno || "",
-
     telefono: initialData?.telefono || "",
-
     curp: initialData?.curp || "",
     numeroControl: initialData?.numeroControl || "",
     idEspecialidad: initialData?.idEspecialidad ?? 0,
@@ -78,7 +79,6 @@ export default function AddAlumnoForm({
           idGrupo: undefined,
         });
       } else {
-        // Para idGrupo: buscar el grupo real por su valor para evitar NaN
         const found = grupos.find((gr) => String(gr.id) === value);
         if (found) {
           setFormData({ ...formData, [name]: found.id });
@@ -99,11 +99,19 @@ export default function AddAlumnoForm({
     e.preventDefault();
 
     if (formData.telefono && formData.telefono.length !== 10) {
-      alert("El número de teléfono debe tener exactamente 10 dígitos.");
+      toast({
+        title: "Teléfono inválido",
+        description: "El número de teléfono debe tener exactamente 10 dígitos.",
+        variant: "destructive",
+      });
       return;
     }
     if (formData.curp && formData.curp.length !== 18) {
-      alert("La CURP debe tener exactamente 18 caracteres.");
+      toast({
+        title: "CURP inválida",
+        description: "La CURP debe tener exactamente 18 caracteres.",
+        variant: "destructive",
+      });
       return;
     }
     onSubmit(formData);
@@ -139,7 +147,6 @@ export default function AddAlumnoForm({
   }, [especialidades, grupos]);
 
   const gruposFiltrados = grupos.filter((g: any) => {
-    // Aseguramos leer el ID sin importar cómo lo haya llamado el Backend
     const espId = g.idEspecialidad || g.especialidadId;
     return Number(espId) === Number(formData.idEspecialidad);
   });
@@ -317,7 +324,10 @@ export default function AddAlumnoForm({
         />
       </div>
 
-      <Button type="submit" className="w-full bg-[#691C32] text-white mt-4">
+      <Button
+        type="submit"
+        className="w-full bg-[#691C32] hover:bg-[#4a1424] text-white mt-4"
+      >
         {mode === "create" ? "Agregar Alumno" : "Guardar cambios"}
       </Button>
     </form>

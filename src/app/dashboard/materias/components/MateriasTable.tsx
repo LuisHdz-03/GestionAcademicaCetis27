@@ -1,8 +1,20 @@
 // components/MateriasTable.tsx
 "use client";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 
 interface Materia {
@@ -20,7 +32,12 @@ interface Props {
   onDelete?: (materia: Materia) => void;
 }
 
-export default function MateriasTable({ materias, visibleColumns, onEdit, onDelete }: Props) {
+export default function MateriasTable({
+  materias,
+  visibleColumns,
+  onEdit,
+  onDelete,
+}: Props) {
   const handleAction = (action: string, materia: Materia) => {
     if (action === "Editar" && onEdit) {
       onEdit(materia);
@@ -35,21 +52,48 @@ export default function MateriasTable({ materias, visibleColumns, onEdit, onDele
         <Table>
           <TableHeader>
             <TableRow className="sticky top-0 bg-[#691C32]">
-              {visibleColumns.includes("Nombre") && <TableHead className="bg-[#691C32] text-white">Nombre</TableHead>}
-              {visibleColumns.includes("Código") && <TableHead className="bg-[#691C32] text-white">Código</TableHead>}
-              {visibleColumns.includes("Total de horas") && <TableHead className="bg-[#691C32] text-white">Total de horas</TableHead>}
-              {visibleColumns.includes("Semestre") && <TableHead className="bg-[#691C32] text-white">Semestre</TableHead>}
-              <TableHead className="bg-[#691C32] text-white text-right">Acciones</TableHead>
+              {visibleColumns.includes("Nombre") && (
+                <TableHead className="bg-[#691C32] text-white">
+                  Nombre
+                </TableHead>
+              )}
+              {visibleColumns.includes("Código") && (
+                <TableHead className="bg-[#691C32] text-white">
+                  Código
+                </TableHead>
+              )}
+              {visibleColumns.includes("Total de horas") && (
+                <TableHead className="bg-[#691C32] text-white">
+                  Total de horas
+                </TableHead>
+              )}
+              {visibleColumns.includes("Semestre") && (
+                <TableHead className="bg-[#691C32] text-white">
+                  Semestre
+                </TableHead>
+              )}
+              <TableHead className="bg-[#691C32] text-white text-right">
+                Acciones
+              </TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
-            {materias.map((materia) => (
-              <TableRow key={materia.codigo}>
-                {visibleColumns.includes("Nombre") && <TableCell>{materia.nombre}</TableCell>}
-                {visibleColumns.includes("Código") && <TableCell>{materia.codigo}</TableCell>}
-                {visibleColumns.includes("Total de horas") && <TableCell>{materia.totalHoras}</TableCell>}
-                {visibleColumns.includes("Semestre") && <TableCell>{materia.semestre}</TableCell>}
+            {/* Aquí agregamos el 'index' para usarlo como respaldo de la key */}
+            {materias.map((materia, index) => (
+              <TableRow key={materia.id || `materia-${index}`}>
+                {visibleColumns.includes("Nombre") && (
+                  <TableCell>{materia.nombre}</TableCell>
+                )}
+                {visibleColumns.includes("Código") && (
+                  <TableCell>{materia.codigo}</TableCell>
+                )}
+                {visibleColumns.includes("Total de horas") && (
+                  <TableCell>{materia.totalHoras}</TableCell>
+                )}
+                {visibleColumns.includes("Semestre") && (
+                  <TableCell>{materia.semestre}</TableCell>
+                )}
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -58,8 +102,16 @@ export default function MateriasTable({ materias, visibleColumns, onEdit, onDele
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleAction("Editar", materia)}>Editar</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAction("Eliminar", materia)}>Eliminar</DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleAction("Editar", materia)}
+                      >
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleAction("Eliminar", materia)}
+                      >
+                        Eliminar
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

@@ -95,6 +95,13 @@ export default function ReportesPage() {
   const [alumnos, setAlumnos] = useState<Alumno[]>([]);
   const [clasesDocente, setClasesDocente] = useState<any[]>([]);
   const [reportesRecientes, setReportesRecientes] = useState<Reporte[]>([]);
+
+  // NUEVO ESTADO PARA EL PERIODO ACTIVO
+  const [periodoActivo, setPeriodoActivo] = useState<{
+    fechaInicio: string;
+    fechaFin: string;
+  } | null>(null);
+
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState<Alumno | null>(
     null,
   );
@@ -139,15 +146,42 @@ export default function ReportesPage() {
 
   useEffect(() => {
     cargarAlumnos();
-    cargarReportesRecientes();
+    cargarPeriodoActivoYRportes(); // Llamamos a la función que carga el periodo y los reportes
   }, [user]);
+
+  // NUEVA FUNCIÓN PARA TRAER EL PERIODO ACTIVO
+  const cargarPeriodoActivoYRportes = async () => {
+    try {
+      // 1. Obtener periodo activo
+      const resPeriodos = await fetch(`${API_URL}/periodos`, {
+        headers: getAuthHeaders(),
+      });
+      if (resPeriodos.ok) {
+        const periodos = await resPeriodos.json();
+        const activo = (
+          Array.isArray(periodos) ? periodos : periodos.data || []
+        ).find((p: any) => p.activo === true);
+        if (activo) {
+          setPeriodoActivo({
+            fechaInicio: activo.fechaInicio,
+            fechaFin: activo.fechaFin,
+          });
+        }
+      }
+
+      // 2. Cargar reportes una vez que sabemos cuál es el periodo
+      cargarReportesRecientes();
+    } catch (error) {
+      console.error("Error al cargar periodo activo:", error);
+      cargarReportesRecientes(); // Cargar los reportes de todos modos si falla
+    }
+  };
 
   const cargarAlumnos = async () => {
     try {
       let alumnosMapeados: Alumno[] = [];
 
       if (tipoUsuario === "DOCENTE") {
-        // Solo alumnos de los grupos donde el docente imparte clase
         const idUsuario = user?.id || (user as any)?.idUsuario;
         if (!idUsuario) return;
 
@@ -160,7 +194,6 @@ export default function ReportesPage() {
         const clases = await resClases.json();
         setClasesDocente(Array.isArray(clases) ? clases : []);
 
-        // Cargar catálogo de especialidades para resolver nombres
         let especialidadNombreMap = new Map<number, string>();
         try {
           const resEsp = await fetch(`${API_URL}/especialidades`, {
@@ -174,11 +207,8 @@ export default function ReportesPage() {
               if (id) especialidadNombreMap.set(id, nombre);
             });
           }
-        } catch {
-          // Si falla, se usará "Sin Asignar" como fallback
-        }
+        } catch {}
 
-        // Construir mapa grupoId → info del grupo (desde las clases ya cargadas)
         const infoGrupoMap = new Map<
           number,
           { nombre: string; especialidad: string; especialidadId: number }
@@ -200,11 +230,9 @@ export default function ReportesPage() {
           }
         });
 
-        // Obtener IDs de grupos únicos
         const grupoIds = [...infoGrupoMap.keys()];
-
-        // Cargar alumnos de cada grupo y deduplicar
         const alumnosMap = new Map<number, Alumno>();
+
         await Promise.all(
           grupoIds.map(async (grupoId) => {
             const res = await fetch(`${API_URL}/estudiantes/grupo/${grupoId}`, {
@@ -224,7 +252,6 @@ export default function ReportesPage() {
                   apellidoMaterno:
                     a.usuario?.apellidoMaterno || a.apellidoMaterno || "",
                   matricula: a.matricula || "S/N",
-                  // Priorizar dato del objeto anidado; si no viene, usar el del mapa de clases
                   especialidad:
                     a.grupo?.especialidad?.nombre ||
                     infoGrupo?.especialidad ||
@@ -248,7 +275,6 @@ export default function ReportesPage() {
         );
         alumnosMapeados = Array.from(alumnosMap.values());
       } else {
-        // Administrativos: todos los alumnos
         const res = await fetch(`${API_URL}/estudiantes`, {
           headers: getAuthHeaders(),
         });
@@ -363,7 +389,6 @@ export default function ReportesPage() {
         ? `${user?.nombre || ""} ${user?.apellidoPaterno || ""}`.trim()
         : "";
 
-      // Calcular "¿Le da clases al alumno?" automáticamente para docentes
       let leClasesReportado = "";
       if (esDocente && clasesDocente.length > 0 && alumno.idGrupo) {
         const materiasDelGrupo = clasesDocente
@@ -641,6 +666,19 @@ export default function ReportesPage() {
     }
   };
 
+  // NUEVO: FILTRAMOS LOS REPORTES BASADOS EN EL PERIODO ACTIVO
+  const reportesFiltradosPorPeriodo = reportesRecientes.filter((reporte) => {
+    // Si no hay periodo activo, mostramos una lista vacía (o podrías mostrar todos si prefieres)
+    if (!periodoActivo) return false;
+
+    const fechaReporte = new Date(reporte.fechaReporte).getTime();
+    const inicio = new Date(periodoActivo.fechaInicio).getTime();
+    const fin = new Date(periodoActivo.fechaFin).getTime();
+
+    // Comprobamos que el reporte haya ocurrido DENTRO de las fechas del periodo activo
+    return fechaReporte >= inicio && fechaReporte <= fin;
+  });
+
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -911,12 +949,12 @@ export default function ReportesPage() {
       {/* Historial de Reportes */}
       <Card>
         <CardHeader>
-          <CardTitle>Historial de Reportes</CardTitle>
+          <CardTitle>Reportes del Periodo Activo</CardTitle>
         </CardHeader>
         <CardContent>
-          {reportesRecientes.length === 0 ? (
+          {reportesFiltradosPorPeriodo.length === 0 ? (
             <p className="text-center text-gray-500 py-8">
-              No hay reportes registrados
+              No hay reportes registrados en este periodo escolar.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -932,10 +970,10 @@ export default function ReportesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {reportesRecientes.map((reporte) => (
+                  {/* SE USA LA LISTA FILTRADA */}
+                  {reportesFiltradosPorPeriodo.map((reporte) => (
                     <TableRow key={reporte.idReporte}>
                       <TableCell>
-                        {/* 👇 SOLUCIÓN DE FECHA EN LA TABLA */}
                         {new Date(
                           reporte.fechaReporte.includes("T")
                             ? reporte.fechaReporte
@@ -1042,7 +1080,6 @@ export default function ReportesPage() {
                     {reporteVisualizacion.acciones}
                   </p>
                 </div>
-                {/* Mostramos quién reportó en el detalle */}
                 {reporteVisualizacion.reportadoPor && (
                   <div className="col-span-2">
                     <span className="font-bold text-gray-500 block">
