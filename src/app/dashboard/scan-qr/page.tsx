@@ -27,17 +27,29 @@ export default function ScanQRPage() {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const bufferRef = useRef<string>("");
 
-  // Mantiene el input enfocado
+  // Captura teclas directamente en el documento — sin <input> visible,
+  // así ninguna extensión de contraseñas puede inyectar su botón.
   useEffect(() => {
-    const focusInput = () => {
-      setTimeout(() => inputRef.current?.focus(), 50);
+    const handleKey = (e: KeyboardEvent) => {
+      // Ignorar si el foco está en un campo de formulario real
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      if (e.key === "Enter") {
+        const codigo = bufferRef.current.trim();
+        if (codigo) registrarAcceso(codigo);
+        bufferRef.current = "";
+      } else if (e.key.length === 1) {
+        bufferRef.current += e.key;
+      }
     };
-    focusInput();
-    window.addEventListener("click", focusInput);
-    return () => window.removeEventListener("click", focusInput);
-  }, []);
+
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
 
   // Enviamos el código al backend para validar
   const registrarAcceso = async (tokenQR: string) => {
@@ -102,18 +114,11 @@ export default function ScanQRPage() {
       });
     } finally {
       setIsLoading(false);
-      if (inputRef.current) {
-        inputRef.current.value = "";
-        inputRef.current.focus();
-      }
+      bufferRef.current = "";
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && inputRef.current?.value) {
-      registrarAcceso(inputRef.current.value);
-    }
-  };
+  // El handleKeyDown ya no es necesario — se captura en el useEffect de document
 
   const esPrefecto =
     user?.tipoUsuario === "prefecto" ||
@@ -169,19 +174,6 @@ export default function ScanQRPage() {
         </div>
 
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-          {/* Input oculto — solo recibe datos de la pistola lectora */}
-          <input
-            ref={inputRef}
-            type="text"
-            className="sr-only"
-            onKeyDown={handleKeyDown}
-            disabled={isLoading}
-            autoComplete="off"
-            autoFocus
-            readOnly={false}
-            tabIndex={-1}
-          />
-
           {/* Zona de resultados */}
           <div className="p-8 min-h-[300px] flex flex-col items-center justify-center bg-gray-50">
             {isLoading ? (

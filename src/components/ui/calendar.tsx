@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { DayPicker } from "react-day-picker"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import * as React from "react";
+import { DayPicker } from "react-day-picker";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
 function Calendar({
   className,
@@ -18,45 +18,58 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("w-full max-w-md p-4 bg-white rounded-lg shadow-md", className)}
+      className={cn("p-3 relative", className)}
       classNames={{
-        months: "flex flex-col sm:flex-row space-y-6 sm:space-x-6 sm:space-y-0",
-        month: "space-y-4",
-        caption: "flex justify-between items-center py-2 px-1 relative",
-        caption_label: "text-base font-semibold text-gray-900",
-        nav: "flex items-center space-x-1",
-        nav_button: cn(
+        // Layout
+        months: "flex flex-col sm:flex-row gap-6",
+        month: "space-y-3",
+        month_caption: "flex justify-center items-center relative min-h-9 pt-1",
+        caption_label: "text-sm font-semibold text-gray-800",
+        nav: "flex items-center",
+        button_previous: cn(
           buttonVariants({ variant: "outline" }),
-          "h-8 w-8 bg-transparent p-0 hover:bg-gray-100 rounded-full"
+          "absolute left-0 h-7 w-7 bg-transparent p-0 opacity-60 hover:opacity-100 flex items-center justify-center",
         ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-y-1",
-        head_row: "flex justify-between mb-2",
-        head_cell: "text-gray-500 text-xs font-medium w-9 h-9 flex items-center justify-center",
-        row: "flex w-full justify-between mt-1",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-gray-100 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
-        day: cn(
+        button_next: cn(
+          buttonVariants({ variant: "outline" }),
+          "absolute right-0 h-7 w-7 bg-transparent p-0 opacity-60 hover:opacity-100 flex items-center justify-center",
+        ),
+        month_grid: "w-full border-collapse",
+        weekdays: "flex",
+        weekday:
+          "text-gray-400 text-xs font-medium w-9 h-8 flex items-center justify-center",
+        week: "flex w-full mt-1",
+        day: "relative h-9 w-9 p-0 text-center text-sm",
+        day_button: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal rounded-full hover:bg-gray-100 aria-selected:opacity-100"
+          "h-9 w-9 p-0 font-normal rounded-full hover:bg-gray-100",
         ),
-        day_selected:
-          "bg-blue-600 text-white hover:bg-blue-700 hover:text-white focus:bg-blue-700 focus:text-white",
-        day_today: "bg-gray-100 text-gray-900 font-medium",
-        day_outside: "text-gray-400 opacity-50",
-        day_disabled: "text-gray-300",
-        day_range_middle: "bg-gray-100 text-gray-900",
-        day_hidden: "invisible",
+        // States
+        selected:
+          "[&>button]:!bg-blue-600 [&>button]:!text-white [&>button]:hover:!bg-blue-700 [&>button]:rounded-full",
+        today: "[&>button]:bg-gray-100 [&>button]:font-bold",
+        outside: "opacity-40",
+        disabled: "opacity-30 pointer-events-none",
+        // Range
+        range_start: "bg-blue-100 rounded-l-full",
+        range_end: "bg-blue-100 rounded-r-full",
+        range_middle:
+          "bg-blue-50 [&>button]:!bg-transparent [&>button]:!text-gray-800 [&>button]:rounded-none",
+        hidden: "invisible",
         ...classNames,
       }}
       components={{
-        prevButton: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
-        nextButton: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
+        Chevron: ({ orientation }) =>
+          orientation === "left" ? (
+            <ChevronLeft className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          ),
       }}
       {...props}
     />
-  )
+  );
 }
-Calendar.displayName = "Calendar"
+Calendar.displayName = "Calendar";
 
-export { Calendar }
+export { Calendar };

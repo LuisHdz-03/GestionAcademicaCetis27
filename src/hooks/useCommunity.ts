@@ -388,9 +388,11 @@ export function useCommunity(): UseCommunityReturn {
       if (!response.ok) throw new Error("Error al obtener clases");
 
       const result = await response.json();
-      setClases(result);
+      // El backend responde { data: [...], paginacion: {...} }
+      setClases(Array.isArray(result.data) ? result.data : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
+      setClases([]); // En error, también forzar array vacío
     } finally {
       setLoading(false);
     }
@@ -704,7 +706,11 @@ export function useCommunity(): UseCommunityReturn {
       });
       return true;
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
       return false;
     }
   };
@@ -739,7 +745,11 @@ export function useCommunity(): UseCommunityReturn {
       });
       return true;
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
       return false;
     }
   };

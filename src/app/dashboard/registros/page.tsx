@@ -49,8 +49,8 @@ export default function RegistrosPage() {
 
   // Estados para los filtros
   const [busqueda, setBusqueda] = useState("");
-  const [filtroGrupo, setFiltroGrupo] = useState("");
-  const [filtroTipo, setFiltroTipo] = useState<string>("");
+  const [filtroGrupo, setFiltroGrupo] = useState("all");
+  const [filtroTipo, setFiltroTipo] = useState<string>("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(new Date().setHours(0, 0, 0, 0)),
     to: new Date(new Date().setHours(23, 59, 59, 999)),
@@ -114,8 +114,9 @@ export default function RegistrosPage() {
       const cumpleBusqueda =
         registro.estudiante.toLowerCase().includes(busqueda.toLowerCase()) ||
         registro.numeroControl.includes(busqueda);
-      const cumpleGrupo = !filtroGrupo || registro.grupo === filtroGrupo;
-      const cumpleTipo = !filtroTipo || registro.tipo === filtroTipo;
+      const cumpleGrupo =
+        filtroGrupo === "all" || registro.grupo === filtroGrupo;
+      const cumpleTipo = filtroTipo === "all" || registro.tipo === filtroTipo;
 
       const fechaRegistro = new Date(registro.fechaHora);
       const cumpleFecha =
@@ -208,7 +209,7 @@ export default function RegistrosPage() {
                     <SelectValue placeholder="Todos los grupos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos los grupos</SelectItem>
+                    <SelectItem value="all">Todos los grupos</SelectItem>
                     {gruposUnicos.map((grupo) => (
                       <SelectItem key={grupo} value={grupo}>
                         {grupo}
@@ -222,7 +223,7 @@ export default function RegistrosPage() {
                     <SelectValue placeholder="Todos los tipos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos los tipos</SelectItem>
+                    <SelectItem value="all">Todos los tipos</SelectItem>
                     <SelectItem value="Entrada">Entrada</SelectItem>
                     <SelectItem value="Salida">Salida</SelectItem>
                   </SelectContent>
@@ -255,15 +256,15 @@ export default function RegistrosPage() {
                   </>
                 )}
               </span>
-              {(busqueda || filtroGrupo || filtroTipo) && (
+              {(busqueda || filtroGrupo !== "all" || filtroTipo !== "all") && (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-7 text-xs text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     setBusqueda("");
-                    setFiltroGrupo("");
-                    setFiltroTipo("");
+                    setFiltroGrupo("all");
+                    setFiltroTipo("all");
                   }}
                 >
                   Limpiar filtros

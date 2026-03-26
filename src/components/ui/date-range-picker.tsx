@@ -1,69 +1,80 @@
 "use client";
 
-import { format, isAfter, isBefore, isValid, parseISO, startOfDay, endOfDay } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import * as React from 'react';
-import type { DateRange as ReactDayPickerRange } from 'react-day-picker';
+import {
+  format,
+  isAfter,
+  isBefore,
+  isValid,
+  parseISO,
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  subDays,
+} from "date-fns";
+import { es } from "date-fns/locale";
+import { Calendar as CalendarIcon, ChevronRight } from "lucide-react";
+import * as React from "react";
+import type { DateRange as ReactDayPickerRange } from "react-day-picker";
 
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-  PopoverClose,
-} from '@/components/ui/popover';
+} from "@/components/ui/popover";
 
-// Usamos el tipo DateRange de react-day-picker para mantener consistencia
 type DateRange = ReactDayPickerRange;
 
-export interface DatePickerWithRangeProps
-  extends React.HTMLAttributes<HTMLDivElement> {
-  /**
-   * Rango de fechas seleccionado actualmente
-   */
+export interface DatePickerWithRangeProps extends React.HTMLAttributes<HTMLDivElement> {
   dateRange?: DateRange | undefined;
-  /**
-   * Callback que se ejecuta cuando se selecciona un nuevo rango de fechas
-   * @param range - El nuevo rango de fechas seleccionado
-   */
   onDateRangeChange: (range: DateRange | undefined) => void;
-  /**
-   * Fecha mínima permitida para la selección
-   */
   minDate?: Date | string;
-  /**
-   * Fecha máxima permitida para la selección
-   */
   maxDate?: Date | string;
-  /**
-   * Texto del placeholder cuando no hay fechas seleccionadas
-   * @default 'Seleccionar rango de fechas'
-   */
   placeholder?: string;
-  /**
-   * Número de meses a mostrar en el calendario (1-3)
-   * @default 2
-   */
   numberOfMonths?: number;
-  /**
-   * Si es true, muestra los botones de navegación
-   * @default true
-   */
   showNavigation?: boolean;
-  /**
-   * Si es true, deshabilita el componente
-   * @default false
-   */
   disabled?: boolean;
-  /**
-   * Si es true, el calendario estará abierto por defecto
-   * @default false
-   */
   defaultOpen?: boolean;
 }
+
+const PRESETS = [
+  {
+    label: "Hoy",
+    range: (): DateRange => ({
+      from: startOfDay(new Date()),
+      to: endOfDay(new Date()),
+    }),
+  },
+  {
+    label: "Ayer",
+    range: (): DateRange => {
+      const ayer = subDays(new Date(), 1);
+      return { from: startOfDay(ayer), to: endOfDay(ayer) };
+    },
+  },
+  {
+    label: "Esta semana",
+    range: (): DateRange => ({
+      from: startOfWeek(new Date(), { locale: es }),
+      to: endOfWeek(new Date(), { locale: es }),
+    }),
+  },
+  {
+    label: "Este mes",
+    range: (): DateRange => ({
+      from: startOfMonth(new Date()),
+      to: endOfMonth(new Date()),
+    }),
+  },
+];
+
+const formatFecha = (date: Date) =>
+  format(date, "d 'de' MMM, yyyy", { locale: es });
 
 export function DatePickerWithRange({
   dateRange,
@@ -71,19 +82,11 @@ export function DatePickerWithRange({
   className,
   minDate,
   maxDate,
-  placeholder = 'Seleccionar rango de fechas',
+  placeholder = "Seleccionar período",
   numberOfMonths = 2,
   ...props
 }: DatePickerWithRangeProps) {
   const [open, setOpen] = React.useState(props.defaultOpen ?? false);
-  const [internalRange, setInternalRange] = React.useState<DateRange | undefined>(
-    dateRange
-  );
-
-  // Sincronizar el estado interno con las props
-  React.useEffect(() => {
-    setInternalRange(dateRange);
-  }, [dateRange]);
 
   const handleSelect = (range: ReactDayPickerRange | undefined) => {
     if (!range) {
@@ -91,33 +94,22 @@ export function DatePickerWithRange({
       return;
     }
 
-    // Validar fechas
     let { from, to } = range;
-    
-    // Asegurar que las fechas sean válidas
     if (from && !isValid(from)) from = undefined;
     if (to && !isValid(to)) to = undefined;
 
-    // Validar rango mínimo y máximo
     if (minDate && from && isBefore(from, startOfDay(minDate))) {
       from = startOfDay(minDate);
     }
-    
     if (maxDate && to && isAfter(to, endOfDay(maxDate))) {
       to = endOfDay(maxDate);
     }
-
-    // Si hay una fecha de inicio y fin, asegurarse de que from <= to
     if (from && to && isAfter(from, to)) {
       [from, to] = [to, from];
     }
 
     onDateRangeChange({ from, to });
-    
-    // Cerrar el popover solo cuando se seleccionan ambas fechas
-    if (from && to) {
-      setOpen(false);
-    }
+    if (from && to) setOpen(false);
   };
 
   return (
@@ -125,93 +117,115 @@ export function DatePickerWithRange({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
-            id="date-range-picker-trigger"
             variant="outline"
             className={cn(
-              "w-full justify-start text-left font-normal hover:bg-accent hover:text-accent-foreground",
-              !dateRange && "text-muted-foreground"
+              "min-w-[240px] justify-start text-left font-normal",
+              !dateRange && "text-muted-foreground",
             )}
-            aria-label="Seleccionar rango de fechas"
-            aria-haspopup="dialog"
-            aria-expanded={open}
-            aria-controls="date-range-calendar"
           >
-            <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0 text-muted-foreground" />
             {dateRange?.from ? (
               dateRange.to ? (
-                <>
-                  <time dateTime={dateRange.from.toISOString()}>
-                    {format(dateRange.from, 'PPP', { locale: es })}
-                  </time>
-                  {' '}al{' '}
-                  <time dateTime={dateRange.to.toISOString()}>
-                    {format(dateRange.to, 'PPP', { locale: es })}
-                  </time>
-                </>
+                <span className="flex items-center gap-1 text-sm">
+                  <span className="font-medium">
+                    {formatFecha(dateRange.from)}
+                  </span>
+                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                  <span className="font-medium">
+                    {formatFecha(dateRange.to)}
+                  </span>
+                </span>
               ) : (
-                <time dateTime={dateRange.from.toISOString()}>
-                  {format(dateRange.from, 'PPP', { locale: es })}
-                </time>
+                <span className="text-sm font-medium">
+                  {formatFecha(dateRange.from)}
+                </span>
               )
             ) : (
-              <span>{placeholder}</span>
+              <span className="text-sm">{placeholder}</span>
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent 
-          id="date-range-calendar"
-          className="w-auto p-0" 
-          align="start"
-          onInteractOutside={(event) => {
-            // Evitar que el popover se cierre si se interactúa con el calendario
-            const target = event.target as HTMLElement;
-            if (target.closest('.rdp') || target.closest('.popover-close-button')) {
-              event.preventDefault();
-            }
-          }}
-          onEscapeKeyDown={() => setOpen(false)}
-        >
-          <Calendar
-            id="date-range-calendar"
-            initialFocus
-            mode="range"
-            defaultMonth={dateRange?.from || new Date()}
-            selected={dateRange}
-            onSelect={handleSelect}
-            numberOfMonths={Math.min(Math.max(1, numberOfMonths), 3)} // Limitar entre 1 y 3 meses
-            locale={es}
-            disabled={(date: Date) => {
-              // Convertir minDate y maxDate a objetos Date si son strings
-              const min = typeof minDate === 'string' ? parseISO(minDate) : minDate;
-              const max = typeof maxDate === 'string' ? parseISO(maxDate) : maxDate;
-              
-              if (min && isBefore(date, startOfDay(min))) return true;
-              if (max && isAfter(date, endOfDay(max))) return true;
-              return false;
-            }}
-            captionLayout="dropdown"
-            fromYear={minDate ? (typeof minDate === 'string' ? new Date(minDate).getFullYear() : minDate.getFullYear()) : 1900}
-            toYear={maxDate ? (typeof maxDate === 'string' ? new Date(maxDate).getFullYear() : maxDate.getFullYear()) : new Date().getFullYear() + 10}
-            classNames={{
-              months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
-              caption: 'flex justify-center pt-1 relative items-center',
-              caption_label: 'text-sm font-medium',
-              nav: 'space-x-1 flex items-center',
-              nav_button: 'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100',
-              table: 'w-full border-collapse space-y-1',
-              head_row: 'flex',
-              head_cell: 'text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]',
-              row: 'flex w-full mt-2',
-              cell: 'h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20',
-              day: 'h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground',
-              day_selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground',
-              day_today: 'bg-accent text-accent-foreground',
-              day_outside: 'text-muted-foreground opacity-50',
-              day_disabled: 'text-muted-foreground opacity-50',
-              day_range_middle: 'aria-selected:bg-accent aria-selected:text-accent-foreground',
-              day_hidden: 'invisible',
-            }}
-          />
+
+        <PopoverContent className="w-auto p-0 shadow-xl border" align="start">
+          {/* Encabezado */}
+          <div className="px-4 pt-3 pb-2 border-b bg-gray-50 rounded-t-md">
+            <p className="text-sm font-semibold text-gray-700">
+              Seleccionar período
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {dateRange?.from
+                ? dateRange.to
+                  ? `${formatFecha(dateRange.from)} — ${formatFecha(dateRange.to)}`
+                  : `Desde ${formatFecha(dateRange.from)} · Elige fecha final`
+                : "Elige una fecha de inicio y fin"}
+            </p>
+          </div>
+
+          <div className="flex">
+            {/* Presets rápidos */}
+            <div className="flex flex-col gap-0.5 p-3 border-r min-w-[130px] bg-gray-50/50">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Acceso rápido
+              </p>
+              {PRESETS.map((preset) => (
+                <Button
+                  key={preset.label}
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start text-left text-xs h-8 px-2 hover:bg-[#691C32]/10 hover:text-[#691C32] font-normal"
+                  onClick={() => {
+                    onDateRangeChange(preset.range());
+                    setOpen(false);
+                  }}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+              <div className="mt-2 pt-2 border-t">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start text-left text-xs h-8 px-2 w-full text-muted-foreground hover:text-red-600 hover:bg-red-50 font-normal"
+                  onClick={() => {
+                    onDateRangeChange(undefined);
+                    setOpen(false);
+                  }}
+                >
+                  Limpiar
+                </Button>
+              </div>
+            </div>
+
+            {/* Calendario */}
+            <Calendar
+              initialFocus
+              mode="range"
+              defaultMonth={dateRange?.from || new Date()}
+              selected={dateRange}
+              onSelect={handleSelect}
+              numberOfMonths={Math.min(Math.max(1, numberOfMonths), 3)}
+              locale={es}
+              disabled={(date: Date) => {
+                const min =
+                  typeof minDate === "string" ? parseISO(minDate) : minDate;
+                const max =
+                  typeof maxDate === "string" ? parseISO(maxDate) : maxDate;
+                if (min && isBefore(date, startOfDay(min))) return true;
+                if (max && isAfter(date, endOfDay(max))) return true;
+                return false;
+              }}
+              classNames={{
+                selected:
+                  "[&>button]:!bg-[#691C32] [&>button]:!text-white [&>button]:hover:!bg-[#8B2542] [&>button]:rounded-full",
+                today:
+                  "[&>button]:bg-gray-100 [&>button]:font-bold [&>button]:!text-[#691C32]",
+                range_start: "bg-[#691C32]/15 rounded-l-full",
+                range_end: "bg-[#691C32]/15 rounded-r-full",
+                range_middle:
+                  "bg-[#691C32]/10 [&>button]:!bg-transparent [&>button]:!text-gray-800 [&>button]:rounded-none",
+              }}
+            />
+          </div>
         </PopoverContent>
       </Popover>
     </div>

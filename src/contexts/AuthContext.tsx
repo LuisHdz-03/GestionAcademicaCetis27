@@ -110,60 +110,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 signal: AbortSignal.timeout(5000),
               });
 
-              // ─── DEBUG TEMPORAL ────────────────────────────────────────
-              console.log("📡 /administrativos status:", adminRes.status);
-              // ──────────────────────────────────────────────────────────
-
               if (adminRes.ok) {
                 const admins = await adminRes.json();
-
-                // ─── DEBUG TEMPORAL ──────────────────────────────────────
-                console.log(
-                  "📋 Lista /administrativos (primeros 3):",
-                  admins.slice(0, 3),
-                );
-                console.log(
-                  "🔑 Buscando usuario con id:",
-                  usuario.id,
-                  "email:",
-                  usuario.email,
-                );
-                // ────────────────────────────────────────────────────────
-
                 const miPerfil = admins.find(
                   (a: any) =>
                     a.usuarioId === usuario.id ||
                     a.idUsuario === usuario.id ||
-                    a.usuario?.idUsuario === usuario.id ||
                     a.id === usuario.id ||
-                    a.email === usuario.email ||
-                    a.usuario?.email === usuario.email,
+                    a.email === usuario.email,
                 );
-
-                // ─── DEBUG TEMPORAL ──────────────────────────────────────
-                console.log("👤 Perfil encontrado:", miPerfil);
-                // ────────────────────────────────────────────────────────
-
-                if (miPerfil) {
-                  // Buscar el cargo en múltiples campos posibles del modelo Prisma
-                  const cargo =
-                    miPerfil.cargo ||
-                    miPerfil.puesto ||
-                    miPerfil.tipo ||
-                    miPerfil.area ||
-                    null;
-
-                  console.log(
-                    "🏷️ Cargo encontrado:",
-                    cargo,
-                    "| Campos del perfil:",
-                    Object.keys(miPerfil),
-                  );
-
-                  if (cargo) {
-                    usuario.cargo = cargo;
-                    localStorage.setItem("usuario", JSON.stringify(usuario));
-                  }
+                if (miPerfil?.cargo) {
+                  usuario.cargo = miPerfil.cargo;
+                  localStorage.setItem("usuario", JSON.stringify(usuario));
                 }
               }
             } catch (err) {
@@ -290,15 +248,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
       }
 
-      // ─── DEBUG TEMPORAL ───────────────────────────────────────────────────
-      console.log("🔐 LOGIN BACKEND RESPONSE:", {
-        rol: result.usuario.rol,
-        cargo: result.usuario.cargo,
-        datos: result.usuario.datos,
-        rawUsuario: result.usuario,
-      });
-      // ─────────────────────────────────────────────────────────────────────
-
       const usuarioFormateado: User = {
         id: result.usuario.id,
         email: email.trim(),
@@ -325,46 +274,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
             signal: AbortSignal.timeout(5000),
           });
-          console.log("📡 LOGIN /administrativos status:", adminRes.status);
           if (adminRes.ok) {
             const admins = await adminRes.json();
-            console.log(
-              "📋 LOGIN /administrativos (primeros 3):",
-              admins.slice(0, 3),
-            );
-            console.log(
-              "🔑 LOGIN buscando id:",
-              usuarioFormateado.id,
-              "email:",
-              usuarioFormateado.email,
-            );
-            // El perfil administrativo puede tener usuarioId o id distinto al idUsuario.
-            // Buscamos primero por email, luego por usuarioId o por el id del usuario logeado.
             const miPerfil = admins.find(
               (a: any) =>
                 a.email === usuarioFormateado.email ||
                 a.usuarioId === usuarioFormateado.id ||
-                a.idUsuario === usuarioFormateado.id ||
-                a.usuario?.idUsuario === usuarioFormateado.id ||
-                a.usuario?.email === usuarioFormateado.email,
+                a.idUsuario === usuarioFormateado.id,
             );
-            console.log("👤 LOGIN perfil encontrado:", miPerfil);
-            if (miPerfil) {
-              const cargo =
-                miPerfil.cargo ||
-                miPerfil.puesto ||
-                miPerfil.tipo ||
-                miPerfil.area ||
-                null;
-              console.log(
-                "🏷️ LOGIN cargo:",
-                cargo,
-                "| Keys:",
-                Object.keys(miPerfil),
-              );
-              if (cargo) {
-                usuarioFormateado.cargo = cargo;
-              }
+            if (miPerfil?.cargo) {
+              usuarioFormateado.cargo = miPerfil.cargo;
             }
           }
         } catch {

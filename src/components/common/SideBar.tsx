@@ -59,27 +59,23 @@ export default function Sidebar() {
     "SECRETARIO",
   ];
 
-  // 4. Validador de permisos (Súper Simplificado)
+  // 4. Validador de permisos
   const tienePermiso = (itemRoles: string[], itemCargos: string[] = []) => {
-    // 1. Si el ROL del usuario está en los permitidos (DOCENTE, PREFECTO) pasa directo
-    if (itemRoles.includes(tipoUsuario)) {
-      // Si la vista permite ADMINISTRATIVO, validamos el cargo
-      if (tipoUsuario === "ADMINISTRATIVO" && itemCargos.length > 0) {
-        return itemCargos.includes(cargoUsuario);
-      }
-      return true;
+    // PREFECTO: el backend lo guarda como rol ADMINISTRATIVO con cargo PREFECTO.
+    // Lo tratamos como un rol propio: solo ve ítems que declaren "PREFECTO" en roles.
+    if (tipoUsuario === "ADMINISTRATIVO" && cargoUsuario === "PREFECTO") {
+      return itemRoles.includes("PREFECTO");
     }
 
-    // 2. Regla especial de rescate: Si por alguna razón llega como ADMINISTRATIVO pero con cargo PREFECTO
-    if (
-      tipoUsuario === "ADMINISTRATIVO" &&
-      cargoUsuario === "PREFECTO" &&
-      itemRoles.includes("PREFECTO")
-    ) {
-      return true;
+    // ADMINISTRATIVO con otro cargo: necesita rol ADMINISTRATIVO + cargo en la lista
+    if (tipoUsuario === "ADMINISTRATIVO") {
+      if (!itemRoles.includes("ADMINISTRATIVO")) return false;
+      if (itemCargos.length === 0) return true;
+      return itemCargos.includes(cargoUsuario);
     }
 
-    return false;
+    // DOCENTE u otros roles: solo necesita que su rol esté en la lista
+    return itemRoles.includes(tipoUsuario);
   };
   // 5. Configuración exacta de Módulos (Ajustada para que el Prefecto encaje como un ROL)
   const menuItems = [
@@ -131,7 +127,7 @@ export default function Sidebar() {
       icon: HiDocumentText,
       label: "Reportes",
       href: "/dashboard/reportes",
-      roles: ["DOCENTE", "ADMINISTRATIVO", "PREFECTO"], // Si quieres que el prefecto vea reportes, ponlo aquí
+      roles: ["DOCENTE", "ADMINISTRATIVO", "PREFECTO"],
       cargos: cargosAdministrativosGrales,
     },
     {
@@ -153,21 +149,6 @@ export default function Sidebar() {
   const itemsPermitidos = menuItems.filter((item) =>
     tienePermiso(item.roles, item.cargos),
   );
-
-  // ─── DEBUG TEMPORAL ─────────────────────────────────────────────────────────
-  // Muestra los valores reales del usuario logueado y los ítems que se le asignan.
-  // Quitar este bloque una vez confirmado que funciona.
-  const __debug = {
-    tipoUsuario,
-    cargoUsuario,
-    itemsPermitidos: itemsPermitidos.map((i) => i.label),
-    userRaw: user,
-  };
-  if (typeof window !== "undefined") {
-    (window as any).__sidebarDebug = __debug;
-    console.log("🔍 SIDEBAR DEBUG:", __debug);
-  }
-  // ────────────────────────────────────────────────────────────────────────────
 
   const sidebarBgClass = "bg-[#691C32]";
   const hoverBgClass = "hover:bg-[#50172A]";

@@ -182,14 +182,6 @@ export function useAcademico() {
         }
       }
 
-      console.debug(
-        "fetchGrupos: mapped count=",
-        gruposMapeados.length,
-        "filtered=",
-        gruposFiltrados.length,
-        gruposFiltrados.slice(0, 5),
-      );
-
       setGrupos(gruposFiltrados);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error desconocido";

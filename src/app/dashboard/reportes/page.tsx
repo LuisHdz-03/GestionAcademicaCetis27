@@ -244,6 +244,10 @@ export default function ReportesPage() {
             (Array.isArray(data) ? data : []).forEach((a: any) => {
               const id = a.idEstudiante || a.id;
               if (!alumnosMap.has(id)) {
+                // Separar claramente tutor escolar y tutor de casa
+                // Tutor escolar: campo específico (nombreTutorEscolar o similar)
+                // Papá/Mamá/Tutor: campo específico (nombrePapaMamaTutor, nombreContacto, padre.nombre)
+                // Teléfono: campo específico (telefonoTutor, telefonoContacto, telefonoPadre, telefono)
                 alumnosMap.set(id, {
                   id,
                   nombre: a.usuario?.nombre || a.nombre || "Sin nombre",
@@ -261,12 +265,22 @@ export default function ReportesPage() {
                   grupo: a.grupo?.nombre || infoGrupo?.nombre || "Sin Grupo",
                   idEspecialidad:
                     a.grupo?.especialidadId || infoGrupo?.especialidadId || 0,
-                  telefono: a.telefono || a.usuario?.telefono || "",
-                  nombreTutor: a.nombreTutor || a.tutor?.nombre || "",
+                  // Tutor escolar: priorizar campo específico, nunca padre/contacto
+                  nombreTutor:
+                    a.nombreTutorEscolar || a.tutorEscolar?.nombre || "",
+                  // Papá/Mamá/Tutor: priorizar campo específico, nunca tutor escolar
                   nombrePapaMamaTutor:
                     a.nombrePapaMamaTutor ||
                     a.nombreContacto ||
                     a.padre?.nombre ||
+                    "",
+                  // Teléfono: priorizar teléfono del tutor de casa/contacto
+                  telefono:
+                    a.telefonoPapaMamaTutor ||
+                    a.telefonoContacto ||
+                    a.padre?.telefono ||
+                    a.telefono ||
+                    a.usuario?.telefono ||
                     "",
                 });
               }
@@ -291,10 +305,19 @@ export default function ReportesPage() {
           idGrupo: a.grupoId,
           grupo: a.grupo?.nombre || "Sin Grupo",
           idEspecialidad: a.grupo?.especialidadId || 0,
-          telefono: a.telefono || a.usuario?.telefono || "",
-          nombreTutor: a.nombreTutor || a.tutor?.nombre || "",
+          // Tutor escolar: priorizar campo específico, nunca padre/contacto
+          nombreTutor: a.nombreTutorEscolar || a.tutorEscolar?.nombre || "",
+          // Papá/Mamá/Tutor: priorizar campo específico, nunca tutor escolar
           nombrePapaMamaTutor:
             a.nombrePapaMamaTutor || a.nombreContacto || a.padre?.nombre || "",
+          // Teléfono: priorizar teléfono del tutor de casa/contacto
+          telefono:
+            a.telefonoPapaMamaTutor ||
+            a.telefonoContacto ||
+            a.padre?.telefono ||
+            a.telefono ||
+            a.usuario?.telefono ||
+            "",
         }));
       }
 
@@ -414,8 +437,11 @@ export default function ReportesPage() {
         nombreFirmaMaestro: nombreMaestro,
         nombreFirmaAlumno: nombreCompleto,
         leClasesReportado,
+        // Tutor escolar: solo campo específico
         nombreTutor: alumno.nombreTutor || "",
+        // Papá/Mamá/Tutor: solo campo específico
         nombrePapaMamaTutor: alumno.nombrePapaMamaTutor || "",
+        // Teléfono: solo campo específico
         telefono: alumno.telefono || "",
         titulo: `Reporte de conducta - ${nombreCompleto}`,
       }));
