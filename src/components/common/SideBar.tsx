@@ -65,6 +65,10 @@ export default function Sidebar() {
     if (tipoUsuario === "DOCENTE" && itemRoles.includes("DOCENTE")) {
       return true;
     }
+    // Si el tipoUsuario es PREFECTO como rol propio (backend devuelve rol=PREFECTO)
+    if (tipoUsuario === "PREFECTO" && itemCargos.includes("PREFECTO")) {
+      return true;
+    }
     // Si es ADMINISTRATIVO, comprobamos que su cargo esté autorizado para esa opción.
     if (tipoUsuario === "ADMINISTRATIVO" && itemCargos.includes(cargoUsuario)) {
       return true;
@@ -135,13 +139,6 @@ export default function Sidebar() {
       icon: HiClipboardDocumentCheck,
       label: "Mis Clases",
       href: "/dashboard/mis-clases",
-      roles: ["DOCENTE"],
-      cargos: [],
-    },
-    {
-      icon: HiClipboardDocumentCheck,
-      label: "Pase de lista",
-      href: "/dashboard/paseLista",
       roles: ["DOCENTE"],
       cargos: [],
     },

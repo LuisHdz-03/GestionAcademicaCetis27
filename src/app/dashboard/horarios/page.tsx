@@ -137,13 +137,13 @@ export default function HorariosPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading && clasesFiltradas?.length === 0 ? (
+                  {loading ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="text-center py-8 text-gray-500"
-                      >
-                        Cargando clases...
+                      <TableCell colSpan={5} className="text-center py-10">
+                        <div className="flex flex-col items-center gap-2 text-gray-500">
+                          <div className="w-6 h-6 border-4 border-[#691C32] border-t-transparent rounded-full animate-spin"></div>
+                          <span className="text-sm">Cargando clases...</span>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : clasesFiltradas?.length === 0 ? (
@@ -152,7 +152,9 @@ export default function HorariosPage() {
                         colSpan={5}
                         className="text-center py-8 text-gray-500"
                       >
-                        No se encontraron clases registradas.
+                        {searchTerm
+                          ? `Sin resultados para "${searchTerm}"`
+                          : "No se encontraron clases registradas."}
                       </TableCell>
                     </TableRow>
                   ) : (

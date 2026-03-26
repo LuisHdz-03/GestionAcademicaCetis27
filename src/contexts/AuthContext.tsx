@@ -136,26 +136,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         try {
-          const response = await fetch(`${API_URL}/`, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            cache: "no-store",
-            signal: AbortSignal.timeout(5000),
-          });
-
-          if (!response.ok) {
-            throw new Error(
-              `Error en la verificación del token: ${response.statusText}`,
-            );
+          // Verificamos expiración del token localmente sin llamar al servidor.
+          // Así evitamos desloguear usuarios por endpoints que devuelven 403/404
+          // según su rol (ej: prefecto no puede acceder a rutas de admin).
+          const [, payloadB64] = token.split(".");
+          if (payloadB64) {
+            const decoded = JSON.parse(atob(payloadB64));
+            if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+              // Token expirado — limpiar sesión
+              localStorage.removeItem("token");
+              localStorage.removeItem("usuario");
+              setUser(null);
+              setIsLoading(false);
+              return;
+            }
           }
-        } catch (error) {
-          console.error("Error al verificar token:", error);
-          localStorage.removeItem("token");
-          localStorage.removeItem("usuario");
-          setUser(null);
+        } catch {
+          // Si no se puede decodificar el JWT, asumimos que sigue válido.
+          // El servidor rechazará las peticiones si realmente expiró.
         }
       } catch (error) {
         console.error("Error inesperado en checkAuth:", error);
@@ -247,14 +245,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: result.usuario.id,
         email: email.trim(),
         nombre: result.usuario.nombre,
-        apellidoPaterno: result.usuario.apellidoPaterno || " ",
+        apellidoPaterno:
+          result.usuario.apellidoPaterno ||
+          result.usuario.datos?.apellidoPaterno ||
+          "",
         tipoUsuario: result.usuario.rol.toLowerCase() as UserRole,
         cargo: result.usuario.cargo || result.usuario.datos?.cargo || "",
       };
 
-      // Si es administrativo y no vino cargo del login, buscarlo en /administrativos
+      // Si es administrativo/prefecto y no vino cargo del login, buscarlo en /administrativos
+      const tipoNorm = usuarioFormateado.tipoUsuario.toUpperCase();
       if (
-        usuarioFormateado.tipoUsuario === "administrativo" &&
+        (tipoNorm === "ADMINISTRATIVO" || tipoNorm === "PREFECTO") &&
         !usuarioFormateado.cargo
       ) {
         try {
@@ -267,17 +269,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
           if (adminRes.ok) {
             const admins = await adminRes.json();
+            // El perfil administrativo puede tener usuarioId o id distinto al idUsuario.
+            // Buscamos primero por email, luego por usuarioId o por el id del usuario logeado.
             const miPerfil = admins.find(
               (a: any) =>
-                a.id === usuarioFormateado.id ||
-                a.email === usuarioFormateado.email,
+                a.email === usuarioFormateado.email ||
+                a.usuarioId === usuarioFormateado.id ||
+                a.idUsuario === usuarioFormateado.id,
             );
             if (miPerfil?.cargo) {
               usuarioFormateado.cargo = miPerfil.cargo;
             }
           }
         } catch {
-          // Si falla, continuamos sin cargo
           console.warn("No se pudo obtener el cargo del administrativo");
         }
       }
@@ -287,12 +291,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(usuarioFormateado);
 
       const esPrefecto =
-        usuarioFormateado.tipoUsuario === "administrativo" &&
-        (usuarioFormateado.cargo || "")
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .toUpperCase()
-          .trim() === "PREFECTO";
+        usuarioFormateado.tipoUsuario === "prefecto" ||
+        (usuarioFormateado.tipoUsuario === "administrativo" &&
+          (usuarioFormateado.cargo || "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toUpperCase()
+            .trim() === "PREFECTO");
 
       const redirectPath =
         usuarioFormateado.tipoUsuario === "guardia" || esPrefecto

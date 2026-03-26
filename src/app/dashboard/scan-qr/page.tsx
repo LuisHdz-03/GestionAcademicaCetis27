@@ -116,12 +116,13 @@ export default function ScanQRPage() {
   };
 
   const esPrefecto =
-    user?.tipoUsuario === "administrativo" &&
-    (user?.cargo || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toUpperCase()
-      .trim() === "PREFECTO";
+    user?.tipoUsuario === "prefecto" ||
+    (user?.tipoUsuario === "administrativo" &&
+      (user?.cargo || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .trim() === "PREFECTO");
 
   if (
     user?.tipoUsuario !== "guardia" &&
@@ -184,11 +185,19 @@ export default function ScanQRPage() {
           {/* Zona de resultados */}
           <div className="p-8 min-h-[300px] flex flex-col items-center justify-center bg-gray-50">
             {isLoading ? (
-              <div className="text-center animate-pulse">
-                <div className="h-16 w-16 bg-blue-500 rounded-full mx-auto mb-4 animate-bounce"></div>
-                <p className="text-blue-600 font-medium">
-                  Validando seguridad...
+              <div className="text-center">
+                <div className="relative mx-auto mb-4 w-20 h-20 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border-4 border-[#691C32]/20"></div>
+                  <div className="absolute inset-0 rounded-full border-4 border-[#691C32] border-t-transparent animate-spin"></div>
+                  <QrCode
+                    className="h-8 w-8 text-[#691C32]"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <p className="text-[#691C32] font-semibold text-lg">
+                  Validando acceso...
                 </p>
+                <p className="text-gray-400 text-sm mt-1">Por favor espere</p>
               </div>
             ) : error ? (
               <div className="text-center w-full max-w-sm">

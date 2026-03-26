@@ -141,7 +141,7 @@ export default function GestionEspecialidadesPage() {
                   : undefined,
                 activo: true,
               });
-              if (ok) await fetchMaterias(selectedEspecialidad);
+              if (ok) await fetchMaterias(activeEspecialidad?.id);
               return ok;
             }}
             onCreateGrupo={async (data) => {
@@ -159,27 +159,27 @@ export default function GestionEspecialidadesPage() {
                 idMateria: (data as any).idMateria,
                 activo: true,
               });
-              if (ok) await fetchGrupos(selectedEspecialidad);
+              if (ok) await fetchGrupos(activeEspecialidad?.id as any);
               return ok;
             }}
             onUpdateMateria={async (id, data) => {
               const ok = await updateMateria(id, data);
-              if (ok) await fetchMaterias(selectedEspecialidad);
+              if (ok) await fetchMaterias(activeEspecialidad?.id);
               return ok;
             }}
             onDeleteMateria={async (id) => {
               const ok = await deleteMateria(id);
-              if (ok) await fetchMaterias(selectedEspecialidad);
+              if (ok) await fetchMaterias(activeEspecialidad?.id);
               return ok;
             }}
             onUpdateGrupo={async (id, data) => {
               const ok = await updateGrupo(id, data);
-              if (ok) await fetchGrupos(selectedEspecialidad);
+              if (ok) await fetchGrupos(activeEspecialidad?.id as any);
               return ok;
             }}
             onDeleteGrupo={async (id) => {
               const ok = await deleteGrupo(id);
-              if (ok) await fetchGrupos(selectedEspecialidad);
+              if (ok) await fetchGrupos(activeEspecialidad?.id as any);
               return ok;
             }}
           />

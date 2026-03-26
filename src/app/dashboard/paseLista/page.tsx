@@ -22,11 +22,14 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 import {
   HiMagnifyingGlass,
   HiCheckCircle,
   HiArrowLeft,
   HiClipboardDocumentList,
+  HiLockClosed,
+  HiExclamationTriangle,
 } from "react-icons/hi2";
 
 const API_URL =
@@ -209,6 +212,21 @@ export default function PaseDeListaPage() {
     cargarHistorial();
   }, [claseIdParam, grupoIdParam]);
 
+  // Countdown para el tiempo de gracia (se decrementa cada minuto)
+  useEffect(() => {
+    if (minutosRestantes === null || asistenciaBloqueada) return;
+    const timer = setTimeout(() => {
+      setMinutosRestantes((prev) => {
+        if (prev === null || prev <= 1) {
+          setAsistenciaBloqueada(true);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 60000);
+    return () => clearTimeout(timer);
+  }, [minutosRestantes, asistenciaBloqueada]);
+
   const cambiarEstatus = (idAlumno: number, estatus: string) => {
     setAsistencia((prev) => {
       if (prev[idAlumno] === estatus) {
@@ -379,22 +397,37 @@ export default function PaseDeListaPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
-      <div className="flex items-center gap-3">
+    <div className="container mx-auto px-4 py-6 space-y-6 max-w-5xl">
+      {/* ─── Header ─── */}
+      <div className="flex items-center gap-3 flex-wrap">
         <button
           onClick={() => router.push("/dashboard/mis-clases")}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 flex-shrink-0"
         >
           <HiArrowLeft className="w-5 h-5" />
         </button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Pase de Lista</h1>
-          <p className="text-gray-500 mt-0.5 text-sm">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">
+            Pase de Lista
+          </h1>
+          <p className="text-gray-500 mt-0.5 text-sm truncate">
             {claseIdParam
               ? `${materiaNombre} — ${grupoNombre}`
               : "Registra la asistencia de tus alumnos"}
           </p>
         </div>
+        {asistenciaBloqueada && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-full text-gray-600 text-sm font-semibold flex-shrink-0">
+            <HiLockClosed className="w-4 h-4" />
+            Lista cerrada
+          </div>
+        )}
+        {!asistenciaBloqueada && minutosRestantes !== null && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-300 rounded-full text-amber-700 text-sm font-semibold flex-shrink-0">
+            <HiExclamationTriangle className="w-4 h-4" />
+            {minutosRestantes} min para editar
+          </div>
+        )}
       </div>
 
       {cargandoClase && (
@@ -423,255 +456,297 @@ export default function PaseDeListaPage() {
       )}
 
       {alumnos.length > 0 && (
-        <Card className="overflow-hidden border-0 shadow-md">
-          <div className="bg-[#691C32] px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="text-white">
-              <h2 className="text-lg font-bold">{materiaNombre}</h2>
-              <p className="text-[#F2D7D5] text-sm">
-                Grupo: {grupoNombre || "—"} &nbsp;·&nbsp; {alumnos.length}{" "}
-                alumnos
+        <>
+          {/* ─── Stats cards ─── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+              <p className="text-3xl font-bold text-green-700">
+                {stats.presentes}
+              </p>
+              <p className="text-xs text-green-600 font-medium mt-1 uppercase tracking-wide">
+                Presentes
               </p>
             </div>
-
-            <div className="flex gap-2 flex-wrap">
-              {[
-                {
-                  label: "Presentes",
-                  val: stats.presentes,
-                  cls: "bg-green-100 text-green-800",
-                },
-                {
-                  label: "Faltas",
-                  val: stats.faltas,
-                  cls: "bg-red-100 text-red-800",
-                },
-                {
-                  label: "Retardos",
-                  val: stats.retardos,
-                  cls: "bg-yellow-100 text-yellow-800",
-                },
-                {
-                  label: "Justificados",
-                  val: stats.justificados,
-                  cls: "bg-blue-100 text-blue-800",
-                },
-              ].map((s) => (
-                <span
-                  key={s.label}
-                  className={`px-2 py-1 rounded-full text-xs font-semibold ${s.cls}`}
-                >
-                  {s.val} {s.label}
-                </span>
-              ))}
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+              <p className="text-3xl font-bold text-red-700">{stats.faltas}</p>
+              <p className="text-xs text-red-600 font-medium mt-1 uppercase tracking-wide">
+                Faltas
+              </p>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+              <p className="text-3xl font-bold text-amber-700">
+                {stats.retardos}
+              </p>
+              <p className="text-xs text-amber-600 font-medium mt-1 uppercase tracking-wide">
+                Retardos
+              </p>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+              <p className="text-3xl font-bold text-blue-700">
+                {stats.justificados}
+              </p>
+              <p className="text-xs text-blue-600 font-medium mt-1 uppercase tracking-wide">
+                Justificados
+              </p>
             </div>
           </div>
 
-          <CardContent className="p-4 sm:p-6">
-            <div className="relative mb-4">
-              <HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Buscar por nombre o matrícula..."
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                className="pl-9"
-                disabled={asistenciaBloqueada} // NUEVO
-              />
+          {/* ─── Main card ─── */}
+          <Card
+            className={cn(
+              "overflow-hidden border-0 shadow-md transition-all duration-500",
+              asistenciaBloqueada && "ring-1 ring-gray-200",
+            )}
+          >
+            <div
+              className={cn(
+                "px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition-colors duration-500",
+                asistenciaBloqueada ? "bg-gray-500" : "bg-[#691C32]",
+              )}
+            >
+              <div className="text-white">
+                <h2 className="text-lg font-bold">{materiaNombre}</h2>
+                <p className="text-white/70 text-sm">
+                  Grupo: {grupoNombre || "—"} &nbsp;·&nbsp; {alumnos.length}{" "}
+                  alumnos
+                </p>
+              </div>
+              {asistenciaBloqueada && (
+                <div className="flex items-center gap-2 bg-white/20 text-white rounded-lg px-3 py-1.5 text-sm font-semibold self-start sm:self-auto">
+                  <HiLockClosed className="w-4 h-4" />
+                  No se puede modificar
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
-              <HiCheckCircle className="w-4 h-4 text-[#691C32]" />
-              <span>
-                {stats.marcados} de {stats.total} alumnos marcados
-              </span>
-              <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden ml-2">
-                <div
-                  className="h-full bg-[#691C32] rounded-full transition-all duration-300"
-                  style={{
-                    width: `${stats.total ? (stats.marcados / stats.total) * 100 : 0}%`,
-                  }}
+            <CardContent className="p-4 sm:p-6">
+              <div className="relative mb-4">
+                <HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Buscar por nombre o matrícula..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  className="pl-9"
+                  disabled={asistenciaBloqueada}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              {alumnosFiltrados.map((alumno: any) => {
-                const idAlum = alumno.idEstudiante || alumno.id;
-                const matricula = alumno.matricula || "N/A";
-                const nombre = alumno.nombre || alumno.usuario?.nombre || "";
-                const apellido =
-                  alumno.apellidoPaterno ||
-                  alumno.usuario?.apellidoPaterno ||
-                  "";
-                const estatusActual = asistencia[idAlum];
-                const opcionActual = OPCIONES.find(
-                  (o) => o.valor === estatusActual,
-                );
-                const esActivo =
-                  !busqueda &&
-                  alumnoActivo &&
-                  (alumnoActivo.idEstudiante || alumnoActivo.id) === idAlum;
+              <div className="flex items-center gap-2 mb-5 text-sm text-gray-500">
+                <HiCheckCircle
+                  className={cn(
+                    "w-4 h-4",
+                    asistenciaBloqueada ? "text-gray-400" : "text-[#691C32]",
+                  )}
+                />
+                <span>
+                  {stats.marcados} de {stats.total} alumnos marcados
+                </span>
+                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden ml-2">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-300",
+                      asistenciaBloqueada ? "bg-gray-400" : "bg-[#691C32]",
+                    )}
+                    style={{
+                      width: `${stats.total ? (stats.marcados / stats.total) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
 
-                // Estilo para modo bloqueado (opaca ligeramente si no se puede editar)
-                const opacityClass = asistenciaBloqueada
-                  ? "opacity-80 grayscale-[20%]"
-                  : "";
+              <div
+                className={cn(
+                  "space-y-2 transition-all duration-500",
+                  asistenciaBloqueada &&
+                    "grayscale opacity-70 pointer-events-none select-none",
+                )}
+              >
+                {alumnosFiltrados.map((alumno: any) => {
+                  const idAlum = alumno.idEstudiante || alumno.id;
+                  const matricula = alumno.matricula || "N/A";
+                  const nombre = alumno.nombre || alumno.usuario?.nombre || "";
+                  const apellido =
+                    alumno.apellidoPaterno ||
+                    alumno.usuario?.apellidoPaterno ||
+                    "";
+                  const estatusActual = asistencia[idAlum];
+                  const opcionActual = OPCIONES.find(
+                    (o) => o.valor === estatusActual,
+                  );
+                  const esActivo =
+                    !busqueda &&
+                    alumnoActivo &&
+                    (alumnoActivo.idEstudiante || alumnoActivo.id) === idAlum;
 
-                if (esActivo && !asistenciaBloqueada) {
+                  const opacityClass = "";
+
+                  if (esActivo && !asistenciaBloqueada) {
+                    return (
+                      <div
+                        key={idAlum}
+                        className="rounded-xl border-2 border-[#691C32] bg-[#691C32]/5 px-5 py-5 shadow-md transition-all duration-300 mb-3"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-full bg-[#691C32] flex items-center justify-center flex-shrink-0 shadow">
+                              <span className="text-white text-lg font-bold">
+                                {nombre?.[0]}
+                                {apellido?.[0]}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 text-lg leading-tight">
+                                {apellido} {nombre}
+                              </p>
+                              <p className="text-sm text-gray-500 mt-0.5">
+                                Matrícula: {matricula}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-5 flex-wrap">
+                            {OPCIONES.map((op) => (
+                              <div
+                                key={op.valor}
+                                role="button"
+                                onClick={() => cambiarEstatus(idAlum, op.valor)}
+                                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg border-2 cursor-pointer select-none transition-all duration-150 ${
+                                  estatusActual === op.valor
+                                    ? `${op.bg} ${op.text} border-current font-bold scale-105 shadow`
+                                    : "bg-white border-gray-200 text-gray-400 hover:border-gray-400"
+                                }`}
+                              >
+                                <span
+                                  className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center transition-all ${estatusActual === op.valor ? op.indicatorClass : "border-gray-300 bg-white"}`}
+                                >
+                                  {estatusActual === op.valor && (
+                                    <svg
+                                      className="w-3 h-3 text-white"
+                                      viewBox="0 0 12 12"
+                                      fill="none"
+                                    >
+                                      <path
+                                        d="M2 6l3 3 5-5"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                  )}
+                                </span>
+                                <span className="text-xs font-semibold">
+                                  {op.label}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div
                       key={idAlum}
-                      className="rounded-xl border-2 border-[#691C32] bg-[#691C32]/5 px-5 py-5 shadow-md transition-all duration-300 mb-3"
+                      className={`rounded-lg border px-4 py-3 transition-all duration-150 ${opacityClass} ${
+                        opcionActual
+                          ? `${opcionActual.bg} border-l-4 ${opcionActual.color.replace("bg-", "border-")}`
+                          : "bg-white border-gray-200 border-l-4 border-l-gray-200"
+                      }`}
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 rounded-full bg-[#691C32] flex items-center justify-center flex-shrink-0 shadow">
-                            <span className="text-white text-lg font-bold">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-[#691C32]/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[#691C32] text-xs font-bold">
                               {nombre?.[0]}
                               {apellido?.[0]}
                             </span>
                           </div>
                           <div>
-                            <p className="font-bold text-gray-900 text-lg leading-tight">
+                            <p className="font-semibold text-gray-900 text-sm">
                               {apellido} {nombre}
                             </p>
-                            <p className="text-sm text-gray-500 mt-0.5">
-                              Matrícula: {matricula}
-                            </p>
+                            <p className="text-xs text-gray-500">{matricula}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-5 flex-wrap">
+                        <div className="flex items-center gap-4 flex-wrap">
                           {OPCIONES.map((op) => (
                             <div
                               key={op.valor}
-                              role="button"
-                              onClick={() => cambiarEstatus(idAlum, op.valor)}
-                              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg border-2 cursor-pointer select-none transition-all duration-150 ${
-                                estatusActual === op.valor
-                                  ? `${op.bg} ${op.text} border-current font-bold scale-105 shadow`
-                                  : "bg-white border-gray-200 text-gray-400 hover:border-gray-400"
-                              }`}
+                              className="flex items-center gap-1.5"
                             >
-                              <span
-                                className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center transition-all ${estatusActual === op.valor ? op.indicatorClass : "border-gray-300 bg-white"}`}
+                              <Checkbox
+                                id={`${op.valor}-${idAlum}`}
+                                checked={estatusActual === op.valor}
+                                disabled={asistenciaBloqueada} // NUEVO: Bloqueado si ya pasó el tiempo
+                                onCheckedChange={() =>
+                                  cambiarEstatus(idAlum, op.valor)
+                                }
+                                className={op.checkboxClass}
+                              />
+                              <Label
+                                htmlFor={`${op.valor}-${idAlum}`}
+                                className={`text-xs font-medium ${asistenciaBloqueada ? "" : "cursor-pointer"} ${estatusActual === op.valor ? op.text : "text-gray-500"}`}
                               >
-                                {estatusActual === op.valor && (
-                                  <svg
-                                    className="w-3 h-3 text-white"
-                                    viewBox="0 0 12 12"
-                                    fill="none"
-                                  >
-                                    <path
-                                      d="M2 6l3 3 5-5"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  </svg>
-                                )}
-                              </span>
-                              <span className="text-xs font-semibold">
                                 {op.label}
-                              </span>
+                              </Label>
                             </div>
                           ))}
                         </div>
                       </div>
                     </div>
                   );
-                }
-
-                return (
-                  <div
-                    key={idAlum}
-                    className={`rounded-lg border px-4 py-3 transition-all duration-150 ${opacityClass} ${
-                      opcionActual
-                        ? `${opcionActual.bg} border-l-4 ${opcionActual.color.replace("bg-", "border-")}`
-                        : "bg-white border-gray-200 border-l-4 border-l-gray-200"
-                    }`}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[#691C32]/10 flex items-center justify-center flex-shrink-0">
-                          <span className="text-[#691C32] text-xs font-bold">
-                            {nombre?.[0]}
-                            {apellido?.[0]}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900 text-sm">
-                            {apellido} {nombre}
-                          </p>
-                          <p className="text-xs text-gray-500">{matricula}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 flex-wrap">
-                        {OPCIONES.map((op) => (
-                          <div
-                            key={op.valor}
-                            className="flex items-center gap-1.5"
-                          >
-                            <Checkbox
-                              id={`${op.valor}-${idAlum}`}
-                              checked={estatusActual === op.valor}
-                              disabled={asistenciaBloqueada} // NUEVO: Bloqueado si ya pasó el tiempo
-                              onCheckedChange={() =>
-                                cambiarEstatus(idAlum, op.valor)
-                              }
-                              className={op.checkboxClass}
-                            />
-                            <Label
-                              htmlFor={`${op.valor}-${idAlum}`}
-                              className={`text-xs font-medium ${asistenciaBloqueada ? "" : "cursor-pointer"} ${estatusActual === op.valor ? op.text : "text-gray-500"}`}
-                            >
-                              {op.label}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* NUEVO FOOTER CON MENSAJES DE TIEMPO Y BLOQUEO */}
-            <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-gray-100">
-              <div className="flex flex-col text-center sm:text-left">
-                <p className="text-sm text-gray-500">
-                  {stats.total - stats.marcados > 0
-                    ? ` Faltan ${stats.total - stats.marcados} alumno(s) por marcar`
-                    : " Todos los alumnos han sido marcados"}
-                </p>
-                {/* Mensaje condicional de bloqueo */}
-                {asistenciaBloqueada ? (
-                  <p className="text-sm font-bold text-red-600 mt-1">
-                    Tiempo de gracia expirado. Ya no se pueden realizar
-                    modificaciones.
-                  </p>
-                ) : (
-                  minutosRestantes !== null && (
-                    <p className="text-sm font-bold text-yellow-600 mt-1">
-                      Modificación permitida. Tiempo restante:{" "}
-                      {minutosRestantes} min.
-                    </p>
-                  )
-                )}
+                })}
               </div>
-              <Button
-                onClick={handleSubmit}
-                disabled={loading || asistenciaBloqueada || stats.total === 0}
-                className="bg-[#691C32] hover:bg-[#50172A] text-white px-8 disabled:bg-gray-400"
-              >
-                {loading
-                  ? "Guardando..."
-                  : minutosRestantes !== null
-                    ? "Actualizar Asistencia"
-                    : "Guardar Asistencia"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+
+              {/* ─── Footer ─── */}
+              <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-gray-100">
+                <div>
+                  {asistenciaBloqueada ? (
+                    <p className="text-sm text-gray-500 flex items-center gap-1.5">
+                      <HiLockClosed className="w-4 h-4" />
+                      El tiempo de gracia expiró. No es posible modificar.
+                    </p>
+                  ) : minutosRestantes !== null ? (
+                    <p className="text-sm font-semibold text-amber-600 flex items-center gap-1.5">
+                      <HiExclamationTriangle className="w-4 h-4" />
+                      Tiempo restante para editar: {minutosRestantes} min
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      {stats.total - stats.marcados > 0
+                        ? `Faltan ${stats.total - stats.marcados} alumno(s) por marcar`
+                        : "Todos los alumnos han sido marcados ✓"}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={loading || asistenciaBloqueada || stats.total === 0}
+                  className={cn(
+                    "px-8 text-white transition-colors",
+                    asistenciaBloqueada
+                      ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
+                      : "bg-[#691C32] hover:bg-[#50172A]",
+                  )}
+                >
+                  {asistenciaBloqueada ? (
+                    <span className="flex items-center gap-2">
+                      <HiLockClosed className="w-4 h-4" />
+                      Lista cerrada
+                    </span>
+                  ) : loading ? (
+                    "Guardando..."
+                  ) : minutosRestantes !== null ? (
+                    "Actualizar Asistencia"
+                  ) : (
+                    "Guardar Asistencia"
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </>
       )}
 
       {/* Historial de asistencias (Sin cambios) */}

@@ -10,6 +10,7 @@ import {
   HiUsers,
   HiBookOpen,
   HiAcademicCap,
+  HiBriefcase,
 } from "react-icons/hi2";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -143,7 +144,7 @@ export default function DashboardPage() {
       // Redirigir según rol/cargo a su primera opción disponible
       if (tipoUsuario === "DOCENTE") {
         router.push("/dashboard/mis-clases");
-      } else if (cargoUsuario === "PREFECTO") {
+      } else if (tipoUsuario === "PREFECTO" || cargoUsuario === "PREFECTO") {
         router.push("/dashboard/scan-qr");
       } else if (cargosAdministrativosGrales.includes(cargoUsuario)) {
         router.push("/dashboard/comunidadEsc");
@@ -320,7 +321,14 @@ export default function DashboardPage() {
   };
 
   if (hasActivePeriod === null)
-    return <p className="text-center mt-20">Cargando dashboard...</p>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-[#691C32] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando panel...</p>
+        </div>
+      </div>
+    );
 
   if (!hasActivePeriod) {
     return (
@@ -390,7 +398,7 @@ export default function DashboardPage() {
     {
       title: "Administradores",
       value: String(administradores.length),
-      icon: HiAcademicCap,
+      icon: HiBriefcase,
       color: "text-amber-600",
       bgColor: "bg-amber-100",
     },

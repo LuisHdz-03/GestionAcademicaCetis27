@@ -226,7 +226,6 @@ export function useAcademico() {
         description: "Materia creada",
         variant: "success",
       });
-      await fetchMaterias();
       return true;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error desconocido";
@@ -261,7 +260,6 @@ export function useAcademico() {
         description: "Grupo creado",
         variant: "success",
       });
-      await fetchGrupos();
       return true;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error desconocido";
@@ -308,7 +306,6 @@ export function useAcademico() {
         description: "Materia actualizada",
         variant: "success",
       });
-      await fetchMaterias();
       return true;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error desconocido";
@@ -333,7 +330,6 @@ export function useAcademico() {
         description: "Materia eliminada",
         variant: "success",
       });
-      await fetchMaterias();
       return true;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error desconocido";
@@ -367,7 +363,6 @@ export function useAcademico() {
         description: "Grupo actualizado",
         variant: "success",
       });
-      await fetchGrupos();
       return true;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error desconocido";
@@ -392,7 +387,6 @@ export function useAcademico() {
         description: "Grupo eliminado",
         variant: "success",
       });
-      await fetchGrupos();
       return true;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error desconocido";

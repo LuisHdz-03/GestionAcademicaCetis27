@@ -4,6 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -16,6 +23,7 @@ import {
   Calendar as CalendarIcon,
   Download,
   Filter,
+  RefreshCw,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useState, useMemo, useEffect } from "react";
@@ -40,7 +48,6 @@ export default function RegistrosPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Estados para los filtros
-  const [showFilters, setShowFilters] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [filtroGrupo, setFiltroGrupo] = useState("");
   const [filtroTipo, setFiltroTipo] = useState<string>("");
@@ -159,6 +166,18 @@ export default function RegistrosPage() {
             variant="outline"
             size="sm"
             className="gap-1"
+            onClick={cargarRegistros}
+            disabled={isLoading}
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+            />
+            Actualizar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1"
             onClick={exportToExcel}
             disabled={registrosFiltrados.length === 0}
           >
@@ -171,8 +190,8 @@ export default function RegistrosPage() {
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col md:flex-row md:items-center gap-4">
-              <div className="relative w-full md:w-80">
+            <div className="flex flex-col md:flex-row md:items-center gap-3">
+              <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
@@ -183,54 +202,72 @@ export default function RegistrosPage() {
                 />
               </div>
 
-              <div className="w-full flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  <Filter className="h-4 w-4" />
-                  {showFilters ? "Ocultar filtros" : "Mostrar filtros"}
-                </Button>
+              <div className="flex flex-wrap items-center gap-2 ml-auto">
+                <Select value={filtroGrupo} onValueChange={setFiltroGrupo}>
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="Todos los grupos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos los grupos</SelectItem>
+                    {gruposUnicos.map((grupo) => (
+                      <SelectItem key={grupo} value={grupo}>
+                        {grupo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Todos los tipos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos los tipos</SelectItem>
+                    <SelectItem value="Entrada">Entrada</SelectItem>
+                    <SelectItem value="Salida">Salida</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <DatePickerWithRange
+                  dateRange={dateRange}
+                  onDateRangeChange={setDateRange}
+                />
               </div>
+            </div>
 
-              {showFilters && (
-                <div className="flex-1 flex flex-wrap gap-2">
-                  <div className="flex-1 min-w-[150px]">
-                    <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                      value={filtroGrupo}
-                      onChange={(e) => setFiltroGrupo(e.target.value)}
-                    >
-                      <option value="">Todos los grupos</option>
-                      {gruposUnicos.map((grupo) => (
-                        <option key={grupo} value={grupo}>
-                          {grupo}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex-1 min-w-[150px]">
-                    <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                      value={filtroTipo}
-                      onChange={(e) => setFiltroTipo(e.target.value)}
-                    >
-                      <option value="">Todos los tipos</option>
-                      <option value="Entrada">Entrada</option>
-                      <option value="Salida">Salida</option>
-                    </select>
-                  </div>
-
-                  <div className="flex-1 min-w-[250px]">
-                    <DatePickerWithRange
-                      dateRange={dateRange}
-                      onDateRangeChange={setDateRange}
-                    />
-                  </div>
-                </div>
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>
+                {isLoading ? (
+                  "Cargando registros..."
+                ) : (
+                  <>
+                    <span className="font-semibold text-gray-700">
+                      {registrosFiltrados.length}
+                    </span>
+                    {" resultado"}
+                    {registrosFiltrados.length !== 1 ? "s" : ""}
+                    {registrosFiltrados.length !== registros.length && (
+                      <span className="text-gray-400">
+                        {" "}
+                        de {registros.length} total
+                      </span>
+                    )}
+                  </>
+                )}
+              </span>
+              {(busqueda || filtroGrupo || filtroTipo) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setBusqueda("");
+                    setFiltroGrupo("");
+                    setFiltroTipo("");
+                  }}
+                >
+                  Limpiar filtros
+                </Button>
               )}
             </div>
           </div>
