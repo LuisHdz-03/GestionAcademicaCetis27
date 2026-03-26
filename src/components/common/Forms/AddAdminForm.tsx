@@ -34,6 +34,7 @@ export default function AddAdminForm({
     curp: initialData?.curp || "",
     numeroEmpleado: initialData?.numeroEmpleado || "",
     cargo: initialData?.cargo || "",
+    area: initialData?.area || "",
     activo: initialData?.activo ?? true,
   });
 
@@ -186,6 +187,16 @@ export default function AddAdminForm({
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div>
+        <Label className="text-gray-700 mb-1">Área</Label>
+        <Input
+          name="area"
+          value={formData.area || ""}
+          onChange={handleChange}
+          placeholder="Ej. Administración General"
+        />
       </div>
 
       <Button

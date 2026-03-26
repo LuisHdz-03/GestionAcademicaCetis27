@@ -45,6 +45,7 @@ export interface Admin {
   curp: string;
   numeroEmpleado: string;
   cargo: string;
+  area?: string;
   activo: boolean;
 }
 

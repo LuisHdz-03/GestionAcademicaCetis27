@@ -254,8 +254,9 @@ export function useCommunity(): UseCommunityReturn {
         telefono: a.telefono || "N/A",
         fechaNacimiento: a.fechaNacimiento || "N/A",
         curp: a.curp || "N/A",
-        numeroEmpleado: a.numEmpleado,
+        numeroEmpleado: a.numeroEmpleado,
         cargo: a.cargo,
+        area: a.area,
         activo: a.activo,
       }));
 
@@ -677,20 +678,33 @@ export function useCommunity(): UseCommunityReturn {
 
   const createAdministrador = async (data: AdminFormData) => {
     try {
+      // Normalizar cargo para coincidir con cargosPermitidos del backend (sin acentos, mayúsculas)
+      const payload = {
+        ...data,
+        cargo: data.cargo
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toUpperCase()
+          .trim(),
+      };
       const response = await fetch(`${API_URL}/administrativos`, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error("Error al crear");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Error al crear administrador");
+      }
       await fetchAdministradores();
       toast({
         title: "Éxito",
-        description: "Admin creado",
+        description: "Administrador creado",
         variant: "success",
       });
       return true;
-    } catch (err) {
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
       return false;
     }
   };
@@ -700,15 +714,32 @@ export function useCommunity(): UseCommunityReturn {
     data: Partial<AdminFormData>,
   ) => {
     try {
+      const payload: Partial<AdminFormData> = { ...data };
+      if (data.cargo) {
+        payload.cargo = data.cargo
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toUpperCase()
+          .trim();
+      }
       const response = await fetch(`${API_URL}/administrativos/${id}`, {
         method: "PUT",
         headers: getAuthHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error("Error al actualizar");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Error al actualizar administrador");
+      }
       await fetchAdministradores();
+      toast({
+        title: "Éxito",
+        description: "Administrador actualizado",
+        variant: "success",
+      });
       return true;
-    } catch (err) {
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
       return false;
     }
   };

@@ -59,30 +59,35 @@ export default function Sidebar() {
     "SECRETARIO",
   ];
 
-  // 4. Validador de permisos
+  // 4. Validador de permisos (Súper Simplificado)
   const tienePermiso = (itemRoles: string[], itemCargos: string[] = []) => {
-    // Si es DOCENTE y la opción permite docentes, pasa directo.
-    if (tipoUsuario === "DOCENTE" && itemRoles.includes("DOCENTE")) {
+    // 1. Si el ROL del usuario está en los permitidos (DOCENTE, PREFECTO) pasa directo
+    if (itemRoles.includes(tipoUsuario)) {
+      // Si la vista permite ADMINISTRATIVO, validamos el cargo
+      if (tipoUsuario === "ADMINISTRATIVO" && itemCargos.length > 0) {
+        return itemCargos.includes(cargoUsuario);
+      }
       return true;
     }
-    // Si el tipoUsuario es PREFECTO como rol propio (backend devuelve rol=PREFECTO)
-    if (tipoUsuario === "PREFECTO" && itemCargos.includes("PREFECTO")) {
+
+    // 2. Regla especial de rescate: Si por alguna razón llega como ADMINISTRATIVO pero con cargo PREFECTO
+    if (
+      tipoUsuario === "ADMINISTRATIVO" &&
+      cargoUsuario === "PREFECTO" &&
+      itemRoles.includes("PREFECTO")
+    ) {
       return true;
     }
-    // Si es ADMINISTRATIVO, comprobamos que su cargo esté autorizado para esa opción.
-    if (tipoUsuario === "ADMINISTRATIVO" && itemCargos.includes(cargoUsuario)) {
-      return true;
-    }
+
     return false;
   };
-
-  // 5. Configuración exacta de Módulos
+  // 5. Configuración exacta de Módulos (Ajustada para que el Prefecto encaje como un ROL)
   const menuItems = [
     {
       icon: HiHome,
       label: "Dashboard",
       href: "/dashboard",
-      roles: ["ADMINISTRATIVO"],
+      roles: ["ADMINISTRATIVO"], // Solo el dire y coordinadores
       cargos: cargosDirectivos,
     },
     {
@@ -110,24 +115,25 @@ export default function Sidebar() {
       icon: MdQrCodeScanner,
       label: "Escanear QR",
       href: "/dashboard/scan-qr",
-      roles: ["ADMINISTRATIVO"],
-      cargos: ["PREFECTO"],
+      // AQUÍ AGREGAMOS AL PREFECTO DIRECTAMENTE EN LOS ROLES
+      roles: ["ADMINISTRATIVO", "PREFECTO"],
+      cargos: cargosAdministrativosGrales,
     },
     {
       icon: HiClock,
       label: "Registros de Entrada",
       href: "/dashboard/registros",
-      roles: ["ADMINISTRATIVO"],
-      cargos: ["PREFECTO", ...cargosAdministrativosGrales],
+      // AQUÍ TAMBIÉN AGREGAMOS AL PREFECTO
+      roles: ["ADMINISTRATIVO", "PREFECTO"],
+      cargos: cargosAdministrativosGrales,
     },
     {
       icon: HiDocumentText,
       label: "Reportes",
       href: "/dashboard/reportes",
-      roles: ["DOCENTE", "ADMINISTRATIVO"],
+      roles: ["DOCENTE", "ADMINISTRATIVO", "PREFECTO"], // Si quieres que el prefecto vea reportes, ponlo aquí
       cargos: cargosAdministrativosGrales,
     },
-
     {
       icon: HiQueueList,
       label: "Bitácora",
@@ -147,6 +153,21 @@ export default function Sidebar() {
   const itemsPermitidos = menuItems.filter((item) =>
     tienePermiso(item.roles, item.cargos),
   );
+
+  // ─── DEBUG TEMPORAL ─────────────────────────────────────────────────────────
+  // Muestra los valores reales del usuario logueado y los ítems que se le asignan.
+  // Quitar este bloque una vez confirmado que funciona.
+  const __debug = {
+    tipoUsuario,
+    cargoUsuario,
+    itemsPermitidos: itemsPermitidos.map((i) => i.label),
+    userRaw: user,
+  };
+  if (typeof window !== "undefined") {
+    (window as any).__sidebarDebug = __debug;
+    console.log("🔍 SIDEBAR DEBUG:", __debug);
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   const sidebarBgClass = "bg-[#691C32]";
   const hoverBgClass = "hover:bg-[#50172A]";

@@ -41,6 +41,7 @@ export interface AdminFormData {
   curp: string;
   numeroEmpleado: string;
   cargo: string;
+  area?: string;
   activo: boolean;
   password?: string;
 }
