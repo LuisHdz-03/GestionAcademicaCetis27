@@ -6,8 +6,6 @@ import MateriasTabs from "./components/MateriasTabs";
 import { useCommunity } from "@/hooks/useCommunity";
 import { useAcademico } from "@/hooks/useAcademico";
 
-// Se eliminan datos mock y se conectan a la API
-
 export default function GestionEspecialidadesPage() {
   const {
     especialidades,
@@ -70,7 +68,6 @@ export default function GestionEspecialidadesPage() {
         onAddEspecialidad={async (data) => {
           const ok = await createEspecialidad(data);
           if (!selectedEspecialidad) {
-            // si no hay seleccion previa, selecciona la primera tras refrescar
             setTimeout(() => {
               if (especialidades.length > 0)
                 setSelectedEspecialidad(especialidades[0].codigo);
@@ -109,8 +106,6 @@ export default function GestionEspecialidadesPage() {
               const ok = await updateEspecialidad(id, data);
               if (ok) {
                 await fetchEspecialidades();
-                // Si se desactivó la especialidad activa, limpiar selección
-                // El useEffect se encargará de seleccionar la primera disponible
                 if (data.activo === false && wasActive) {
                   setSelectedEspecialidad("");
                 }
@@ -122,8 +117,6 @@ export default function GestionEspecialidadesPage() {
               const ok = await deleteEspecialidad(id);
               if (ok) {
                 await fetchEspecialidades();
-                // Si se eliminó la especialidad activa, limpiar selección
-                // El useEffect se encargará de seleccionar la primera disponible
                 if (wasActive) {
                   setSelectedEspecialidad("");
                 }
@@ -148,6 +141,7 @@ export default function GestionEspecialidadesPage() {
               const ok = await createGrupo({
                 codigo: (data as any).codigo,
                 semestre: data.semestre,
+                turno: (data as any).turno,
                 aula: (data as any).aula,
                 idEspecialidad:
                   (data as any).idEspecialidad ||
@@ -156,7 +150,7 @@ export default function GestionEspecialidadesPage() {
                     : undefined),
                 idPeriodo: (data as any).idPeriodo,
                 idDocente: (data as any).idDocente,
-                idMateria: (data as any).idMateria,
+                idMaterias: (data as any).idMaterias,
                 activo: true,
               });
               if (ok) await fetchGrupos(activeEspecialidad?.id as any);

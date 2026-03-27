@@ -46,6 +46,8 @@ export interface CreateGrupoInput {
   idPeriodo?: number;
   idDocente?: number;
   idMateria?: number;
+  idMaterias?: number[];
+  turno?: string;
   aula?: string;
   activo?: boolean;
 }
@@ -228,16 +230,22 @@ export function useAcademico() {
     }
   };
 
-  const createGrupo = async (data: CreateGrupoInput) => {
+  const createGrupo = async (
+    data: CreateGrupoInput & { idMaterias?: number[] },
+  ) => {
     try {
       setLoading(true);
       const payload = {
         nombre: data.codigo,
         grado: data.semestre,
-        turno: "MATUTINO",
+        turno: data.turno || "MATUTINO", // Tomamos el turno si viene en la data
         aula: data.aula,
         periodoId: data.idPeriodo,
         especialidadId: data.idEspecialidad,
+        // 👇 AGREGAMOS EL DOCENTE Y LAS MATERIAS AL PAYLOAD 👇
+        docenteId: data.idDocente,
+        materiasIds:
+          data.idMaterias || (data.idMateria ? [data.idMateria] : []),
       };
 
       const res = await fetch(`${API_URL}/grupos`, {
@@ -249,7 +257,7 @@ export function useAcademico() {
 
       toast({
         title: "Éxito",
-        description: "Grupo creado",
+        description: "Grupo creado exitosamente",
         variant: "success",
       });
       return true;

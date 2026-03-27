@@ -27,6 +27,7 @@ interface Periodo {
   id: number;
   nombre: string;
   codigo: string;
+  activo?: boolean; // Aseguramos que TypeScript sepa que esta propiedad puede venir
 }
 
 interface EditGrupoModalProps {
@@ -104,6 +105,13 @@ export default function EditGrupoModal({
     onOpenChange(false);
   };
 
+  // 👇 EL FILTRO SE APLICA AQUÍ 👇
+  // Si estamos editando y el grupo ya tiene un periodo, dejamos ese periodo visible aunque ya no esté activo,
+  // O mostramos solo los activos si se quiere cambiar.
+  const periodosVisibles = periodos.filter(
+    (p) => p.activo === true || p.id === formData.periodoId,
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -179,7 +187,8 @@ export default function EditGrupoModal({
                   <SelectValue placeholder="Selecciona período" />
                 </SelectTrigger>
                 <SelectContent>
-                  {periodos.map((periodo) => (
+                  {/* 👇 USAMOS EL ARRAY FILTRADO 👇 */}
+                  {periodosVisibles.map((periodo) => (
                     <SelectItem key={periodo.id} value={periodo.id.toString()}>
                       {periodo.nombre}
                     </SelectItem>

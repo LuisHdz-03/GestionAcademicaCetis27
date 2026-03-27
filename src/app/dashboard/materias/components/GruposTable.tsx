@@ -1,8 +1,20 @@
 // components/GruposTable.tsx
 "use client";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 
 interface Grupo {
@@ -19,7 +31,12 @@ interface Props {
   onDelete?: (grupo: Grupo) => void;
 }
 
-export default function GruposTable({ grupos, visibleColumns, onEdit, onDelete }: Props) {
+export default function GruposTable({
+  grupos,
+  visibleColumns,
+  onEdit,
+  onDelete,
+}: Props) {
   const handleAction = (action: string, grupo: Grupo) => {
     if (action === "Editar" && onEdit) {
       onEdit(grupo);
@@ -34,19 +51,39 @@ export default function GruposTable({ grupos, visibleColumns, onEdit, onDelete }
         <Table>
           <TableHeader>
             <TableRow className="sticky top-0 bg-[#691C32]">
-              {visibleColumns.includes("Código") && <TableHead className="bg-[#691C32] text-white">Código</TableHead>}
-              {visibleColumns.includes("Semestre") && <TableHead className="bg-[#691C32] text-white">Semestre</TableHead>}
-              {visibleColumns.includes("Alumnos") && <TableHead className="bg-[#691C32] text-white">Alumnos</TableHead>}
-              <TableHead className="bg-[#691C32] text-white text-right">Acciones</TableHead>
+              {visibleColumns.includes("Código") && (
+                <TableHead className="bg-[#691C32] text-white">
+                  Código
+                </TableHead>
+              )}
+              {visibleColumns.includes("Semestre") && (
+                <TableHead className="bg-[#691C32] text-white">
+                  Semestre
+                </TableHead>
+              )}
+              {visibleColumns.includes("Alumnos") && (
+                <TableHead className="bg-[#691C32] text-white">
+                  Alumnos
+                </TableHead>
+              )}
+              <TableHead className="bg-[#691C32] text-white text-right">
+                Acciones
+              </TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {grupos.map((grupo) => (
               <TableRow key={grupo.codigo}>
-                {visibleColumns.includes("Código") && <TableCell>{grupo.codigo}</TableCell>}
-                {visibleColumns.includes("Semestre") && <TableCell>{grupo.semestre}</TableCell>}
-                {visibleColumns.includes("Alumnos") && <TableCell>{grupo.integrantes}</TableCell>}
+                {visibleColumns.includes("Código") && (
+                  <TableCell>{grupo.codigo}</TableCell>
+                )}
+                {visibleColumns.includes("Semestre") && (
+                  <TableCell>{grupo.semestre}</TableCell>
+                )}
+                {visibleColumns.includes("Alumnos") && (
+                  <TableCell>{grupo.integrantes}</TableCell>
+                )}
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -55,8 +92,16 @@ export default function GruposTable({ grupos, visibleColumns, onEdit, onDelete }
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleAction("Editar", grupo)}>Editar</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAction("Eliminar", grupo)}>Eliminar</DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleAction("Editar", grupo)}
+                      >
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleAction("Eliminar", grupo)}
+                      >
+                        Eliminar
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
