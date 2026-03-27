@@ -25,6 +25,16 @@ import { useAuth } from "@/contexts/AuthContext";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
 
+interface TutorFamiliar {
+  nombre: string;
+  apellidoPaterno?: string;
+  apellidoMaterno?: string;
+  telefono?: string;
+  parentesco?: string;
+  email?: string;
+  direccion?: string;
+}
+
 interface Alumno {
   id: number;
   nombre: string;
@@ -39,6 +49,7 @@ interface Alumno {
   telefono?: string;
   nombreTutor?: string;
   nombrePapaMamaTutor?: string;
+  tutor?: TutorFamiliar | null;
 }
 
 interface Reporte {
@@ -55,6 +66,7 @@ interface Reporte {
   fechaReporte: string;
   estatus: string;
   reportadoPor?: string;
+  tutorHistorico?: any;
 }
 
 export default function ReportesPage() {
@@ -62,6 +74,7 @@ export default function ReportesPage() {
   const { user } = useAuth();
 
   const normalizarTexto = (texto: string) => {
+    if (!texto) return "";
     return texto
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -96,7 +109,6 @@ export default function ReportesPage() {
   const [clasesDocente, setClasesDocente] = useState<any[]>([]);
   const [reportesRecientes, setReportesRecientes] = useState<Reporte[]>([]);
 
-  // NUEVO ESTADO PARA EL PERIODO ACTIVO
   const [periodoActivo, setPeriodoActivo] = useState<{
     fechaInicio: string;
     fechaFin: string;
@@ -145,14 +157,14 @@ export default function ReportesPage() {
   };
 
   useEffect(() => {
-    cargarAlumnos();
-    cargarPeriodoActivoYRportes(); // Llamamos a la función que carga el periodo y los reportes
+    if (user) {
+      cargarAlumnos();
+      cargarPeriodoActivoYRportes();
+    }
   }, [user]);
 
-  // NUEVA FUNCIÓN PARA TRAER EL PERIODO ACTIVO
   const cargarPeriodoActivoYRportes = async () => {
     try {
-      // 1. Obtener periodo activo
       const resPeriodos = await fetch(`${API_URL}/periodos`, {
         headers: getAuthHeaders(),
       });
@@ -168,13 +180,62 @@ export default function ReportesPage() {
           });
         }
       }
-
-      // 2. Cargar reportes una vez que sabemos cuál es el periodo
       cargarReportesRecientes();
     } catch (error) {
       console.error("Error al cargar periodo activo:", error);
-      cargarReportesRecientes(); // Cargar los reportes de todos modos si falla
+      cargarReportesRecientes();
     }
+  };
+
+  const procesarEstudiante = (
+    a: any,
+    infoGrupo: any,
+    grupoId: number,
+  ): Alumno => {
+    // Buscar tutor en las diferentes estructuras posibles
+    const tutorData = a.tutor || a.usuario?.tutor;
+
+    let nombrePapaMamaTutor = "";
+    let telefonoContacto = a.telefono || a.usuario?.telefono || "";
+
+    if (tutorData) {
+      nombrePapaMamaTutor =
+        `${tutorData.nombre} ${tutorData.apellidoPaterno || ""} ${tutorData.apellidoMaterno || ""}`.trim();
+      if (tutorData.telefono) {
+        telefonoContacto = tutorData.telefono;
+      }
+    } else {
+      // Fallback a campos planos si existieran
+      nombrePapaMamaTutor =
+        a.nombrePapaMamaTutor || a.nombreContacto || a.padre?.nombre || "";
+      if (!telefonoContacto) {
+        telefonoContacto =
+          a.telefonoPapaMamaTutor ||
+          a.telefonoContacto ||
+          a.padre?.telefono ||
+          "";
+      }
+    }
+
+    return {
+      id: a.idEstudiante || a.id,
+      nombre: a.usuario?.nombre || a.nombre || "Sin nombre",
+      apellidoPaterno: a.usuario?.apellidoPaterno || a.apellidoPaterno || "",
+      apellidoMaterno: a.usuario?.apellidoMaterno || a.apellidoMaterno || "",
+      matricula: a.matricula || "S/N",
+      especialidad:
+        a.grupo?.especialidad?.nombre ||
+        infoGrupo?.especialidad ||
+        "Sin Asignar",
+      semestre: a.semestre || 1,
+      idGrupo: a.grupoId || grupoId,
+      grupo: a.grupo?.nombre || infoGrupo?.nombre || "Sin Grupo",
+      idEspecialidad: a.grupo?.especialidadId || infoGrupo?.especialidadId || 0,
+      tutor: tutorData || null, // Guardamos el objeto por si acaso
+      nombreTutor: a.nombreTutorEscolar || a.tutorEscolar?.nombre || "", // Tutor escolar
+      nombrePapaMamaTutor: nombrePapaMamaTutor, // El string final ya armado
+      telefono: telefonoContacto,
+    };
   };
 
   const cargarAlumnos = async () => {
@@ -213,6 +274,7 @@ export default function ReportesPage() {
           number,
           { nombre: string; especialidad: string; especialidadId: number }
         >();
+
         (Array.isArray(clases) ? clases : []).forEach((c: any) => {
           const gId = c.grupoId || c.grupo?.idGrupo || c.grupo?.id;
           if (gId && !infoGrupoMap.has(gId)) {
@@ -241,48 +303,11 @@ export default function ReportesPage() {
             if (!res.ok) return;
             const data = await res.json();
             const infoGrupo = infoGrupoMap.get(grupoId);
+
             (Array.isArray(data) ? data : []).forEach((a: any) => {
               const id = a.idEstudiante || a.id;
               if (!alumnosMap.has(id)) {
-                // Separar claramente tutor escolar y tutor de casa
-                // Tutor escolar: campo específico (nombreTutorEscolar o similar)
-                // Papá/Mamá/Tutor: campo específico (nombrePapaMamaTutor, nombreContacto, padre.nombre)
-                // Teléfono: campo específico (telefonoTutor, telefonoContacto, telefonoPadre, telefono)
-                alumnosMap.set(id, {
-                  id,
-                  nombre: a.usuario?.nombre || a.nombre || "Sin nombre",
-                  apellidoPaterno:
-                    a.usuario?.apellidoPaterno || a.apellidoPaterno || "",
-                  apellidoMaterno:
-                    a.usuario?.apellidoMaterno || a.apellidoMaterno || "",
-                  matricula: a.matricula || "S/N",
-                  especialidad:
-                    a.grupo?.especialidad?.nombre ||
-                    infoGrupo?.especialidad ||
-                    "Sin Asignar",
-                  semestre: a.semestre || 1,
-                  idGrupo: a.grupoId || grupoId,
-                  grupo: a.grupo?.nombre || infoGrupo?.nombre || "Sin Grupo",
-                  idEspecialidad:
-                    a.grupo?.especialidadId || infoGrupo?.especialidadId || 0,
-                  // Tutor escolar: priorizar campo específico, nunca padre/contacto
-                  nombreTutor:
-                    a.nombreTutorEscolar || a.tutorEscolar?.nombre || "",
-                  // Papá/Mamá/Tutor: priorizar campo específico, nunca tutor escolar
-                  nombrePapaMamaTutor:
-                    a.nombrePapaMamaTutor ||
-                    a.nombreContacto ||
-                    a.padre?.nombre ||
-                    "",
-                  // Teléfono: priorizar teléfono del tutor de casa/contacto
-                  telefono:
-                    a.telefonoPapaMamaTutor ||
-                    a.telefonoContacto ||
-                    a.padre?.telefono ||
-                    a.telefono ||
-                    a.usuario?.telefono ||
-                    "",
-                });
+                alumnosMap.set(id, procesarEstudiante(a, infoGrupo, grupoId));
               }
             });
           }),
@@ -294,31 +319,18 @@ export default function ReportesPage() {
         });
         if (!res.ok) throw new Error("Error al obtener alumnos");
         const data = await res.json();
-        alumnosMapeados = data.map((a: any) => ({
-          id: a.idEstudiante,
-          nombre: a.usuario?.nombre || "Sin nombre",
-          apellidoPaterno: a.usuario?.apellidoPaterno || "",
-          apellidoMaterno: a.usuario?.apellidoMaterno || "",
-          matricula: a.matricula || "S/N",
-          especialidad: a.grupo?.especialidad?.nombre || "Sin Asignar",
-          semestre: a.semestre || 1,
-          idGrupo: a.grupoId,
-          grupo: a.grupo?.nombre || "Sin Grupo",
-          idEspecialidad: a.grupo?.especialidadId || 0,
-          // Tutor escolar: priorizar campo específico, nunca padre/contacto
-          nombreTutor: a.nombreTutorEscolar || a.tutorEscolar?.nombre || "",
-          // Papá/Mamá/Tutor: priorizar campo específico, nunca tutor escolar
-          nombrePapaMamaTutor:
-            a.nombrePapaMamaTutor || a.nombreContacto || a.padre?.nombre || "",
-          // Teléfono: priorizar teléfono del tutor de casa/contacto
-          telefono:
-            a.telefonoPapaMamaTutor ||
-            a.telefonoContacto ||
-            a.padre?.telefono ||
-            a.telefono ||
-            a.usuario?.telefono ||
-            "",
-        }));
+
+        alumnosMapeados = data.map((a: any) => {
+          return procesarEstudiante(
+            a,
+            {
+              especialidad: a.grupo?.especialidad?.nombre,
+              nombre: a.grupo?.nombre,
+              especialidadId: a.grupo?.especialidadId,
+            },
+            a.grupoId,
+          );
+        });
       }
 
       setAlumnos(alumnosMapeados);
@@ -356,6 +368,7 @@ export default function ReportesPage() {
         fechaReporte: r.fecha || r.fechaHora,
         estatus: r.estatus || r.estado,
         reportadoPor: r.reportadoPor || "Administración",
+        tutorHistorico: r.alumno?.tutor || r.estudiante?.tutor || null,
       }));
 
       setReportesRecientes(reportesMapeados.reverse());
@@ -437,11 +450,9 @@ export default function ReportesPage() {
         nombreFirmaMaestro: nombreMaestro,
         nombreFirmaAlumno: nombreCompleto,
         leClasesReportado,
-        // Tutor escolar: solo campo específico
         nombreTutor: alumno.nombreTutor || "",
-        // Papá/Mamá/Tutor: solo campo específico
+        // Asignar directamente lo que ya preparó procesarEstudiante
         nombrePapaMamaTutor: alumno.nombrePapaMamaTutor || "",
-        // Teléfono: solo campo específico
         telefono: alumno.telefono || "",
         titulo: `Reporte de conducta - ${nombreCompleto}`,
       }));
@@ -585,6 +596,8 @@ export default function ReportesPage() {
         : reporte.fechaReporte + "T12:00:00",
     ).toLocaleDateString("es-MX");
 
+    const tutor = reporte.tutorHistorico;
+
     const dataForPrint = {
       nombreAlumno: reporte.nombreEstudiante,
       folio: reporte.matriculaEstudiante,
@@ -598,8 +611,10 @@ export default function ReportesPage() {
       nombreFirmaAlumno: "",
       nombreFirmaMaestro: reporte.reportadoPor || "",
       nombreTutor: "",
-      nombrePapaMamaTutor: "",
-      telefono: "",
+      nombrePapaMamaTutor: tutor
+        ? `${tutor.nombre} ${tutor.apellidoPaterno || ""} ${tutor.apellidoMaterno || ""}`.trim()
+        : "No registrado",
+      telefono: tutor?.telefono || "No registrado",
     };
     handlePrintCustom(dataForPrint);
   };
@@ -611,6 +626,10 @@ export default function ReportesPage() {
   const handlePrintCustom = (dataToPrint: any) => {
     const printWindow = window.open("", "_blank");
     if (printWindow) {
+      const nombrePapaMamaTutor =
+        dataToPrint.nombrePapaMamaTutor || "No registrado";
+      const telefonoTutor = dataToPrint.telefono || "No registrado";
+
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -667,12 +686,12 @@ export default function ReportesPage() {
                 <td colspan="3"><span class="label">ACCIONES TOMADAS:</span><div class="value" style="min-height: 40px;">${dataToPrint.accionesTomadas || ""}</div></td>
               </tr>
               <tr>
-                <td><span class="label">NOMBRE DEL TUTOR:</span><div class="value">${dataToPrint.nombreTutor || ""}</div></td>
+                <td><span class="label">NOMBRE DEL TUTOR ESCOLAR:</span><div class="value">${dataToPrint.nombreTutor || ""}</div></td>
                 <td><span class="label">FECHA:</span><div class="value">${dataToPrint.fecha || ""}</div></td>
               </tr>
               <tr>
-                <td><span class="label">NOMBRE DE PAPÁ/MAMÁ/TUTOR:</span><div class="value">${dataToPrint.nombrePapaMamaTutor || ""}</div></td>
-                <td><span class="label">TELÉFONO:</span><div class="value">${dataToPrint.telefono || ""}</div></td>
+                <td><span class="label">NOMBRE DE PAPÁ/MAMÁ/TUTOR:</span><div class="value">${nombrePapaMamaTutor}</div></td>
+                <td><span class="label">TELÉFONO:</span><div class="value">${telefonoTutor}</div></td>
               </tr>
             </table>
             <div class="footer">ATENTAMENTE</div>
@@ -692,16 +711,13 @@ export default function ReportesPage() {
     }
   };
 
-  // NUEVO: FILTRAMOS LOS REPORTES BASADOS EN EL PERIODO ACTIVO
   const reportesFiltradosPorPeriodo = reportesRecientes.filter((reporte) => {
-    // Si no hay periodo activo, mostramos una lista vacía (o podrías mostrar todos si prefieres)
     if (!periodoActivo) return false;
 
     const fechaReporte = new Date(reporte.fechaReporte).getTime();
     const inicio = new Date(periodoActivo.fechaInicio).getTime();
     const fin = new Date(periodoActivo.fechaFin).getTime();
 
-    // Comprobamos que el reporte haya ocurrido DENTRO de las fechas del periodo activo
     return fechaReporte >= inicio && fechaReporte <= fin;
   });
 
@@ -919,11 +935,12 @@ export default function ReportesPage() {
                   {tipoUsuario !== "DOCENTE" && (
                     <>
                       <div>
-                        <Label>Nombre del Tutor Escolar:</Label>
+                        <Label>Nombre del Tutor Escolar (Opcional):</Label>
                         <Input
                           name="nombreTutor"
                           value={formData.nombreTutor}
                           onChange={handleChange}
+                          placeholder="Si aplica un tutor asignado por la escuela"
                         />
                       </div>
                       <div>
@@ -996,7 +1013,6 @@ export default function ReportesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {/* SE USA LA LISTA FILTRADA */}
                   {reportesFiltradosPorPeriodo.map((reporte) => (
                     <TableRow key={reporte.idReporte}>
                       <TableCell>

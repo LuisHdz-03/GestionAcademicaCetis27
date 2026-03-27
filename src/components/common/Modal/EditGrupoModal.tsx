@@ -1,15 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import AddGrupoForm, {
+  AddGrupoFormProps,
+} from "@/components/common/Forms/AddGrupoForm";
+import { GrupoFormData } from "@/types/modal";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
 
 interface Especialidad {
   id: number;
@@ -18,193 +21,122 @@ interface Especialidad {
 }
 
 interface Periodo {
+  idPeriodo: number;
+  nombre: string;
+  codigo: string;
+}
+
+interface Docente {
+  id: number;
+  nombre: string;
+  apellidoPaterno: string;
+  apellidoMaterno?: string;
+}
+
+interface Materia {
   id: number;
   nombre: string;
   codigo: string;
 }
 
-interface AddGrupoFormProps {
-  onSubmit: (data: any) => void;
+export interface AddGrupoModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: GrupoFormData) => void;
   especialidades?: Especialidad[];
-  periodos?: Periodo[];
-  initialData?: any;
-  mode?: "create" | "edit";
+  docentes?: Docente[];
+  materias?: Materia[];
+  periodos?: any[];
+  initialData?: Partial<GrupoFormData>;
+  isEditing?: boolean;
 }
 
-export default function AddGrupoForm({
+export default function AddGrupoModal({
+  open,
+  onOpenChange,
   onSubmit,
   especialidades = [],
+  docentes = [],
   periodos = [],
   initialData,
-  mode = "create",
-}: AddGrupoFormProps) {
-  // Ajustamos los nombres EXACTAMENTE como los pide el Backend
-  const [formData, setFormData] = useState({
-    nombre: initialData?.codigo || initialData?.nombre || "", // La tabla lo manda como 'codigo'
-    grado: initialData?.semestre || initialData?.grado || 1, // La tabla lo manda como 'semestre'
-    turno: initialData?.turno || "",
-    aula: initialData?.aula || "",
-    periodoId: initialData?.idPeriodo || initialData?.periodoId || 0,
-    especialidadId:
-      initialData?.idEspecialidad || initialData?.especialidadId || 0,
-  });
+  isEditing = false,
+}: AddGrupoModalProps) {
+  const [materiasFiltradas, setMateriasFiltradas] = useState<Materia[]>([]);
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
-        nombre: initialData.codigo || initialData.nombre || "",
-        grado: initialData.semestre || initialData.grado || 1,
-        turno: initialData.turno || "",
-        aula: initialData.aula || "",
-        periodoId: initialData.idPeriodo || initialData.periodoId || 0,
-        especialidadId:
-          initialData.idEspecialidad || initialData.especialidadId || 0,
-      });
+    if (!open) {
+      setMateriasFiltradas([]);
     }
-  }, [initialData]);
+  }, [open]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === "grado" ? parseInt(value) || 1 : value,
-    });
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData({
-      ...formData,
-      [name]: isNaN(parseInt(value)) ? value : parseInt(value),
-    });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (
-      !formData.nombre ||
-      !formData.grado ||
-      !formData.turno ||
-      !formData.periodoId ||
-      !formData.especialidadId
-    ) {
-      alert(
-        "Por favor completa todos los campos requeridos (El aula es opcional)",
-      );
+  const cargarMateriasPorEspecialidad = async (idEspecialidad: number) => {
+    if (!idEspecialidad || idEspecialidad === 0) {
+      setMateriasFiltradas([]);
       return;
     }
 
-    onSubmit(formData);
+    try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      };
+
+      const res = await fetch(
+        `${API_URL}/materias/especialidad/${idEspecialidad}`,
+        {
+          headers,
+        },
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        const materiasNuevas = data.map((m: any) => ({
+          id: m.idMateria || m.id,
+          nombre: m.nombre,
+          codigo: m.codigo,
+        }));
+        setMateriasFiltradas(materiasNuevas);
+      } else {
+        setMateriasFiltradas([]);
+      }
+    } catch (error) {
+      console.error("Error al cargar materias filtradas:", error);
+      setMateriasFiltradas([]);
+    }
   };
 
+  const handleSubmit = (data: GrupoFormData) => {
+    onSubmit(data);
+    onOpenChange(false);
+  };
+
+  const periodosFormateados = periodos.map((p) => ({
+    id: (p as any).id ?? (p as any).idPeriodo ?? 0,
+    idPeriodo: (p as any).idPeriodo ?? (p as any).id ?? 0,
+    nombre: (p as any).nombre ?? "",
+    codigo: (p as any).codigo ?? "",
+  }));
+
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label className="text-gray-700 mb-1">Nombre del Grupo *</Label>
-          <Input
-            name="nombre"
-            value={formData.nombre}
-            onChange={handleChange}
-            required
-            placeholder="Ej: 1A, 2B"
-          />
-        </div>
-        <div>
-          <Label className="text-gray-700 mb-1">Semestre / Grado *</Label>
-          <Input
-            type="number"
-            name="grado"
-            value={formData.grado}
-            onChange={handleChange}
-            min="1"
-            max="6"
-            required
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label className="text-gray-700 mb-1">Turno *</Label>
-          <Select
-            onValueChange={(value) => handleSelectChange("turno", value)}
-            value={formData.turno || undefined}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecciona turno" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="MATUTINO">Matutino</SelectItem>
-              <SelectItem value="VESPERTINO">Vespertino</SelectItem>
-              <SelectItem value="MIXTO">Mixto</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-gray-700 mb-1">Aula</Label>
-          <Input
-            name="aula"
-            value={formData.aula}
-            onChange={handleChange}
-            placeholder="Ej: A-101"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label className="text-gray-700 mb-1">Período *</Label>
-          <Select
-            onValueChange={(value) => handleSelectChange("periodoId", value)}
-            value={
-              formData.periodoId ? formData.periodoId.toString() : undefined
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecciona período" />
-            </SelectTrigger>
-            <SelectContent>
-              {periodos.map((periodo) => (
-                <SelectItem key={periodo.id} value={periodo.id.toString()}>
-                  {periodo.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-gray-700 mb-1">Especialidad *</Label>
-          <Select
-            onValueChange={(value) =>
-              handleSelectChange("especialidadId", value)
-            }
-            value={
-              formData.especialidadId
-                ? formData.especialidadId.toString()
-                : undefined
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecciona especialidad" />
-            </SelectTrigger>
-            <SelectContent>
-              {especialidades.map((esp) => (
-                <SelectItem key={esp.id} value={esp.id.toString()}>
-                  {esp.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <Button
-        type="submit"
-        className="w-full bg-[#691C32] hover:bg-[#691C32]/90 text-white mt-2"
-      >
-        {mode === "edit" ? "Guardar Cambios" : "Agregar Grupo"}
-      </Button>
-    </form>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {isEditing ? "Editar Grupo" : "Agregar Grupo"}
+          </DialogTitle>
+        </DialogHeader>
+        <AddGrupoForm
+          onSubmit={handleSubmit}
+          especialidades={especialidades}
+          docentes={docentes}
+          materias={materiasFiltradas} // MANDAMOS LAS FILTRADAS
+          periodos={periodosFormateados}
+          initialData={initialData}
+          mode={isEditing ? "edit" : "create"}
+          onChangeEspecialidad={cargarMateriasPorEspecialidad} // CONECTAMOS LÓGICA
+        />
+      </DialogContent>
+    </Dialog>
   );
 }

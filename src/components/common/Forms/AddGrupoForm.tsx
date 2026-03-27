@@ -37,7 +37,7 @@ interface Materia {
   codigo: string;
 }
 
-interface AddGrupoFormProps {
+export interface AddGrupoFormProps {
   onSubmit: (data: GrupoFormData) => void;
   especialidades?: Especialidad[];
   docentes?: Docente[];
@@ -45,6 +45,7 @@ interface AddGrupoFormProps {
   periodos?: Periodo[];
   initialData?: Partial<GrupoFormData>;
   mode?: "create" | "edit";
+  onChangeEspecialidad?: (idEspecialidad: number) => void;
 }
 
 export default function AddGrupoForm({
@@ -55,6 +56,7 @@ export default function AddGrupoForm({
   periodos = [],
   initialData,
   mode = "create",
+  onChangeEspecialidad,
 }: AddGrupoFormProps) {
   const [formData, setFormData] = useState<GrupoFormData>({
     codigo: initialData?.codigo || "",
@@ -63,10 +65,14 @@ export default function AddGrupoForm({
     aula: initialData?.aula || "",
     idPeriodo: initialData?.idPeriodo || 0,
     idDocente: initialData?.idDocente || 0,
-    idMateria: initialData?.idMateria || 0,
+    idMaterias: initialData?.idMaterias || [],
     idEspecialidad: initialData?.idEspecialidad || 0,
     activo: initialData?.activo ?? true,
   });
+
+  // Estado local solo para controlar qué se muestra en el Select de materias
+  const [materiaSeleccionadaParcial, setMateriaSeleccionadaParcial] =
+    useState<string>("");
 
   useEffect(() => {
     if (initialData) {
@@ -77,12 +83,15 @@ export default function AddGrupoForm({
         aula: initialData.aula || "",
         idPeriodo: initialData.idPeriodo || 0,
         idDocente: initialData.idDocente || 0,
-        idMateria: initialData.idMateria || 0,
+        idMaterias: initialData.idMaterias || [],
         idEspecialidad: initialData.idEspecialidad || 0,
         activo: initialData.activo ?? true,
       });
+      if (initialData.idEspecialidad && onChangeEspecialidad) {
+        onChangeEspecialidad(initialData.idEspecialidad);
+      }
     }
-  }, [initialData]);
+  }, [initialData, onChangeEspecialidad]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -93,31 +102,56 @@ export default function AddGrupoForm({
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: parseInt(value) });
+    const intValue = parseInt(value);
+
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: intValue };
+      // Si cambia la especialidad, borramos las materias porque ya no coinciden
+      if (name === "idEspecialidad") {
+        updated.idMaterias = [];
+      }
+      return updated;
+    });
+
+    if (name === "idEspecialidad" && onChangeEspecialidad) {
+      onChangeEspecialidad(intValue);
+    }
+  };
+
+  // Función específica para manejar cuando se agrega una materia a la lista
+  const handleAgregarMateria = (value: string) => {
+    const id = parseInt(value);
+    if (!isNaN(id) && !formData.idMaterias.includes(id)) {
+      setFormData((prev) => ({
+        ...prev,
+        idMaterias: [...prev.idMaterias, id],
+      }));
+    }
+    // Resetear el select para que puedas seguir agregando
+    setMateriaSeleccionadaParcial("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validar que todos los campos requeridos estén completos
     if (
       !formData.codigo ||
       !formData.semestre ||
       !formData.idPeriodo ||
       !formData.idDocente ||
-      !formData.idMateria ||
+      !formData.idMaterias ||
+      formData.idMaterias.length === 0 ||
       !formData.idEspecialidad
     ) {
-      alert("Por favor completa todos los campos requeridos");
+      alert(
+        "Por favor completa todos los campos requeridos (incluyendo al menos 1 materia)",
+      );
       return;
     }
-
     onSubmit(formData);
   };
 
   return (
     <form className="space-y-3" onSubmit={handleSubmit}>
-      {/* Mensaje informativo */}
       <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
         <p className="text-sm text-blue-800">
           <strong>Nota:</strong> Asegúrate de tener periodos, especialidades,
@@ -199,11 +233,9 @@ export default function AddGrupoForm({
                   No hay períodos disponibles
                 </SelectItem>
               ) : (
-                periodos.map((periodo, index) => {
+                periodos.map((periodo) => {
                   const periodId = periodo.id || (periodo as any).idPeriodo;
-
                   if (!periodId) return null;
-
                   return (
                     <SelectItem key={periodId} value={periodId.toString()}>
                       <div className="whitespace-normal break-words">
@@ -250,7 +282,7 @@ export default function AddGrupoForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 mt-4">
         <div>
           <Label className="text-gray-700 mb-1">Docente *</Label>
           <Select
@@ -280,41 +312,86 @@ export default function AddGrupoForm({
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label className="text-gray-700 mb-1">Materia *</Label>
+
+        <div className="mb-4">
+          <Label className="text-gray-700 mb-1">Agregar materia *</Label>
           <Select
-            onValueChange={(value) => handleSelectChange("idMateria", value)}
-            value={
-              formData.idMateria && formData.idMateria > 0
-                ? formData.idMateria.toString()
-                : undefined
-            }
+            value={materiaSeleccionadaParcial} // Vinculado a nuestro estado temporal
+            onValueChange={handleAgregarMateria} // Usa la nueva función
+            disabled={!formData.idEspecialidad || materias.length === 0}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Selecciona una materia" />
+              <SelectValue
+                placeholder={
+                  !formData.idEspecialidad
+                    ? "Selecciona especialidad primero"
+                    : "Selecciona una materia"
+                }
+              />
             </SelectTrigger>
             <SelectContent>
               {materias.length === 0 ? (
                 <SelectItem value="0" disabled>
-                  No hay materias disponibles
+                  {formData.idEspecialidad
+                    ? "No hay materias en esta especialidad"
+                    : "Selecciona especialidad primero"}
                 </SelectItem>
               ) : (
-                materias.map((materia) => (
-                  <SelectItem key={materia.id} value={materia.id.toString()}>
-                    <div className="whitespace-normal break-words">
+                materias
+                  .filter((m) => !formData.idMaterias.includes(m.id)) // Solo mostramos las que NO han sido elegidas
+                  .map((materia) => (
+                    <SelectItem key={materia.id} value={materia.id.toString()}>
                       {materia.nombre} ({materia.codigo})
-                    </div>
-                  </SelectItem>
-                ))
+                    </SelectItem>
+                  ))
               )}
             </SelectContent>
           </Select>
         </div>
       </div>
 
+      <div className="mt-2">
+        <Label className="text-gray-700 mb-1">Materias seleccionadas:</Label>
+        <div className="flex flex-wrap gap-2 min-h-[28px] p-2 border rounded-md bg-gray-50">
+          {formData.idMaterias.length === 0 ? (
+            <span className="text-gray-400 text-sm">
+              Ninguna materia seleccionada
+            </span>
+          ) : (
+            formData.idMaterias.map((id) => {
+              const mat = materias.find((m) => m.id === id);
+              if (!mat) return null;
+              return (
+                <span
+                  key={id}
+                  className="bg-white border border-[#691C32]/30 rounded px-2 py-1 text-xs flex items-center gap-1 shadow-sm text-[#691C32] font-medium"
+                >
+                  {mat.nombre} ({mat.codigo})
+                  <button
+                    type="button"
+                    className="ml-1 text-gray-400 hover:text-red-600 transition-colors bg-gray-100 rounded-full w-4 h-4 flex items-center justify-center"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        idMaterias: formData.idMaterias.filter(
+                          (mid) => mid !== id,
+                        ),
+                      })
+                    }
+                    aria-label="Quitar materia"
+                  >
+                    ×
+                  </button>
+                </span>
+              );
+            })
+          )}
+        </div>
+      </div>
+
       <Button
         type="submit"
-        className="w-full bg-[#691C32] hover:bg-[#691C32]/90 text-white mt-4"
+        className="w-full bg-[#691C32] hover:bg-[#501526] text-white mt-6 transition-colors"
       >
         {mode === "edit" ? "Actualizar Grupo" : "Agregar Grupo"}
       </Button>

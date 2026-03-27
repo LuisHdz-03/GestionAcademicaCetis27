@@ -1,7 +1,7 @@
 ﻿"use client";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // <-- NUEVO: Agregué Header y Title
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -96,19 +96,24 @@ export default function PaseDeListaPage() {
   const [cargandoClase, setCargandoClase] = useState(false);
   const [busqueda, setBusqueda] = useState("");
 
-  // NUEVO: Estados para manejar el tiempo de gracia
   const [asistenciaBloqueada, setAsistenciaBloqueada] = useState(false);
   const [minutosRestantes, setMinutosRestantes] = useState<number | null>(null);
 
-  // Historial de asistencias
+  // NUEVA VARIABLE: Guarda la fecha exacta si estamos editando
+  const [sesionActivaFecha, setSesionActivaFecha] = useState<string | null>(
+    null,
+  );
+
   const [historial, setHistorial] = useState<any[]>([]);
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
   const [sesionDetalle, setSesionDetalle] = useState<any | null>(null);
 
-  const agruparPorFecha = (registros: any[]) => {
+  const LIMITE_MINUTOS = 30;
+
+  const agruparPorFechaExacta = (registros: any[]) => {
     const mapa = new Map<string, any[]>();
     registros.forEach((r) => {
-      const fechaKey = (r.fecha || "").split("T")[0]; // YYYY-MM-DD
+      const fechaKey = r.fecha;
       if (!fechaKey) return;
       if (!mapa.has(fechaKey)) mapa.set(fechaKey, []);
       mapa.get(fechaKey)!.push(r);
@@ -159,8 +164,9 @@ export default function PaseDeListaPage() {
 
     const cargarHistorial = async () => {
       setCargandoHistorial(true);
-      setAsistenciaBloqueada(false); // Reset al cargar
+      setAsistenciaBloqueada(false);
       setMinutosRestantes(null);
+      setSesionActivaFecha(null);
 
       try {
         const res = await fetch(
@@ -170,33 +176,34 @@ export default function PaseDeListaPage() {
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
-            const agrupado = agruparPorFecha(data);
+            const agrupado = agruparPorFechaExacta(data);
             setHistorial(agrupado);
 
-            // NUEVO: Revisar si la asistencia de HOY ya está tomada
-            const fechaHoy = new Date().toISOString().split("T")[0];
-            const sesionHoy = agrupado.find((s) => s.fecha === fechaHoy);
+            const ultimaSesion = agrupado[0];
 
-            if (sesionHoy && sesionHoy.registros.length > 0) {
-              // Ya hay asistencia hoy. Poblar los checkboxes
-              const asistenciaPrevia: Record<number, string> = {};
-              sesionHoy.registros.forEach((r: any) => {
-                asistenciaPrevia[r.alumnoId] = r.estatus;
-              });
-              setAsistencia(asistenciaPrevia);
-
-              // Calcular si ya se bloqueó en el frontend (10 minutos)
-              const horaRegistro = new Date(sesionHoy.registros[0].fecha);
+            if (ultimaSesion && ultimaSesion.registros.length > 0) {
+              const horaRegistro = new Date(ultimaSesion.fecha);
               const ahora = new Date();
               const diffMinutos = Math.floor(
                 (ahora.getTime() - horaRegistro.getTime()) / 60000,
               );
-              const LIMITE = 10;
 
-              if (diffMinutos >= LIMITE) {
-                setAsistenciaBloqueada(true);
+              if (diffMinutos < LIMITE_MINUTOS) {
+                // Modo Edición
+                const asistenciaPrevia: Record<number, string> = {};
+                ultimaSesion.registros.forEach((r: any) => {
+                  asistenciaPrevia[r.alumnoId] = r.estatus;
+                });
+                setAsistencia(asistenciaPrevia);
+                setSesionActivaFecha(ultimaSesion.fecha); // GUARDAMOS LA FECHA
+                setAsistenciaBloqueada(false);
+                setMinutosRestantes(LIMITE_MINUTOS - diffMinutos);
               } else {
-                setMinutosRestantes(LIMITE - diffMinutos);
+                // Modo Nueva Lista
+                setAsistencia({});
+                setSesionActivaFecha(null);
+                setAsistenciaBloqueada(false);
+                setMinutosRestantes(null);
               }
             }
           } else {
@@ -212,7 +219,6 @@ export default function PaseDeListaPage() {
     cargarHistorial();
   }, [claseIdParam, grupoIdParam]);
 
-  // Countdown para el tiempo de gracia (se decrementa cada minuto)
   useEffect(() => {
     if (minutosRestantes === null || asistenciaBloqueada) return;
     const timer = setTimeout(() => {
@@ -338,13 +344,13 @@ export default function PaseDeListaPage() {
           claseId: parseInt(claseSeleccionada),
           listaAlumnos: listaAlumnosFormateada,
           metodo: "MANUAL",
+          fecha: sesionActivaFecha, // <--- SE LA ENVIAMOS AL BACKEND PARA QUE NO ADIVINE
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
         if (data.bloqueado) {
-          // NUEVO: Si el backend bloqueó la petición, actualizamos el estado para bloquear el frontend
           setAsistenciaBloqueada(true);
           setMinutosRestantes(null);
           throw new Error(data.mensaje);
@@ -358,7 +364,7 @@ export default function PaseDeListaPage() {
         variant: "success",
       });
 
-      // Recargar historial (se recalculará el tiempo restante automáticamente)
+      // Recargar historial
       try {
         const resH = await fetch(
           `${API_URL}/asistencias/historial?claseId=${claseSeleccionada}`,
@@ -366,20 +372,26 @@ export default function PaseDeListaPage() {
         );
         if (resH.ok) {
           const dataH = await resH.json();
-          setHistorial(Array.isArray(dataH) ? agruparPorFecha(dataH) : []);
+          if (Array.isArray(dataH) && dataH.length > 0) {
+            const agrupado = agruparPorFechaExacta(dataH);
+            setHistorial(agrupado);
 
-          // Re-calcular tiempo de gracia
-          const fechaHoy = new Date().toISOString().split("T")[0];
-          const agrupado = agruparPorFecha(dataH);
-          const sesionHoy = agrupado.find((s) => s.fecha === fechaHoy);
-          if (sesionHoy && sesionHoy.registros.length > 0) {
-            const horaRegistro = new Date(sesionHoy.registros[0].fecha);
+            // Lo actualizamos para que si guardan de nuevo, re-edite esta misma
+            const ultimaSesion = agrupado[0];
+            setSesionActivaFecha(ultimaSesion.fecha);
+
+            const horaRegistro = new Date(ultimaSesion.fecha);
             const ahora = new Date();
             const diffMinutos = Math.floor(
               (ahora.getTime() - horaRegistro.getTime()) / 60000,
             );
-            if (diffMinutos >= 10) setAsistenciaBloqueada(true);
-            else setMinutosRestantes(10 - diffMinutos);
+            if (diffMinutos >= LIMITE_MINUTOS) {
+              setAsistenciaBloqueada(true);
+              setMinutosRestantes(null);
+            } else {
+              setMinutosRestantes(LIMITE_MINUTOS - diffMinutos);
+              setAsistenciaBloqueada(false);
+            }
           }
         }
       } catch {
@@ -419,7 +431,7 @@ export default function PaseDeListaPage() {
         {asistenciaBloqueada && (
           <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-full text-gray-600 text-sm font-semibold flex-shrink-0">
             <HiLockClosed className="w-4 h-4" />
-            Lista cerrada
+            Edición cerrada (Más de {LIMITE_MINUTOS} min)
           </div>
         )}
         {!asistenciaBloqueada && minutosRestantes !== null && (
@@ -495,7 +507,7 @@ export default function PaseDeListaPage() {
           <Card
             className={cn(
               "overflow-hidden border-0 shadow-md transition-all duration-500",
-              asistenciaBloqueada && "ring-1 ring-gray-200",
+              asistenciaBloqueada && "ring-1 ring-gray-200 opacity-80",
             )}
           >
             <div
@@ -512,9 +524,24 @@ export default function PaseDeListaPage() {
                 </p>
               </div>
               {asistenciaBloqueada && (
-                <div className="flex items-center gap-2 bg-white/20 text-white rounded-lg px-3 py-1.5 text-sm font-semibold self-start sm:self-auto">
-                  <HiLockClosed className="w-4 h-4" />
-                  No se puede modificar
+                <div className="flex flex-col items-end gap-2">
+                  <div className="flex items-center gap-2 bg-white/20 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">
+                    <HiLockClosed className="w-4 h-4" />
+                    Vista de solo lectura
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-black"
+                    onClick={() => {
+                      setAsistencia({});
+                      setSesionActivaFecha(null);
+                      setAsistenciaBloqueada(false);
+                      setMinutosRestantes(null);
+                    }}
+                  >
+                    Tomar Nueva Asistencia
+                  </Button>
                 </div>
               )}
             </div>
@@ -678,7 +705,7 @@ export default function PaseDeListaPage() {
                               <Checkbox
                                 id={`${op.valor}-${idAlum}`}
                                 checked={estatusActual === op.valor}
-                                disabled={asistenciaBloqueada} // NUEVO: Bloqueado si ya pasó el tiempo
+                                disabled={asistenciaBloqueada}
                                 onCheckedChange={() =>
                                   cambiarEstatus(idAlum, op.valor)
                                 }
@@ -705,7 +732,8 @@ export default function PaseDeListaPage() {
                   {asistenciaBloqueada ? (
                     <p className="text-sm text-gray-500 flex items-center gap-1.5">
                       <HiLockClosed className="w-4 h-4" />
-                      El tiempo de gracia expiró. No es posible modificar.
+                      El tiempo de edición expiró, pero puedes tomar una lista
+                      nueva.
                     </p>
                   ) : minutosRestantes !== null ? (
                     <p className="text-sm font-semibold text-amber-600 flex items-center gap-1.5">
@@ -726,22 +754,15 @@ export default function PaseDeListaPage() {
                   className={cn(
                     "px-8 text-white transition-colors",
                     asistenciaBloqueada
-                      ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
+                      ? "hidden"
                       : "bg-[#691C32] hover:bg-[#50172A]",
                   )}
                 >
-                  {asistenciaBloqueada ? (
-                    <span className="flex items-center gap-2">
-                      <HiLockClosed className="w-4 h-4" />
-                      Lista cerrada
-                    </span>
-                  ) : loading ? (
-                    "Guardando..."
-                  ) : minutosRestantes !== null ? (
-                    "Actualizar Asistencia"
-                  ) : (
-                    "Guardar Asistencia"
-                  )}
+                  {loading
+                    ? "Guardando..."
+                    : minutosRestantes !== null
+                      ? "Actualizar Asistencia"
+                      : "Guardar Nueva Asistencia"}
                 </Button>
               </div>
             </CardContent>
@@ -749,7 +770,7 @@ export default function PaseDeListaPage() {
         </>
       )}
 
-      {/* Historial de asistencias (Sin cambios) */}
+      {/* Historial de asistencias */}
       {claseIdParam && (
         <Card className="overflow-hidden border-0 shadow-md">
           <div className="bg-gray-800 px-6 py-4 flex items-center gap-3">
@@ -779,7 +800,7 @@ export default function PaseDeListaPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50">
-                    <TableHead>Fecha</TableHead>
+                    <TableHead>Fecha y Hora</TableHead>
                     <TableHead className="text-center text-green-700">
                       Presentes
                     </TableHead>
@@ -817,12 +838,16 @@ export default function PaseDeListaPage() {
                     ).length;
                     const total = registros.length;
                     const fechaRaw = sesion.fecha || "";
+
                     const fechaFormateada = fechaRaw
-                      ? new Date(fechaRaw).toLocaleDateString("es-MX", {
+                      ? new Date(fechaRaw).toLocaleString("es-MX", {
                           weekday: "short",
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
                         })
                       : `Sesión ${idx + 1}`;
 
@@ -889,7 +914,7 @@ export default function PaseDeListaPage() {
         </Card>
       )}
 
-      {/* Modal detalle de sesión (Sin cambios) */}
+      {/* Modal detalle de sesión */}
       <Dialog
         open={!!sesionDetalle}
         onOpenChange={(open) => !open && setSesionDetalle(null)}

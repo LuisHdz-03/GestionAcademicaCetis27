@@ -83,7 +83,7 @@ export default function Sidebar() {
       icon: HiHome,
       label: "Dashboard",
       href: "/dashboard",
-      roles: ["ADMINISTRATIVO"], // Solo el dire y coordinadores
+      roles: ["ADMINISTRATIVO"],
       cargos: cargosDirectivos,
     },
     {
@@ -111,8 +111,7 @@ export default function Sidebar() {
       icon: MdQrCodeScanner,
       label: "Escanear QR",
       href: "/dashboard/scan-qr",
-      // AQUÍ AGREGAMOS AL PREFECTO DIRECTAMENTE EN LOS ROLES
-      roles: ["ADMINISTRATIVO", "PREFECTO"],
+      roles: ["PREFECTO"],
       cargos: cargosAdministrativosGrales,
     },
     {

@@ -54,7 +54,7 @@ export interface GrupoFormData {
   idEspecialidad: number;
   idPeriodo: number;
   idDocente: number;
-  idMateria: number;
+  idMaterias: number[]; // Cambiado para soportar varias materias
   activo: boolean;
 }
 
