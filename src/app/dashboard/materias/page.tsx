@@ -138,19 +138,20 @@ export default function GestionEspecialidadesPage() {
               return ok;
             }}
             onCreateGrupo={async (data) => {
+              // 👇 Traducimos del Modal -> a TypeScript
               const ok = await createGrupo({
-                codigo: (data as any).codigo,
-                semestre: data.semestre,
+                codigo: (data as any).nombre,
+                semestre: (data as any).grado,
                 turno: (data as any).turno,
                 aula: (data as any).aula,
                 idEspecialidad:
-                  (data as any).idEspecialidad ||
+                  (data as any).especialidadId ||
                   (activeEspecialidad
                     ? (activeEspecialidad as any).id
                     : undefined),
-                idPeriodo: (data as any).idPeriodo,
-                idDocente: (data as any).idDocente,
-                idMaterias: (data as any).idMaterias,
+                idPeriodo: (data as any).periodoId,
+                idDocente: (data as any).docenteId,
+                idMaterias: (data as any).materiasIds,
                 activo: true,
               });
               if (ok) await fetchGrupos(activeEspecialidad?.id as any);
@@ -167,7 +168,15 @@ export default function GestionEspecialidadesPage() {
               return ok;
             }}
             onUpdateGrupo={async (id, data) => {
-              const ok = await updateGrupo(id, data);
+              // 👇 Traducimos del Modal -> a TypeScript
+              const ok = await updateGrupo(id, {
+                codigo: (data as any).nombre,
+                semestre: (data as any).grado,
+                turno: (data as any).turno,
+                aula: (data as any).aula,
+                idEspecialidad: (data as any).especialidadId,
+                idPeriodo: (data as any).periodoId,
+              });
               if (ok) await fetchGrupos(activeEspecialidad?.id as any);
               return ok;
             }}

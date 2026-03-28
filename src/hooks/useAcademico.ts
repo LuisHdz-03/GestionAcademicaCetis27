@@ -230,25 +230,25 @@ export function useAcademico() {
     }
   };
 
-  const createGrupo = async (data: any) => {
+  const createGrupo = async (
+    data: CreateGrupoInput & { idMaterias?: number[] },
+  ) => {
     try {
       setLoading(true);
 
-      // Mapeo exacto: tomamos los nombres del formulario y los enviamos como el back los pide
+      // 👇 Traducimos de TypeScript -> al Backend
       const payload = {
-        nombre: data.nombre,
-        grado: Number(data.grado),
+        nombre: data.codigo, // Lee 'codigo', envía 'nombre'
+        grado: Number(data.semestre), // Lee 'semestre', envía 'grado'
         turno: data.turno || "MATUTINO",
         aula: data.aula || "",
-        periodoId: Number(data.periodoId), // Antes decía idPeriodo
-        especialidadId: Number(data.especialidadId), // Antes decía idEspecialidad
-        materiasIds: data.materiasIds
-          ? data.materiasIds.map((id: any) => Number(id))
+        periodoId: Number(data.idPeriodo),
+        especialidadId: Number(data.idEspecialidad),
+        docenteId: data.idDocente ? Number(data.idDocente) : null,
+        materiasIds: data.idMaterias
+          ? data.idMaterias.map((id: any) => Number(id))
           : [],
       };
-
-      // LOG: Mostrar el payload que se enviará
-      console.log("[createGrupo] Payload enviado:", payload);
 
       const res = await fetch(`${API_URL}/grupos`, {
         method: "POST",
@@ -256,30 +256,52 @@ export function useAcademico() {
         body: JSON.stringify(payload),
       });
 
-      // LOG: Mostrar status y headers de la respuesta
-      console.log("[createGrupo] Status respuesta:", res.status);
-      console.log(
-        "[createGrupo] Headers respuesta:",
-        Array.from(res.headers.entries()),
-      );
-
-      let responseData;
-      try {
-        responseData = await res.json();
-      } catch (jsonErr) {
-        responseData = { error: "No se pudo parsear JSON de la respuesta" };
-      }
-
-      // LOG: Mostrar el body de la respuesta
-      console.log("[createGrupo] Body respuesta:", responseData);
-
-      if (!res.ok) {
+      const responseData = await res.json();
+      if (!res.ok)
         throw new Error(responseData.error || "Error al crear grupo");
-      }
 
       toast({
         title: "Éxito",
-        description: "Grupo creado correctamente",
+        description: responseData.mensaje || "Grupo creado exitosamente",
+        variant: "success",
+      });
+      return true;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Error desconocido";
+      toast({ title: "Error", description: msg, variant: "destructive" });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateGrupo = async (id: number, data: Partial<CreateGrupoInput>) => {
+    try {
+      setLoading(true);
+
+      // 👇 Traducimos de TypeScript -> al Backend para actualizar
+      const payload = {
+        nombre: data.codigo,
+        grado: data.semestre ? Number(data.semestre) : undefined,
+        turno: data.turno,
+        aula: data.aula,
+        periodoId: data.idPeriodo ? Number(data.idPeriodo) : undefined,
+        especialidadId: data.idEspecialidad
+          ? Number(data.idEspecialidad)
+          : undefined,
+      };
+
+      const res = await fetch(`${API_URL}/grupos/${id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Error al actualizar grupo");
+
+      toast({
+        title: "Éxito",
+        description: "Grupo actualizado",
         variant: "success",
       });
       return true;
@@ -350,39 +372,6 @@ export function useAcademico() {
       toast({
         title: "Éxito",
         description: "Materia eliminada",
-        variant: "success",
-      });
-      return true;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Error desconocido";
-      toast({ title: "Error", description: msg, variant: "destructive" });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateGrupo = async (id: number, data: Partial<CreateGrupoInput>) => {
-    try {
-      setLoading(true);
-      const payload = {
-        nombre: data.codigo,
-        grado: data.semestre,
-        aula: data.aula,
-        periodoId: data.idPeriodo,
-        especialidadId: data.idEspecialidad,
-      };
-
-      const res = await fetch(`${API_URL}/grupos/${id}`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Error al actualizar grupo");
-
-      toast({
-        title: "Éxito",
-        description: "Grupo actualizado",
         variant: "success",
       });
       return true;
