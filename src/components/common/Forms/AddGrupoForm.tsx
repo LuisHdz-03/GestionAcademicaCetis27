@@ -70,9 +70,8 @@ export default function AddGrupoForm({
     activo: initialData?.activo ?? true,
   });
 
-  // Estado local solo para controlar qué se muestra en el Select de materias
-  const [materiaSeleccionadaParcial, setMateriaSeleccionadaParcial] =
-    useState<string>("");
+ 
+  const [selectKey, setSelectKey] = useState<number>(0);
 
   useEffect(() => {
     if (initialData) {
@@ -106,7 +105,6 @@ export default function AddGrupoForm({
 
     setFormData((prev) => {
       const updated = { ...prev, [name]: intValue };
-      // Si cambia la especialidad, borramos las materias porque ya no coinciden
       if (name === "idEspecialidad") {
         updated.idMaterias = [];
       }
@@ -116,19 +114,6 @@ export default function AddGrupoForm({
     if (name === "idEspecialidad" && onChangeEspecialidad) {
       onChangeEspecialidad(intValue);
     }
-  };
-
-  // Función específica para manejar cuando se agrega una materia a la lista
-  const handleAgregarMateria = (value: string) => {
-    const id = parseInt(value);
-    if (!isNaN(id) && !formData.idMaterias.includes(id)) {
-      setFormData((prev) => ({
-        ...prev,
-        idMaterias: [...prev.idMaterias, id],
-      }));
-    }
-    // Resetear el select para que puedas seguir agregando
-    setMateriaSeleccionadaParcial("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -316,16 +301,28 @@ export default function AddGrupoForm({
         <div className="mb-4">
           <Label className="text-gray-700 mb-1">Agregar materia *</Label>
           <Select
-            value={materiaSeleccionadaParcial} // Vinculado a nuestro estado temporal
-            onValueChange={handleAgregarMateria} // Usa la nueva función
+            key={selectKey}
             disabled={!formData.idEspecialidad || materias.length === 0}
+            onValueChange={(value) => {
+              const id = parseInt(value);
+              if (!isNaN(id) && !formData.idMaterias.includes(id)) {
+                setFormData((prev) => ({
+                  ...prev,
+                  idMaterias: [...prev.idMaterias, id],
+                }));
+              }
+              // Forzamos el render del componente para que vuelva a mostrar el placeholder
+              setSelectKey((prev) => prev + 1);
+            }}
           >
             <SelectTrigger>
               <SelectValue
                 placeholder={
                   !formData.idEspecialidad
                     ? "Selecciona especialidad primero"
-                    : "Selecciona una materia"
+                    : materias.length === 0
+                      ? "Sin materias registradas"
+                      : "Selecciona una materia"
                 }
               />
             </SelectTrigger>
@@ -333,12 +330,12 @@ export default function AddGrupoForm({
               {materias.length === 0 ? (
                 <SelectItem value="0" disabled>
                   {formData.idEspecialidad
-                    ? "No hay materias en esta especialidad"
+                    ? "No hay materias creadas para esta especialidad"
                     : "Selecciona especialidad primero"}
                 </SelectItem>
               ) : (
                 materias
-                  .filter((m) => !formData.idMaterias.includes(m.id)) // Solo mostramos las que NO han sido elegidas
+                  .filter((m) => !formData.idMaterias.includes(m.id))
                   .map((materia) => (
                     <SelectItem key={materia.id} value={materia.id.toString()}>
                       {materia.nombre} ({materia.codigo})

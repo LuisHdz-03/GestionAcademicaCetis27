@@ -230,22 +230,24 @@ export function useAcademico() {
     }
   };
 
-  const createGrupo = async (
-    data: CreateGrupoInput & { idMaterias?: number[] },
-  ) => {
+  const createGrupo = async (data: any) => {
     try {
       setLoading(true);
+
+      // Mapeo exacto para tu controlador de Backend
       const payload = {
-        nombre: data.codigo,
-        grado: data.semestre,
-        turno: data.turno || "MATUTINO", // Tomamos el turno si viene en la data
-        aula: data.aula,
-        periodoId: data.idPeriodo,
-        especialidadId: data.idEspecialidad,
-        // 👇 AGREGAMOS EL DOCENTE Y LAS MATERIAS AL PAYLOAD 👇
-        docenteId: data.idDocente,
-        materiasIds:
-          data.idMaterias || (data.idMateria ? [data.idMateria] : []),
+        nombre: data.nombre, // El backend espera 'nombre'
+        grado: Number(data.grado), // El backend espera 'grado'
+        turno: data.turno,
+        aula: data.aula || "",
+        periodoId: Number(data.periodoId),
+        especialidadId: Number(data.especialidadId),
+        // Si quitaste el docente del form, asegúrate de enviar un ID válido
+        // o el backend no creará las materias (según tu lógica de if docenteId)
+        docenteId: data.docenteId ? Number(data.docenteId) : null,
+        materiasIds: data.materiasIds
+          ? data.materiasIds.map((id: any) => Number(id))
+          : [],
       };
 
       const res = await fetch(`${API_URL}/grupos`, {
@@ -253,11 +255,17 @@ export function useAcademico() {
         headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Error al crear grupo");
+
+      const responseData = await res.json();
+
+      if (!res.ok) {
+        // Esto te dirá exactamente qué campo falta según tu backend
+        throw new Error(responseData.error || "Error al crear grupo");
+      }
 
       toast({
         title: "Éxito",
-        description: "Grupo creado exitosamente",
+        description: responseData.mensaje,
         variant: "success",
       });
       return true;

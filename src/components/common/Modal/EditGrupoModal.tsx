@@ -63,11 +63,28 @@ export default function AddGrupoModal({
 }: AddGrupoModalProps) {
   const [materiasFiltradas, setMateriasFiltradas] = useState<Materia[]>([]);
 
+  // Guardamos la especialidad actual para saber cuándo buscar materias
+  const [especialidadActiva, setEspecialidadActiva] = useState<number>(0);
+
+  // 1. Limpiar materias si se cierra, O cargarlas si se abre y ya trae una especialidad
   useEffect(() => {
     if (!open) {
       setMateriasFiltradas([]);
+      setEspecialidadActiva(0);
+    } else if (initialData?.idEspecialidad) {
+      // Si el modal se abre y ya hay una especialidad (por ejemplo, al editar), buscamos las materias
+      cargarMateriasPorEspecialidad(initialData.idEspecialidad);
     }
-  }, [open]);
+  }, [open, initialData]);
+
+  // 2. Este useEffect escucha si la especialidad activa cambia y busca las materias
+  useEffect(() => {
+    if (especialidadActiva > 0) {
+      cargarMateriasPorEspecialidad(especialidadActiva);
+    } else {
+      setMateriasFiltradas([]);
+    }
+  }, [especialidadActiva]);
 
   const cargarMateriasPorEspecialidad = async (idEspecialidad: number) => {
     if (!idEspecialidad || idEspecialidad === 0) {
@@ -130,11 +147,11 @@ export default function AddGrupoModal({
           onSubmit={handleSubmit}
           especialidades={especialidades}
           docentes={docentes}
-          materias={materiasFiltradas} // MANDAMOS LAS FILTRADAS
+          materias={materiasFiltradas} // MANDAMOS LAS FILTRADAS (¡Ahora sí estarán llenas!)
           periodos={periodosFormateados}
           initialData={initialData}
           mode={isEditing ? "edit" : "create"}
-          onChangeEspecialidad={cargarMateriasPorEspecialidad} // CONECTAMOS LÓGICA
+          onChangeEspecialidad={(id) => setEspecialidadActiva(id)}
         />
       </DialogContent>
     </Dialog>
