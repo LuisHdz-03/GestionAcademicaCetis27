@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription, // Importado
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,14 +46,13 @@ interface EditGrupoModalProps {
   materias?: Materia[];
   initialData?: any;
   onChangeEspecialidad?: (id: number) => void;
-  activeEspecialidadId?: number;
+  activeEspecialidadId?: number; // Prop para auto-detección
 }
 
-// Valor inicial para reutilizar en el reset
 const initialFormState = {
   nombre: "",
   grado: 1,
-  turno: "",
+  turno: "MATUTINO",
   aula: "",
   periodoId: 0,
   especialidadId: 0,
@@ -68,106 +68,100 @@ export default function EditGrupoModal({
   materias = [],
   initialData,
   onChangeEspecialidad,
+  activeEspecialidadId, // Recibido del padre
 }: EditGrupoModalProps) {
   const [formData, setFormData] = useState(initialFormState);
   const [selectMateriaKey, setSelectMateriaKey] = useState(0);
 
-  // EFECTO DE CONTROL DE APERTURA/CIERRE Y CARGA DE DATOS
   useEffect(() => {
     if (open) {
       if (initialData) {
-        // MODO EDICIÓN: Cargar datos recibidos
+        // MODO EDICIÓN
         const idsExistentes = initialData.clases
           ? initialData.clases.map((c: any) => c.materiaId)
           : initialData.materiasIds || [];
-
         const currentEspId =
           initialData.idEspecialidad || initialData.especialidadId || 0;
 
         setFormData({
-          nombre: initialData.codigo || initialData.nombre || "",
-          grado: initialData.semestre || initialData.grado || 1,
-          turno: initialData.turno || "",
+          nombre: initialData.nombre || initialData.codigo || "",
+          grado: initialData.grado || initialData.semestre || 1,
+          turno: initialData.turno || "MATUTINO",
           aula: initialData.aula || "",
-          periodoId: initialData.idPeriodo || initialData.periodoId || 0,
+          periodoId: initialData.periodoId || initialData.idPeriodo || 0,
           especialidadId: currentEspId,
           materiasIds: idsExistentes,
         });
 
-        if (currentEspId > 0 && onChangeEspecialidad) {
+        if (currentEspId > 0 && onChangeEspecialidad)
           onChangeEspecialidad(currentEspId);
-        }
       } else {
-        // MODO CREACIÓN (o apertura limpia): Resetear al estado inicial
-        setFormData(initialFormState);
+        // MODO CREACIÓN: Auto-detectar especialidad
+        const defId = activeEspecialidadId || 0;
+        setFormData({ ...initialFormState, especialidadId: defId });
+        if (defId > 0 && onChangeEspecialidad) onChangeEspecialidad(defId);
       }
     } else {
-      // AL CERRAR: Opcionalmente podemos resetear aquí también para evitar "flashes" de datos viejos la próxima vez
       setFormData(initialFormState);
       setSelectMateriaKey((prev) => prev + 1);
     }
-  }, [open, initialData]); // Se dispara cada vez que el modal se abre/cierra o cambian los datos base
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "grado" ? parseInt(value) || 1 : value,
-    }));
-  };
+  }, [open, initialData, activeEspecialidadId]);
 
   const handleSelectChange = (name: string, value: string) => {
-    const intValue = parseInt(value);
+    let newValue: any = value;
+    // Solo parsear a número si el campo es uno de los siguientes
+    if (["periodoId", "especialidadId", "grado"].includes(name)) {
+      newValue = parseInt(value, 10);
+      if (isNaN(newValue)) newValue = 0;
+    }
     setFormData((prev) => {
-      const newData = { ...prev, [name]: isNaN(intValue) ? value : intValue };
-
+      const newData = { ...prev, [name]: newValue };
       if (name === "especialidadId") {
         newData.materiasIds = [];
-        if (onChangeEspecialidad) onChangeEspecialidad(intValue);
+        if (onChangeEspecialidad) onChangeEspecialidad(newValue);
       }
       return newData;
     });
   };
 
-  const handleAgregarMateria = (value: string) => {
-    const id = parseInt(value);
-    if (!isNaN(id) && !formData.materiasIds.includes(id)) {
+  const handleAgregarMateria = (v: string) => {
+    const id = parseInt(v);
+    if (!formData.materiasIds.includes(id)) {
       setFormData((prev) => ({
         ...prev,
         materiasIds: [...prev.materiasIds, id],
       }));
     }
-    setSelectMateriaKey((prev) => prev + 1);
-  };
-
-  const handleQuitarMateria = (id: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      materiasIds: prev.materiasIds.filter((mId) => mId !== id),
-    }));
+    setSelectMateriaKey((k) => k + 1);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
+    // Validación estricta para detectar NaN, undefined o valores vacíos
     if (
       !formData.nombre ||
+      typeof formData.nombre !== "string" ||
+      formData.nombre.trim() === "" ||
       !formData.grado ||
-      !formData.turno ||
+      isNaN(formData.grado) ||
       !formData.periodoId ||
+      isNaN(formData.periodoId) ||
       !formData.especialidadId ||
+      isNaN(formData.especialidadId) ||
+      !Array.isArray(formData.materiasIds) ||
       formData.materiasIds.length === 0
     ) {
+      // Log de advertencia para depuración
+      console.warn(
+        "[AddGrupoModal] Error: Datos inválidos en el formulario",
+        formData,
+      );
       alert(
-        "Por favor completa todos los campos y selecciona al menos una materia.",
+        "Por favor completa todos los campos obligatorios y selecciona al menos una materia.",
       );
       return;
     }
-
     onSubmit(formData);
-    // El onOpenChange(false) lo maneja el componente padre tras el submit exitoso generalmente,
-    // pero lo dejamos para asegurar el cierre.
-    onOpenChange(false);
   };
 
   const periodosVisibles = periodos.filter(
@@ -178,29 +172,36 @@ export default function EditGrupoModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {initialData ? "Editar Grupo" : "Registrar Nuevo Grupo"}
+          <DialogTitle className="text-[#691C32] font-bold">
+            {initialData ? " Editar Grupo" : " Registrar Nuevo Grupo"}
           </DialogTitle>
+          {/* Solución al Warning de Description */}
+          <DialogDescription className="sr-only">
+            Formulario para la gestión de grupos y asignación de materias.
+          </DialogDescription>
         </DialogHeader>
-        <form className="space-y-4 mt-4" onSubmit={handleSubmit}>
+
+        <form className="space-y-4 mt-2" onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-gray-700 mb-1">Nombre del Grupo *</Label>
+              <Label>Nombre del Grupo *</Label>
               <Input
-                name="nombre"
                 value={formData.nombre}
-                onChange={handleChange}
+                onChange={(e) =>
+                  setFormData({ ...formData, nombre: e.target.value })
+                }
                 required
-                placeholder="Ej: 1A, 2B"
+                placeholder="Ej: 1A"
               />
             </div>
             <div>
-              <Label className="text-gray-700 mb-1">Semestre / Grado *</Label>
+              <Label>Grado / Semestre *</Label>
               <Input
                 type="number"
-                name="grado"
                 value={formData.grado}
-                onChange={handleChange}
+                onChange={(e) =>
+                  setFormData({ ...formData, grado: parseInt(e.target.value) })
+                }
                 min="1"
                 max="6"
                 required
@@ -210,7 +211,7 @@ export default function EditGrupoModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-gray-700 mb-1">Turno *</Label>
+              <Label>Turno *</Label>
               <Select
                 onValueChange={(v) => handleSelectChange("turno", v)}
                 value={formData.turno}
@@ -226,29 +227,31 @@ export default function EditGrupoModal({
               </Select>
             </div>
             <div>
-              <Label className="text-gray-700 mb-1">Aula</Label>
+              <Label>Aula</Label>
               <Input
-                name="aula"
                 value={formData.aula}
-                onChange={handleChange}
-                placeholder="Ej: A-101"
+                onChange={(e) =>
+                  setFormData({ ...formData, aula: e.target.value })
+                }
+                placeholder="Ej: A-10"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-gray-700 mb-1">Período *</Label>
+              <Label>Período *</Label>
               <Select
-                onValueChange={(v) => handleSelectChange("periodoId", v)}
+                onValueChange={(v) => {
+                  console.log("Cambio periodoId:", v);
+                  handleSelectChange("periodoId", v);
+                }}
                 value={
-                  formData.periodoId > 0
-                    ? formData.periodoId.toString()
-                    : undefined
+                  formData.periodoId > 0 ? formData.periodoId.toString() : ""
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona período" />
+                  <SelectValue placeholder="Periodo" />
                 </SelectTrigger>
                 <SelectContent>
                   {periodosVisibles.map((p) => (
@@ -260,13 +263,16 @@ export default function EditGrupoModal({
               </Select>
             </div>
             <div>
-              <Label className="text-gray-700 mb-1">Especialidad *</Label>
+              <Label>Especialidad *</Label>
               <Select
-                onValueChange={(v) => handleSelectChange("especialidadId", v)}
+                onValueChange={(v) => {
+                  console.log("Cambio especialidadId:", v);
+                  handleSelectChange("especialidadId", v);
+                }}
                 value={
                   formData.especialidadId > 0
                     ? formData.especialidadId.toString()
-                    : undefined
+                    : ""
                 }
               >
                 <SelectTrigger>
@@ -281,65 +287,70 @@ export default function EditGrupoModal({
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-full">
-              <Label className="text-gray-700 mb-1">Agregar Materia *</Label>
-              <Select
-                key={selectMateriaKey}
-                onValueChange={handleAgregarMateria}
-                disabled={!formData.especialidadId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar Materia" />
-                </SelectTrigger>
-                <SelectContent>
-                  {materias
-                    .filter((m) => !formData.materiasIds.includes(m.id))
-                    .map((m) => (
-                      <SelectItem key={m.id} value={m.id.toString()}>
-                        {m.nombre}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
+          </div>
 
-            <div>
-              <Label className="text-gray-700 mb-2 block">
-                Materias asignadas:
-              </Label>
-              <div className="flex flex-wrap gap-2 p-3 border rounded-md bg-gray-50 min-h-[50px]">
-                {formData.materiasIds.length === 0 && (
-                  <span className="text-gray-400 text-sm">
-                    Sin materias asignadas
-                  </span>
-                )}
-                {formData.materiasIds.map((id) => {
-                  const materia = materias.find((m) => m.id === id);
-                  return (
-                    <div
-                      key={id}
-                      className="bg-white border border-[#691C32]/30 rounded-full px-3 py-1 text-xs flex items-center gap-2 text-[#691C32] font-medium shadow-sm"
+          <div className="border-t pt-4 space-y-4">
+            <Label className="text-[#691C32] font-bold">
+              Materias del Grupo
+            </Label>
+            <Select
+              key={selectMateriaKey}
+              onValueChange={handleAgregarMateria}
+              disabled={!formData.especialidadId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar Materia" />
+              </SelectTrigger>
+              <SelectContent>
+                {materias
+                  .filter((m) => !formData.materiasIds.includes(m.id))
+                  .map((m) => (
+                    <SelectItem key={m.id} value={m.id.toString()}>
+                      {m.nombre}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex flex-wrap gap-2 p-3 border rounded-md bg-gray-50">
+              {formData.materiasIds.length === 0 && (
+                <span className="text-gray-400 text-xs">
+                  Sin materias asignadas
+                </span>
+              )}
+              {formData.materiasIds.map((id) => {
+                const mat = materias.find((m) => m.id === id);
+                return (
+                  <div
+                    key={id}
+                    className="bg-[#691C32] text-white rounded-full px-3 py-1 text-xs flex items-center gap-2"
+                  >
+                    {mat?.nombre || `ID: ${id}`}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          materiasIds: formData.materiasIds.filter(
+                            (mid) => mid !== id,
+                          ),
+                        })
+                      }
+                      className="font-bold"
                     >
-                      {materia?.nombre || `ID: ${id}`}
-                      <button
-                        type="button"
-                        onClick={() => handleQuitarMateria(id)}
-                        className="hover:text-red-600 font-bold ml-1"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           <Button
             type="submit"
-            className="w-full bg-[#691C32] hover:bg-[#501526] text-white mt-4 transition-colors"
+            className="w-full bg-[#691C32] hover:bg-[#501526] text-white mt-4"
           >
-            {initialData ? "Guardar Cambios" : "Crear Grupo"}
+            {initialData ? "Actualizar Grupo" : "Crear Grupo"}
           </Button>
         </form>
       </DialogContent>

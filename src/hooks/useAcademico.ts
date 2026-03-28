@@ -234,21 +234,21 @@ export function useAcademico() {
     try {
       setLoading(true);
 
-      // Mapeo exacto para tu controlador de Backend
+      // Mapeo exacto: tomamos los nombres del formulario y los enviamos como el back los pide
       const payload = {
-        nombre: data.nombre, // El backend espera 'nombre'
-        grado: Number(data.grado), // El backend espera 'grado'
-        turno: data.turno,
+        nombre: data.nombre,
+        grado: Number(data.grado),
+        turno: data.turno || "MATUTINO",
         aula: data.aula || "",
-        periodoId: Number(data.periodoId),
-        especialidadId: Number(data.especialidadId),
-        // Si quitaste el docente del form, asegúrate de enviar un ID válido
-        // o el backend no creará las materias (según tu lógica de if docenteId)
-        docenteId: data.docenteId ? Number(data.docenteId) : null,
+        periodoId: Number(data.periodoId), // Antes decía idPeriodo
+        especialidadId: Number(data.especialidadId), // Antes decía idEspecialidad
         materiasIds: data.materiasIds
           ? data.materiasIds.map((id: any) => Number(id))
           : [],
       };
+
+      // LOG: Mostrar el payload que se enviará
+      console.log("[createGrupo] Payload enviado:", payload);
 
       const res = await fetch(`${API_URL}/grupos`, {
         method: "POST",
@@ -256,16 +256,30 @@ export function useAcademico() {
         body: JSON.stringify(payload),
       });
 
-      const responseData = await res.json();
+      // LOG: Mostrar status y headers de la respuesta
+      console.log("[createGrupo] Status respuesta:", res.status);
+      console.log(
+        "[createGrupo] Headers respuesta:",
+        Array.from(res.headers.entries()),
+      );
+
+      let responseData;
+      try {
+        responseData = await res.json();
+      } catch (jsonErr) {
+        responseData = { error: "No se pudo parsear JSON de la respuesta" };
+      }
+
+      // LOG: Mostrar el body de la respuesta
+      console.log("[createGrupo] Body respuesta:", responseData);
 
       if (!res.ok) {
-        // Esto te dirá exactamente qué campo falta según tu backend
         throw new Error(responseData.error || "Error al crear grupo");
       }
 
       toast({
         title: "Éxito",
-        description: responseData.mensaje,
+        description: "Grupo creado correctamente",
         variant: "success",
       });
       return true;
