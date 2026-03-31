@@ -388,7 +388,10 @@ export function useCommunity(): UseCommunityReturn {
       if (!response.ok) throw new Error("Error al obtener clases");
 
       const result = await response.json();
-      setClases(result);
+
+      const clasesArray = result.data ? result.data : result;
+
+      setClases(clasesArray);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -704,7 +707,11 @@ export function useCommunity(): UseCommunityReturn {
       });
       return true;
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
       return false;
     }
   };
@@ -739,7 +746,11 @@ export function useCommunity(): UseCommunityReturn {
       });
       return true;
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
       return false;
     }
   };
