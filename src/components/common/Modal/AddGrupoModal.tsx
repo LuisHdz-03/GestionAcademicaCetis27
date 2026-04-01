@@ -37,6 +37,13 @@ interface Materia {
   codigo: string;
 }
 
+interface Docente {
+  id: number;
+  nombre: string;
+  apellidoPaterno: string;
+  apellidoMaterno?: string;
+}
+
 interface EditGrupoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -44,7 +51,9 @@ interface EditGrupoModalProps {
   especialidades?: Especialidad[];
   periodos?: Periodo[];
   materias?: Materia[];
+  docentes?: Docente[];
   initialData?: any;
+  isEditing?: boolean;
   onChangeEspecialidad?: (id: number) => void;
   activeEspecialidadId?: number; // Prop para auto-detección
 }
@@ -55,6 +64,7 @@ const initialFormState = {
   turno: "MATUTINO",
   aula: "",
   periodoId: 0,
+  docenteId: 0,
   especialidadId: 0,
   materiasIds: [] as number[],
 };
@@ -66,6 +76,7 @@ export default function EditGrupoModal({
   especialidades = [],
   periodos = [],
   materias = [],
+  docentes = [],
   initialData,
   onChangeEspecialidad,
   activeEspecialidadId, // Recibido del padre
@@ -89,6 +100,7 @@ export default function EditGrupoModal({
           turno: initialData.turno || "MATUTINO",
           aula: initialData.aula || "",
           periodoId: initialData.periodoId || initialData.idPeriodo || 0,
+          docenteId: initialData.docenteId || initialData.idDocente || 0,
           especialidadId: currentEspId,
           materiasIds: idsExistentes,
         });
@@ -110,7 +122,7 @@ export default function EditGrupoModal({
   const handleSelectChange = (name: string, value: string) => {
     let newValue: any = value;
     // Solo parsear a número si el campo es uno de los siguientes
-    if (["periodoId", "especialidadId", "grado"].includes(name)) {
+    if (["periodoId", "especialidadId", "grado", "docenteId"].includes(name)) {
       newValue = parseInt(value, 10);
       if (isNaN(newValue)) newValue = 0;
     }
@@ -166,6 +178,9 @@ export default function EditGrupoModal({
 
   const periodosVisibles = periodos.filter(
     (p) => p.activo === true || p.id === formData.periodoId,
+  );
+  const selectedEspecialidad = especialidades.find(
+    (esp) => esp.id === formData.especialidadId,
   );
 
   return (
@@ -275,13 +290,42 @@ export default function EditGrupoModal({
                     : ""
                 }
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Especialidad" />
+                <SelectTrigger
+                  className="w-full"
+                  title={selectedEspecialidad?.nombre || ""}
+                >
+                  <SelectValue
+                    placeholder="Especialidad"
+                    className="block max-w-[calc(100%-1.5rem)] truncate"
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {especialidades.map((esp) => (
                     <SelectItem key={esp.id} value={esp.id.toString()}>
                       {esp.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Docente</Label>
+              <Select
+                onValueChange={(v) => handleSelectChange("docenteId", v)}
+                value={
+                  formData.docenteId > 0 ? formData.docenteId.toString() : ""
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar Docente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {docentes.map((d) => (
+                    <SelectItem key={d.id} value={d.id.toString()}>
+                      {d.nombre} {d.apellidoPaterno} {d.apellidoMaterno || ""}
                     </SelectItem>
                   ))}
                 </SelectContent>

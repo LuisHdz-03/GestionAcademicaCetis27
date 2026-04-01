@@ -6,6 +6,7 @@ import {
   ReactNode,
   useState,
   useEffect,
+  useCallback,
 } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/useToast";
@@ -54,6 +55,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   const isClient = typeof window !== "undefined";
+
+  const logout = useCallback((): void => {
+    if (!isClient) return;
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+    setUser(null);
+    window.location.replace("/auth/login");
+  }, [isClient]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -135,49 +144,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(usuario);
         } catch (error) {
           console.error("Error al validar usuario:", error);
-          localStorage.removeItem("token");
-          localStorage.removeItem("usuario");
-          setUser(null);
+          logout();
           setIsLoading(false);
           return;
         }
 
         try {
-          // Verificamos expiración del token localmente sin llamar al servidor.
-          // Así evitamos desloguear usuarios por endpoints que devuelven 403/404
-          // según su rol (ej: prefecto no puede acceder a rutas de admin).
           const [, payloadB64] = token.split(".");
           if (payloadB64) {
             const decoded = JSON.parse(atob(payloadB64));
             if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-              // Token expirado — limpiar sesión
-              localStorage.removeItem("token");
-              localStorage.removeItem("usuario");
-              setUser(null);
+              toast({
+                title: "Sesión expirada",
+                description:
+                  "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+                variant: "destructive",
+              });
+              logout();
               setIsLoading(false);
               return;
             }
           }
         } catch {
-          // Si no se puede decodificar el JWT, asumimos que sigue válido.
-          // El servidor rechazará las peticiones si realmente expiró.
+          // Ignorar error de decodificación
         }
       } catch (error) {
         console.error("Error inesperado en checkAuth:", error);
-        if (isClient) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("usuario");
-        }
-        setUser(null);
+        logout();
       } finally {
         setIsLoading(false);
       }
     };
 
     checkAuth();
+  }, [isClient, logout, toast]);
 
-    return () => {};
-  }, [isClient]);
+  // 3. NUEVO: useEffect para monitorear activamente la expiración del token
+  useEffect(() => {
+    // Si no hay usuario logueado o no estamos en el cliente, no hacemos nada
+    if (!isClient || !user) return;
+
+    const checkTokenExpiration = () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        logout();
+        return;
+      }
+
+      try {
+        const [, payloadB64] = token.split(".");
+        if (payloadB64) {
+          const decoded = JSON.parse(atob(payloadB64));
+          // Revisamos si el token ya caducó
+          if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+            toast({
+              title: "Sesión caducada",
+              description: "Por seguridad, tu sesión de 8 horas ha terminado.",
+              variant: "destructive",
+            });
+            logout();
+          }
+        }
+      } catch (error) {
+        logout();
+      }
+    };
+
+    // Ejecuta la revisión cada 60 segundos (60000 milisegundos)
+    const intervalId = setInterval(checkTokenExpiration, 60000);
+
+    // Limpia el intervalo cuando el componente se desmonta
+    return () => clearInterval(intervalId);
+  }, [isClient, user, logout, toast]);
 
   const login = async (email: string, password: string): Promise<void> => {
     if (!isClient) {
@@ -213,7 +251,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           plataforma: "WEB",
         }),
         signal: controller.signal,
-        //credentials: "include",
       });
 
       clearTimeout(timeoutId);
@@ -260,7 +297,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         cargo: result.usuario.cargo || result.usuario.datos?.cargo || "",
       };
 
-      // Si es administrativo/prefecto y no vino cargo del login, buscarlo en /administrativos
       const tipoNorm = usuarioFormateado.tipoUsuario.toUpperCase();
       if (
         (tipoNorm === "ADMINISTRATIVO" || tipoNorm === "PREFECTO") &&
@@ -318,15 +354,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const logout = (): void => {
-    if (!isClient) return;
-
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
-    // Redirigir antes de limpiar el estado para evitar pantalla en blanco
-    window.location.replace("/auth/login");
   };
 
   const value = {

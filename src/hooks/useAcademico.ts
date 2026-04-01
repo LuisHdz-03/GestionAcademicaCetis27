@@ -5,6 +5,7 @@ export interface MateriaDTO {
   id: number;
   nombre: string;
   codigo: string;
+  idEspecialidad?: number;
   creditos?: number;
   horasTeoria?: number;
   horasPractica?: number;
@@ -20,6 +21,11 @@ export interface GrupoDTO {
   nombre: string;
   codigo: string;
   semestre?: number;
+  turno?: string;
+  aula?: string;
+  idPeriodo?: number;
+  idDocente?: number;
+  idMaterias?: number[];
   especialidadNombre?: string;
   especialidadCodigo?: string;
   especialidadId?: number | null;
@@ -86,8 +92,10 @@ export function useAcademico() {
         id: m.idMateria,
         nombre: m.nombre,
         codigo: m.codigo || m.nombre.substring(0, 3).toUpperCase(),
-        totalHoras: m.horasSemana || 0,
-        horasTeoria: m.horasSemana || 0,
+        idEspecialidad:
+          m.especialidadId ?? m.idEspecialidad ?? m.especialidad?.id,
+        totalHoras: Number(m.horasSemana ?? m.horaSemana ?? 0),
+        horasTeoria: Number(m.horasSemana ?? m.horaSemana ?? 0),
         horasPractica: 0,
         semestre: m.semestre || 1,
         especialidadNombre: m.especialidad?.nombre || "General",
@@ -101,11 +109,15 @@ export function useAcademico() {
       let materiasFiltradas = materiasMapeadas;
       if (typeof especialidadFilter === "string") {
         materiasFiltradas = materiasMapeadas.filter(
-          (m) => m.especialidadCodigo === especialidadFilter,
+          (m) =>
+            m.especialidadCodigo === especialidadFilter ||
+            String(m.idEspecialidad) === especialidadFilter,
         );
       } else if (typeof especialidadFilter === "number") {
         materiasFiltradas = materiasMapeadas.filter(
-          (m: any) => Number(m.especialidadCodigo) === especialidadFilter,
+          (m: any) =>
+            Number(m.idEspecialidad) === especialidadFilter ||
+            Number(m.especialidadCodigo) === especialidadFilter,
         );
       }
 
@@ -128,20 +140,35 @@ export function useAcademico() {
 
       const json = await res.json();
 
-      const gruposMapeados: GrupoDTO[] = json.map((g: any) => ({
-        id: g.idGrupo,
-        nombre: g.nombre,
-        codigo: g.nombre,
-        semestre: g.grado,
-        especialidadNombre: g.especialidad?.nombre || "General",
-        especialidadCodigo:
-          g.especialidad?.codigo ||
-          (g.especialidadId ? String(g.especialidadId) : "GEN"),
-        especialidadId: g.especialidadId ?? g.especialidad?.id ?? null,
-        idEspecialidad: g.especialidadId ?? g.especialidad?.id ?? null,
-        integrantes: g._count?.estudiantes || 0,
-        activo: true,
-      }));
+      const gruposMapeados: GrupoDTO[] = json.map((g: any) => {
+        const clases = Array.isArray(g.clases) ? g.clases : [];
+        const primeraClase = clases[0];
+
+        return {
+          id: g.idGrupo,
+          nombre: g.nombre,
+          codigo: g.nombre,
+          semestre: g.grado,
+          turno: g.turno,
+          aula: g.aula || "",
+          idPeriodo: primeraClase?.periodoId ?? primeraClase?.idPeriodo ?? 0,
+          idDocente: primeraClase?.docenteId ?? primeraClase?.idDocente ?? 0,
+          idMaterias: clases
+            .map(
+              (c: any) =>
+                c.materiaId ?? c.idMateria ?? c.materias?.idMateria ?? null,
+            )
+            .filter((id: any) => Number.isFinite(Number(id))),
+          especialidadNombre: g.especialidad?.nombre || "General",
+          especialidadCodigo:
+            g.especialidad?.codigo ||
+            (g.especialidadId ? String(g.especialidadId) : "GEN"),
+          especialidadId: g.especialidadId ?? g.especialidad?.id ?? null,
+          idEspecialidad: g.especialidadId ?? g.especialidad?.id ?? null,
+          integrantes: g._count?.estudiantes || 0,
+          activo: g.activo ?? true,
+        };
+      });
 
       // aceptar filtro por código (string) o por id (number)
       let gruposFiltrados = gruposMapeados;
@@ -286,6 +313,10 @@ export function useAcademico() {
         turno: data.turno,
         aula: data.aula,
         periodoId: data.idPeriodo ? Number(data.idPeriodo) : undefined,
+        docenteId: data.idDocente ? Number(data.idDocente) : undefined,
+        materiasIds: Array.isArray(data.idMaterias)
+          ? data.idMaterias.map((id: any) => Number(id))
+          : undefined,
         especialidadId: data.idEspecialidad
           ? Number(data.idEspecialidad)
           : undefined,

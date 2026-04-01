@@ -39,7 +39,7 @@ export default function AddMateriaForm({
     nombre: initialData?.nombre || "",
     codigo: initialData?.codigo || "",
     semestre: initialData?.semestre || 1,
-    horas: initialData?.horas || 0,
+    horas: initialData?.horas ?? initialData?.horasTeoria ?? 0,
     idEspecialidad: initialData?.idEspecialidad || 0,
     activo: initialData?.activo ?? true,
     creditos: initialData?.creditos || 0,
@@ -53,7 +53,7 @@ export default function AddMateriaForm({
         nombre: initialData.nombre || "",
         codigo: initialData.codigo || "",
         semestre: initialData.semestre || 1,
-        horas: initialData.horas || 0,
+        horas: initialData.horas ?? initialData.horasTeoria ?? 0,
         idEspecialidad: initialData.idEspecialidad || 0,
         activo: initialData.activo ?? true,
         creditos: initialData.creditos || 0,
@@ -80,6 +80,10 @@ export default function AddMateriaForm({
     e.preventDefault();
     onSubmit(formData);
   };
+
+  const selectedEspecialidadLabel = especialidades.find(
+    (esp) => esp.id === formData.idEspecialidad,
+  );
 
   return (
     <form className="space-y-3" onSubmit={handleSubmit}>
@@ -138,15 +142,23 @@ export default function AddMateriaForm({
             }
             value={formData.idEspecialidad?.toString()}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecciona una especialidad" />
+            <SelectTrigger
+              className="w-full"
+              title={
+                selectedEspecialidadLabel
+                  ? `${selectedEspecialidadLabel.nombre} (${selectedEspecialidadLabel.codigo})`
+                  : ""
+              }
+            >
+              <SelectValue
+                placeholder="Selecciona una especialidad"
+                className="block max-w-[calc(100%-1.5rem)] truncate"
+              />
             </SelectTrigger>
             <SelectContent>
               {especialidades.map((esp) => (
                 <SelectItem key={esp.id} value={esp.id.toString()}>
-                  <div className="whitespace-normal break-words">
-                    {esp.nombre} ({esp.codigo})
-                  </div>
+                  {esp.nombre} ({esp.codigo})
                 </SelectItem>
               ))}
             </SelectContent>

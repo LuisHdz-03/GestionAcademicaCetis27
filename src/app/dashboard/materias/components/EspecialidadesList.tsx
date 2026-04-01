@@ -1,6 +1,6 @@
 // components/EspecialidadesList.tsx
 "use client";
-import {Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 interface Especialidad {
@@ -36,14 +36,16 @@ export default function EspecialidadesList({
                     : "outline"
                 }
                 onClick={() => setSelectedEspecialidad(especialidad.codigo)}
-                className={`w-full justify-start rounded-md border h-auto py-4 text-left focus-visible:ring-2 focus-visible:ring-[#691C32] ${
+                className={`w-full justify-start rounded-md border h-auto py-4 text-left whitespace-normal focus-visible:ring-2 focus-visible:ring-[#691C32] ${
                   selectedEspecialidad === especialidad.codigo
                     ? "bg-[#691C32] text-white hover:bg-[#691C32]/90"
                     : "bg-white text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 <div className="flex flex-col items-start">
-                  <p className="font-semibold">{especialidad.nombre}</p>
+                  <p className="font-semibold break-words">
+                    {especialidad.nombre}
+                  </p>
                   <p
                     className={`text-sm ${
                       selectedEspecialidad === especialidad.codigo

@@ -41,7 +41,7 @@ interface Grupo {
   idEspecialidad?: number;
   idPeriodo?: number;
   idDocente?: number;
-  idMateria?: number;
+  idMaterias?: number[];
 }
 
 interface Props {
@@ -69,7 +69,12 @@ interface Props {
     apellidoPaterno: string;
     apellidoMaterno?: string;
   }>;
-  periodos?: Array<{ id: number; nombre: string; activo: boolean }>;
+  periodos?: Array<{
+    id: number;
+    nombre: string;
+    codigo: string;
+    activo: boolean;
+  }>;
   materiasOptions?: Array<{ id: number; nombre: string; codigo: string }>;
 }
 
@@ -399,6 +404,7 @@ export default function MateriasTabs({
                     id: m.id,
                     nombre: m.nombre,
                     codigo: m.codigo,
+                    horas: (m as any).totalHoras ?? (m as any).horasTeoria ?? 0,
                     creditos: (m as any).creditos ?? 0,
                     horasTeoria: (m as any).horasTeoria ?? 0,
                     horasPractica: (m as any).horasPractica ?? 0,
@@ -537,10 +543,12 @@ export default function MateriasTabs({
                   id: g.id,
                   codigo: g.codigo,
                   semestre: g.semestre,
+                  turno: ((g as any).turno as any) ?? "MATUTINO",
+                  aula: (g as any).aula ?? "",
                   idEspecialidad: (g as any).idEspecialidad ?? 0,
                   idPeriodo: (g as any).idPeriodo ?? 0,
                   idDocente: (g as any).idDocente ?? 0,
-                  idMateria: (g as any).idMateria ?? 0,
+                  idMaterias: (g as any).idMaterias ?? [],
                   activo: (g as any).activo ?? true,
                 };
                 setEditingGrupo(grupoData as any);

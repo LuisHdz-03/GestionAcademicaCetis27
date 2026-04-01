@@ -176,6 +176,8 @@ export default function GestionEspecialidadesPage() {
                 aula: (data as any).aula,
                 idEspecialidad: (data as any).especialidadId,
                 idPeriodo: (data as any).periodoId,
+                idDocente: (data as any).docenteId,
+                idMaterias: (data as any).materiasIds,
               });
               if (ok) await fetchGrupos(activeEspecialidad?.id as any);
               return ok;

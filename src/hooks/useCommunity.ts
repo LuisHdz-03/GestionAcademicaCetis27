@@ -32,6 +32,10 @@ interface Materia {
   id: number;
   nombre: string;
   codigo: string;
+  semestre?: number;
+  totalHoras: number;
+  idEspecialidad?: number;
+  especialidadNombre?: string;
   activo: boolean;
 }
 const API_URL =
@@ -362,13 +366,29 @@ export function useCommunity(): UseCommunityReturn {
 
       const result = await response.json();
 
-      // Ajusta este mapeo si las propiedades en tu Backend se llaman diferente
-      const materiasMapeadas = result.map((m: any) => ({
-        id: m.idMateria || m.id,
-        nombre: m.nombre,
-        codigo: m.codigo || m.clave || "N/A",
-        activo: m.activo ?? true,
-      }));
+      // Soporta distintos nombres de campos del backend para horas y especialidad.
+      const materiasMapeadas = result.map((m: any) => {
+        const rawEspecialidad = m.especialidad ?? m.Especialidad;
+        const especialidadNombre =
+          typeof rawEspecialidad === "string"
+            ? rawEspecialidad
+            : (rawEspecialidad?.nombre ?? "General");
+        const totalHoras =
+          Number(m.horaSemana ?? m.horasSemana ?? m.totalHoras) ||
+          Number(m.horasTeoria || 0) + Number(m.horasPractica || 0);
+
+        return {
+          id: m.idMateria || m.id,
+          nombre: m.nombre,
+          codigo: m.codigo || m.clave || "N/A",
+          semestre: m.semestre || 1,
+          totalHoras,
+          idEspecialidad:
+            m.especialidadId || m.idEspecialidad || rawEspecialidad?.id || 0,
+          especialidadNombre,
+          activo: m.activo ?? true,
+        };
+      });
 
       setMaterias(materiasMapeadas);
     } catch (err) {
