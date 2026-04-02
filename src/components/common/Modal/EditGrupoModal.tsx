@@ -67,9 +67,7 @@ export default function EditGrupoModal({
           periodoId: initialData.periodoId || initialData.idPeriodo || 0,
           especialidadId:
             initialData.especialidadId || initialData.idEspecialidad || 0,
-          materiasIds: initialData.clases
-            ? initialData.clases.map((c: any) => c.materiaId)
-            : [],
+          materiasIds: initialData.idMaterias || initialData.materiasIds || [],
         });
       } else {
         // MODO CREACIÓN: Auto-detección

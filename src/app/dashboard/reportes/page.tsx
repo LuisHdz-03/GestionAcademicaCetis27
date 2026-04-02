@@ -494,12 +494,19 @@ export default function ReportesPage() {
 
       const payload = {
         estudianteId: alumnoSeleccionado.id,
+        alumnoId: alumnoSeleccionado.id,
+        idEstudiante: alumnoSeleccionado.id,
         titulo: formData.titulo || "Reporte Escolar",
         descripcion: formData.motivoReporte,
         tipo: formData.tipo,
+        tipoIncidencia: formData.tipo,
         gravedad: formData.gravedad,
+        nivel: formData.gravedad,
         acciones: formData.accionesTomadas || "Pendiente de revisión",
+        accionesTomadas: formData.accionesTomadas || "Pendiente de revisión",
         reportadoPor: nombreQuienReporta,
+        estatus: "PENDIENTE",
+        estado: "PENDIENTE",
       };
 
       const res = await fetch(`${API_URL}/incidencias`, {
@@ -509,8 +516,19 @@ export default function ReportesPage() {
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Error al guardar la incidencia");
+        let errorMessage = "Error al guardar la incidencia";
+        try {
+          const errorData = await res.json();
+          errorMessage =
+            errorData.error ||
+            errorData.message ||
+            errorData.mensaje ||
+            errorMessage;
+        } catch {
+          const rawText = await res.text().catch(() => "");
+          if (rawText) errorMessage = rawText;
+        }
+        throw new Error(errorMessage);
       }
 
       toast({

@@ -143,6 +143,10 @@ export function useAcademico() {
       const gruposMapeados: GrupoDTO[] = json.map((g: any) => {
         const clases = Array.isArray(g.clases) ? g.clases : [];
         const primeraClase = clases[0];
+        const getNum = (value: any): number | null => {
+          const n = Number(value);
+          return Number.isFinite(n) && n > 0 ? n : null;
+        };
 
         return {
           id: g.idGrupo,
@@ -151,14 +155,32 @@ export function useAcademico() {
           semestre: g.grado,
           turno: g.turno,
           aula: g.aula || "",
-          idPeriodo: primeraClase?.periodoId ?? primeraClase?.idPeriodo ?? 0,
-          idDocente: primeraClase?.docenteId ?? primeraClase?.idDocente ?? 0,
+          idPeriodo:
+            getNum(primeraClase?.periodoId) ??
+            getNum(primeraClase?.idPeriodo) ??
+            getNum(primeraClase?.periodo?.idPeriodo) ??
+            getNum(primeraClase?.periodo?.id) ??
+            0,
+          idDocente:
+            getNum(primeraClase?.docenteId) ??
+            getNum(primeraClase?.idDocente) ??
+            getNum(primeraClase?.docente?.idDocente) ??
+            getNum(primeraClase?.docente?.id) ??
+            0,
           idMaterias: clases
-            .map(
-              (c: any) =>
-                c.materiaId ?? c.idMateria ?? c.materias?.idMateria ?? null,
-            )
-            .filter((id: any) => Number.isFinite(Number(id))),
+            .map((c: any) => {
+              const materiaId =
+                getNum(c.materiaId) ??
+                getNum(c.idMateria) ??
+                getNum(c.materiasId) ??
+                getNum(c.idMaterias) ??
+                getNum(c.materia?.idMateria) ??
+                getNum(c.materia?.id) ??
+                getNum(c.materias?.idMateria) ??
+                getNum(c.materias?.id);
+              return materiaId;
+            })
+            .filter((id: any) => id !== null) as number[],
           especialidadNombre: g.especialidad?.nombre || "General",
           especialidadCodigo:
             g.especialidad?.codigo ||
@@ -263,10 +285,9 @@ export function useAcademico() {
     try {
       setLoading(true);
 
-      // 👇 Traducimos de TypeScript -> al Backend
       const payload = {
-        nombre: data.codigo, // Lee 'codigo', envía 'nombre'
-        grado: Number(data.semestre), // Lee 'semestre', envía 'grado'
+        nombre: data.codigo,
+        grado: Number(data.semestre),
         turno: data.turno || "MATUTINO",
         aula: data.aula || "",
         periodoId: Number(data.idPeriodo),
@@ -306,7 +327,18 @@ export function useAcademico() {
     try {
       setLoading(true);
 
-      // 👇 Traducimos de TypeScript -> al Backend para actualizar
+      const rawMateriaIds = Array.isArray(data.idMaterias)
+        ? data.idMaterias
+        : Array.isArray((data as any).materiasIds)
+          ? (data as any).materiasIds
+          : undefined;
+
+      const materiasIdsNormalizadas = rawMateriaIds
+        ? (Array.from(new Set(rawMateriaIds.map((id: any) => Number(id)))) as number[]).filter(
+            (id) => Number.isFinite(id) && id > 0,
+          )
+        : undefined;
+
       const payload = {
         nombre: data.codigo,
         grado: data.semestre ? Number(data.semestre) : undefined,
@@ -314,9 +346,8 @@ export function useAcademico() {
         aula: data.aula,
         periodoId: data.idPeriodo ? Number(data.idPeriodo) : undefined,
         docenteId: data.idDocente ? Number(data.idDocente) : undefined,
-        materiasIds: Array.isArray(data.idMaterias)
-          ? data.idMaterias.map((id: any) => Number(id))
-          : undefined,
+        materiasIds: materiasIdsNormalizadas,
+
         especialidadId: data.idEspecialidad
           ? Number(data.idEspecialidad)
           : undefined,
@@ -328,7 +359,10 @@ export function useAcademico() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Error al actualizar grupo");
+      if (!res.ok) {
+        const responseData = await res.json().catch(() => ({}));
+        throw new Error(responseData.error || "Error al actualizar grupo");
+      }
 
       toast({
         title: "Éxito",

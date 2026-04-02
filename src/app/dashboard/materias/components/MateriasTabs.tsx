@@ -37,6 +37,7 @@ interface Grupo {
   codigo: string;
   semestre: number;
   integrantes: number;
+  turno?: string;
   aula?: string;
   idEspecialidad?: number;
   idPeriodo?: number;
@@ -131,11 +132,20 @@ export default function MateriasTabs({
       setIsUploading(false);
     }
   };
-  const [visibleColumns, setVisibleColumns] = useState<string[]>([
+  const [materiaVisibleColumns, setMateriaVisibleColumns] = useState<string[]>([
     "Nombre",
     "Código",
     "Total de horas",
     "Semestre",
+  ]);
+
+  const [grupoVisibleColumns, setGrupoVisibleColumns] = useState<string[]>([
+    "Código",
+    "Semestre",
+    "Turno",
+    "Aula",
+    "Materias",
+    "Alumnos",
   ]);
 
   const [openMateriaModal, setOpenMateriaModal] = useState(false);
@@ -152,8 +162,16 @@ export default function MateriasTabs({
   const [grupoPage, setGrupoPage] = useState(1);
   const pageSize = 10;
 
-  const toggleColumn = (column: string) => {
-    setVisibleColumns((prev) =>
+  const toggleMateriaColumn = (column: string) => {
+    setMateriaVisibleColumns((prev) =>
+      prev.includes(column)
+        ? prev.filter((c) => c !== column)
+        : [...prev, column],
+    );
+  };
+
+  const toggleGrupoColumn = (column: string) => {
+    setGrupoVisibleColumns((prev) =>
       prev.includes(column)
         ? prev.filter((c) => c !== column)
         : [...prev, column],
@@ -352,8 +370,8 @@ export default function MateriasTabs({
                     (col) => (
                       <DropdownMenuCheckboxItem
                         key={col}
-                        checked={visibleColumns.includes(col)}
-                        onCheckedChange={() => toggleColumn(col)}
+                        checked={materiaVisibleColumns.includes(col)}
+                        onCheckedChange={() => toggleMateriaColumn(col)}
                       >
                         {col}
                       </DropdownMenuCheckboxItem>
@@ -397,7 +415,7 @@ export default function MateriasTabs({
             {/* Tabla */}
             <MateriasTable
               materias={pagedMaterias}
-              visibleColumns={visibleColumns}
+              visibleColumns={materiaVisibleColumns}
               onEdit={async (m) => {
                 const materiaData: Partial<MateriaFormData> & { id?: number } =
                   {
@@ -490,11 +508,18 @@ export default function MateriasTabs({
                 <DropdownMenuContent className="w-[200px]">
                   <DropdownMenuLabel>Selecciona columnas</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {["Código", "Semestre", "Alumnos"].map((col) => (
+                  {[
+                    "Código",
+                    "Semestre",
+                    "Turno",
+                    "Aula",
+                    "Materias",
+                    "Alumnos",
+                  ].map((col) => (
                     <DropdownMenuCheckboxItem
                       key={col}
-                      checked={visibleColumns.includes(col)}
-                      onCheckedChange={() => toggleColumn(col)}
+                      checked={grupoVisibleColumns.includes(col)}
+                      onCheckedChange={() => toggleGrupoColumn(col)}
                     >
                       {col}
                     </DropdownMenuCheckboxItem>
@@ -537,7 +562,7 @@ export default function MateriasTabs({
             {/* Tabla */}
             <GruposTable
               grupos={pagedGrupos}
-              visibleColumns={visibleColumns}
+              visibleColumns={grupoVisibleColumns}
               onEdit={async (g) => {
                 const grupoData: Partial<GrupoFormData> & { id?: number } = {
                   id: g.id,

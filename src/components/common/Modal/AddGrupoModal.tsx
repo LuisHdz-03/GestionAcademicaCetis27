@@ -83,14 +83,49 @@ export default function EditGrupoModal({
 }: EditGrupoModalProps) {
   const [formData, setFormData] = useState(initialFormState);
   const [selectMateriaKey, setSelectMateriaKey] = useState(0);
+  const materiasUnicas = Array.from(
+    new Map((materias || []).map((m) => [m.id, m])).values(),
+  );
 
   useEffect(() => {
     if (open) {
       if (initialData) {
-        // MODO EDICIÓN
-        const idsExistentes = initialData.clases
-          ? initialData.clases.map((c: any) => c.materiaId)
-          : initialData.materiasIds || [];
+        const getNum = (value: any): number | null => {
+          const n = Number(value);
+          return Number.isFinite(n) && n > 0 ? n : null;
+        };
+
+        const idsFromClases = Array.isArray(initialData.clases)
+          ? initialData.clases
+              .map(
+                (c: any) =>
+                  getNum(c.materiaId) ??
+                  getNum(c.idMateria) ??
+                  getNum(c.materiasId) ??
+                  getNum(c.idMaterias) ??
+                  getNum(c.materia?.idMateria) ??
+                  getNum(c.materia?.id) ??
+                  getNum(c.materias?.idMateria) ??
+                  getNum(c.materias?.id),
+              )
+              .filter((id: any) => id !== null)
+          : [];
+
+        const idsFromRootRaw = Array.isArray(initialData.idMaterias)
+          ? initialData.idMaterias
+          : Array.isArray(initialData.materiasIds)
+            ? initialData.materiasIds
+            : [];
+
+        const idsFromRoot = idsFromRootRaw.length
+          ? idsFromRootRaw
+              .map((id: any) => getNum(id))
+              .filter((id: any) => id !== null)
+          : [];
+
+        const idsExistentesRaw =
+          idsFromClases.length > 0 ? idsFromClases : idsFromRoot;
+        const idsExistentes = Array.from(new Set(idsExistentesRaw as number[]));
         const currentEspId =
           initialData.idEspecialidad || initialData.especialidadId || 0;
 
@@ -141,7 +176,7 @@ export default function EditGrupoModal({
     if (!formData.materiasIds.includes(id)) {
       setFormData((prev) => ({
         ...prev,
-        materiasIds: [...prev.materiasIds, id],
+        materiasIds: Array.from(new Set([...prev.materiasIds, id])),
       }));
     }
     setSelectMateriaKey((k) => k + 1);
@@ -258,7 +293,6 @@ export default function EditGrupoModal({
               <Label>Período *</Label>
               <Select
                 onValueChange={(v) => {
-                  console.log("Cambio periodoId:", v);
                   handleSelectChange("periodoId", v);
                 }}
                 value={
@@ -281,7 +315,6 @@ export default function EditGrupoModal({
               <Label>Especialidad *</Label>
               <Select
                 onValueChange={(v) => {
-                  console.log("Cambio especialidadId:", v);
                   handleSelectChange("especialidadId", v);
                 }}
                 value={
@@ -346,7 +379,7 @@ export default function EditGrupoModal({
                 <SelectValue placeholder="Seleccionar Materia" />
               </SelectTrigger>
               <SelectContent>
-                {materias
+                {materiasUnicas
                   .filter((m) => !formData.materiasIds.includes(m.id))
                   .map((m) => (
                     <SelectItem key={m.id} value={m.id.toString()}>
@@ -363,7 +396,7 @@ export default function EditGrupoModal({
                 </span>
               )}
               {formData.materiasIds.map((id) => {
-                const mat = materias.find((m) => m.id === id);
+                const mat = materiasUnicas.find((m) => m.id === id);
                 return (
                   <div
                     key={id}

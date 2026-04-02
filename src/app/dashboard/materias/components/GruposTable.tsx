@@ -21,6 +21,9 @@ interface Grupo {
   id?: number;
   codigo: string;
   semestre: number;
+  turno?: string;
+  aula?: string;
+  idMaterias?: number[];
   integrantes: number;
 }
 
@@ -61,6 +64,17 @@ export default function GruposTable({
                   Semestre
                 </TableHead>
               )}
+              {visibleColumns.includes("Turno") && (
+                <TableHead className="bg-[#691C32] text-white">Turno</TableHead>
+              )}
+              {visibleColumns.includes("Aula") && (
+                <TableHead className="bg-[#691C32] text-white">Aula</TableHead>
+              )}
+              {visibleColumns.includes("Materias") && (
+                <TableHead className="bg-[#691C32] text-white">
+                  Materias
+                </TableHead>
+              )}
               {visibleColumns.includes("Alumnos") && (
                 <TableHead className="bg-[#691C32] text-white">
                   Alumnos
@@ -80,6 +94,15 @@ export default function GruposTable({
                 )}
                 {visibleColumns.includes("Semestre") && (
                   <TableCell>{grupo.semestre}</TableCell>
+                )}
+                {visibleColumns.includes("Turno") && (
+                  <TableCell>{grupo.turno || "N/A"}</TableCell>
+                )}
+                {visibleColumns.includes("Aula") && (
+                  <TableCell>{grupo.aula || "Sin aula"}</TableCell>
+                )}
+                {visibleColumns.includes("Materias") && (
+                  <TableCell>{grupo.idMaterias?.length || 0}</TableCell>
                 )}
                 {visibleColumns.includes("Alumnos") && (
                   <TableCell>{grupo.integrantes}</TableCell>
