@@ -14,7 +14,11 @@ import { HiPlus } from "react-icons/hi2";
 interface AddEspecialidadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: { nombre: string; codigo: string }) => void;
+  onSubmit: (data: {
+    nombre: string;
+    codigo: string;
+    descripcion: string;
+  }) => void;
 }
 
 export default function AddEspecialidadModal({
@@ -22,7 +26,11 @@ export default function AddEspecialidadModal({
   onOpenChange,
   onSubmit,
 }: AddEspecialidadModalProps) {
-  const handleSubmit = (data: { nombre: string; codigo: string }) => {
+  const handleSubmit = (data: {
+    nombre: string;
+    codigo: string;
+    descripcion: string;
+  }) => {
     onSubmit(data);
     onOpenChange(false);
   };

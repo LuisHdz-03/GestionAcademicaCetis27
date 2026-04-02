@@ -64,6 +64,7 @@ interface UseCommunityReturn {
   createEspecialidad: (data: {
     nombre: string;
     codigo: string;
+    descripcion: string;
   }) => Promise<boolean>;
   updateEspecialidad: (
     id: number,
@@ -424,6 +425,7 @@ export function useCommunity(): UseCommunityReturn {
   const createEspecialidad = async (data: {
     nombre: string;
     codigo: string;
+    descripcion: string;
   }) => {
     try {
       const response = await fetch(`${API_URL}/especialidades`, {

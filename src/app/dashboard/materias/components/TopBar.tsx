@@ -13,6 +13,7 @@ interface TopBarProps {
   onAddEspecialidad: (data: {
     nombre: string;
     codigo: string;
+    descripcion: string;
   }) => Promise<boolean> | Promise<void>;
 }
 
@@ -55,6 +56,7 @@ export default function TopBar({ onAddEspecialidad }: TopBarProps) {
   const handleAddEspeSubmit = async (data: {
     nombre: string;
     codigo: string;
+    descripcion: string;
   }) => {
     const result = await onAddEspecialidad(data);
     setOpenAddEspeModal(false);
