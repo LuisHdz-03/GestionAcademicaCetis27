@@ -289,12 +289,17 @@ export function useCommunity(): UseCommunityReturn {
       if (!response.ok) throw new Error("Error al obtener especialidades");
 
       const result = await response.json();
+      const especialidadesRaw = Array.isArray(result)
+        ? result
+        : Array.isArray(result?.data)
+          ? result.data
+          : [];
 
-      const espeMapeadas = result.map((e: any) => ({
-        id: e.idEspecialidad,
+      const espeMapeadas = especialidadesRaw.map((e: any) => ({
+        id: e.idEspecialidad ?? e.id,
         nombre: e.nombre,
-        codigo: e.codigo || e.nombre.substring(0, 3).toUpperCase(),
-        descripcion: e.descripcion || "",
+        codigo: e.codigo || e.clave || e.nombre.substring(0, 3).toUpperCase(),
+        descripcion: e.descripcion ?? e.detalle ?? "",
         activo: e.activo ?? true,
       }));
 
