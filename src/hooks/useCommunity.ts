@@ -19,6 +19,7 @@ interface Especialidad {
   id: number;
   nombre: string;
   codigo: string;
+  descripcion?: string;
   activo: boolean;
 }
 interface Periodo {
@@ -68,7 +69,12 @@ interface UseCommunityReturn {
   }) => Promise<boolean>;
   updateEspecialidad: (
     id: number,
-    data: { nombre?: string; codigo?: string; activo?: boolean },
+    data: {
+      nombre?: string;
+      codigo?: string;
+      descripcion?: string;
+      activo?: boolean;
+    },
   ) => Promise<boolean>;
   deleteEspecialidad: (id: number) => Promise<boolean>;
   createDocente: (data: DocenteFormData) => Promise<boolean>;
@@ -288,7 +294,8 @@ export function useCommunity(): UseCommunityReturn {
         id: e.idEspecialidad,
         nombre: e.nombre,
         codigo: e.codigo || e.nombre.substring(0, 3).toUpperCase(),
-        activo: true,
+        descripcion: e.descripcion || "",
+        activo: e.activo ?? true,
       }));
 
       setEspecialidades(espeMapeadas);
