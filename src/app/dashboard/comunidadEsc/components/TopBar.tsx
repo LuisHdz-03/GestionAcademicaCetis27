@@ -5,6 +5,7 @@ import {
   HiPlus,
   HiTableCells,
   HiArrowDownTray,
+  HiArrowUpTray,
 } from "react-icons/hi2";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,9 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { uploadCsv } from "@/lib/upload";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
 
 interface TopBarProps {
   visibleColumns: string[];
@@ -56,6 +60,53 @@ export default function TopBar({
 }: TopBarProps) {
   // Estado para controlar la pantalla de carga
   const [isUploading, setIsUploading] = useState(false);
+
+  const descargarPlantillaAdministrativos = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/admins/plantilla/excel`, {
+        method: "GET",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (!response.ok) {
+        const errorMsg =
+          response.status === 403
+            ? "No tienes permisos para descargar la plantilla."
+            : response.status === 404
+              ? "No se encontró la plantilla de administrativos."
+              : "No se pudo descargar la plantilla.";
+        alert(errorMsg);
+        return;
+      }
+
+      const blob = await response.blob();
+      const contentDisposition =
+        response.headers.get("Content-Disposition") || "";
+      const fileNameMatch = contentDisposition.match(
+        /filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/i,
+      );
+      const rawFileName =
+        fileNameMatch?.[1] ||
+        fileNameMatch?.[2] ||
+        "plantilla_administrativos.xlsx";
+      const fileName = decodeURIComponent(rawFileName);
+
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error("Error al descargar plantilla:", error);
+      alert("Error de conexión al descargar la plantilla.");
+    }
+  };
 
   const enviarArchivoAlBackend = async (file: File) => {
     setIsUploading(true);
@@ -213,6 +264,17 @@ export default function TopBar({
         >
           <HiArrowDownTray className="w-4 h-4" /> Cargar CSV
         </Button>
+
+        {activeTab === "administradores" && (
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={isUploading}
+            onClick={descargarPlantillaAdministrativos}
+          >
+            <HiArrowUpTray className="w-4 h-4" /> Descargar Machote
+          </Button>
+        )}
 
         <Button
           className="bg-[#691C32] hover:bg-[#5a1829] text-white gap-2"

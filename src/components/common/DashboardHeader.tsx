@@ -39,12 +39,32 @@ export default function DashboardHeader({
   const { toast } = useToast();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadingFirma, setUploadingFirma] = useState(false);
+  const [firmaFile, setFirmaFile] = useState<File | null>(null);
   const [passwords, setPasswords] = useState({
     actual: "",
     nueva: "",
     confirmar: "",
   });
+
+  const normalizarTexto = (texto: string) =>
+    (texto || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .trim();
+
+  const cargoUsuario = normalizarTexto(
+    (user as any)?.cargo || tipoUsuario || "",
+  );
+  const esDirectivo = [
+    "DIRECTOR",
+    "SUBDIRECTORA ACADEMICA",
+    "COORDINADOR",
+    "COORDINADOR ACADEMICO",
+  ].includes(cargoUsuario);
 
   const headerBg = "#691C32";
   const textColor = "#FFFFFF";
@@ -114,6 +134,89 @@ export default function DashboardHeader({
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resolverIdAdministrativo = async (): Promise<number | null> => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
+    const response = await fetch(`${API_URL}/administrativos`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) return null;
+    const admins = await response.json();
+    const admin = (Array.isArray(admins) ? admins : []).find(
+      (a: any) =>
+        Number(a.idUsuario ?? a.usuarioId ?? a.usuario?.id ?? 0) ===
+          Number(user?.id) || a.email === user?.email,
+    );
+
+    return admin ? Number(admin.idAdministrativo ?? admin.id ?? 0) : null;
+  };
+
+  const handleUploadFirma = async () => {
+    if (!firmaFile) {
+      toast({
+        title: "Archivo requerido",
+        description: "Selecciona una imagen de firma para continuar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingFirma(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("No hay sesión activa");
+
+      const idAdministrativo = await resolverIdAdministrativo();
+      if (!idAdministrativo) {
+        throw new Error("No se pudo identificar el administrativo asociado.");
+      }
+
+      const formData = new FormData();
+      formData.append("firma", firmaFile);
+      formData.append("idAdministrativo", String(idAdministrativo));
+
+      const response = await fetch(`${API_URL}/admins/firma/subir`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const statusMessage: Record<number, string> = {
+          400: "Datos inválidos para subir la firma.",
+          403: "No tienes permisos para subir firma.",
+          404: "No se encontró el administrativo para subir firma.",
+          500: "Error interno al procesar la firma.",
+        };
+        const fallback =
+          statusMessage[response.status] || "No se pudo subir la firma.";
+        throw new Error(fallback);
+      }
+
+      toast({
+        title: "Firma actualizada",
+        description: "La firma fue subida correctamente.",
+        variant: "success",
+      });
+      setIsFirmaModalOpen(false);
+      setFirmaFile(null);
+    } catch (error: any) {
+      toast({
+        title: "Error al subir firma",
+        description: error.message || "Intenta de nuevo más tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingFirma(false);
     }
   };
 
@@ -191,6 +294,17 @@ export default function DashboardHeader({
                 >
                   Cambiar Contraseña
                 </DropdownMenuItem>
+                {esDirectivo && (
+                  <DropdownMenuItem
+                    className="text-sm rounded-md cursor-pointer hover:bg-[#50172A]"
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setIsFirmaModalOpen(true);
+                    }}
+                  >
+                    Subir Firma
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator className="bg-[#50172A]" />
                 <DropdownMenuItem
                   className="text-sm rounded-md cursor-pointer hover:bg-[#801C2C]"
@@ -263,6 +377,52 @@ export default function DashboardHeader({
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isFirmaModalOpen} onOpenChange={setIsFirmaModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#691C32] text-xl">
+              Subir Firma de Dirección
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="firma">Archivo de firma (imagen)</Label>
+              <Input
+                id="firma"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setFirmaFile(e.target.files?.[0] || null)}
+              />
+              <p className="text-xs text-gray-500">
+                Formato recomendado: PNG con fondo transparente o firma clara en
+                JPG.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsFirmaModalOpen(false);
+                  setFirmaFile(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                disabled={uploadingFirma}
+                onClick={handleUploadFirma}
+                className="bg-[#691C32] hover:bg-[#50172A] text-white"
+              >
+                {uploadingFirma ? "Subiendo..." : "Subir Firma"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

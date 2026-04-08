@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/useToast";
 import LoginForm from "./LoginForm";
+import Link from "next/link";
 
 export default function LoginCard() {
   const { login } = useAuth();
@@ -56,6 +57,15 @@ export default function LoginCard() {
       </h2>
 
       <LoginForm onSubmit={handleLogin} isLoading={isLoading} />
+
+      <div className="mt-3 text-center">
+        <Link
+          href="/auth/forgot-password"
+          className="text-sm text-[#691C32] hover:text-[#8E2B4B] underline underline-offset-2"
+        >
+          ¿Olvidaste tu contraseña?
+        </Link>
+      </div>
 
       {error && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
