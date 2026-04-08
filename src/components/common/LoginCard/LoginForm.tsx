@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { HiEye, HiEyeSlash } from "react-icons/hi2";
 
 interface LoginFormProps {
-  onSubmit: (data: { email: string; password: string }) => void;
+  onSubmit: (data: { username: string; password: string }) => void;
   isLoading?: boolean;
 }
 
@@ -16,7 +16,7 @@ export default function LoginForm({
   isLoading = false,
 }: LoginFormProps) {
   const [formData, setFormData] = useState({
-    email: "",
+    username: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -35,15 +35,15 @@ export default function LoginForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Campo Email */}
+      {/* Campo Username */}
       <div className="space-y-2">
-        <Label htmlFor="email">Correo Electrónico</Label>
+        <Label htmlFor="username">Nombre de usuario</Label>
         <Input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="usuario@cetis.edu.mx"
-          value={formData.email}
+          id="username"
+          name="username"
+          type="text"
+          placeholder="Ingresa tu usuario"
+          value={formData.username}
           onChange={handleChange}
           disabled={isLoading}
           required

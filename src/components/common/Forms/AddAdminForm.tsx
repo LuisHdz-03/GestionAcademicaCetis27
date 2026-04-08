@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AdminFormData } from "@/types/modal";
-import { useToast } from "@/hooks/useToast"; // 1. IMPORTAMOS EL TOAST
+import { useToast } from "@/hooks/useToast";
 
 interface AddAdminFormProps {
   onSubmit: (data: AdminFormData) => void;
@@ -24,7 +24,7 @@ export default function AddAdminForm({
   mode = "create",
   initialData,
 }: AddAdminFormProps) {
-  const { toast } = useToast(); // 2. INICIALIZAMOS EL TOAST
+  const { toast } = useToast(); 
 
   const [formData, setFormData] = useState<AdminFormData>({
     nombre: initialData?.nombre || "",

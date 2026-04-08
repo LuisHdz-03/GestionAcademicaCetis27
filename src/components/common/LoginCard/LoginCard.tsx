@@ -12,12 +12,12 @@ export default function LoginCard() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async (data: { email: string; password: string }) => {
+  const handleLogin = async (data: { username: string; password: string }) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      await login(data.email, data.password);
+      await login(data.username, data.password);
       toast({
         title: "¡Bienvenido!",
         description: "Has iniciado sesión correctamente.",

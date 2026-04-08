@@ -22,6 +22,7 @@ export type UserRole =
 export interface User {
   id: number;
   email: string;
+  username: string;
   nombre: string;
   apellidoPaterno: string;
   apellidoMaterno?: string;
@@ -39,7 +40,7 @@ type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -90,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           const requiredFields: (keyof User)[] = [
             "id",
-            "email",
+            "username",
             "tipoUsuario",
             "nombre",
           ];
@@ -217,20 +218,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(intervalId);
   }, [isClient, user, logout, toast]);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (username: string, password: string): Promise<void> => {
     if (!isClient) {
       throw new Error(
         "El inicio de sesión solo está disponible en el navegador",
       );
     }
 
-    if (!email || !password) {
-      throw new Error("El correo electrónico y la contraseña son requeridos");
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new Error("Por favor ingresa un correo electrónico válido");
+    if (!username || !password) {
+      throw new Error("El nombre de usuario y la contraseña son requeridos");
     }
 
     setIsLoading(true);
@@ -246,7 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          email: email.trim(),
+          username: username.trim(),
           password: password,
           plataforma: "WEB",
         }),
@@ -286,12 +282,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const usuarioFormateado: User = {
-        id: result.usuario.id,
-        email: email.trim(),
+        id: result.usuario.id || result.usuario.idUsuario,
+        email: result.usuario.email || result.usuario.correo || "",
+        username:
+          result.usuario.username || result.usuario.usuario || username.trim(),
         nombre: result.usuario.nombre,
         apellidoPaterno:
           result.usuario.apellidoPaterno ||
           result.usuario.datos?.apellidoPaterno ||
+          "",
+        apellidoMaterno:
+          result.usuario.apellidoMaterno ||
+          result.usuario.datos?.apellidoMaterno ||
           "",
         tipoUsuario: result.usuario.rol.toLowerCase() as UserRole,
         cargo: result.usuario.cargo || result.usuario.datos?.cargo || "",
