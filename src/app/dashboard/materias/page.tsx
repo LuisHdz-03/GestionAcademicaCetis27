@@ -94,7 +94,7 @@ export default function GestionEspecialidadesPage() {
             especialidadNombre={activeEspecialidad?.nombre}
             activeEspecialidadId={activeEspecialidad?.id}
             materiasOptions={(materias as any)?.map((m: any) => ({
-              id: m.id,
+              id: m.idMateria || m.id,
               nombre: m.nombre,
               codigo: m.codigo,
             }))}
@@ -151,6 +151,7 @@ export default function GestionEspecialidadesPage() {
                     : undefined),
                 idPeriodo: (data as any).periodoId,
                 idDocente: (data as any).docenteId,
+                docenteTutorId: (data as any).docenteTutorId,
                 idMaterias: (data as any).materiasIds,
                 activo: true,
               });
@@ -177,6 +178,7 @@ export default function GestionEspecialidadesPage() {
                 idEspecialidad: (data as any).especialidadId,
                 idPeriodo: (data as any).periodoId,
                 idDocente: (data as any).docenteId,
+                docenteTutorId: (data as any).docenteTutorId,
                 idMaterias: (data as any).materiasIds,
               });
               if (ok) await fetchGrupos(activeEspecialidad?.id as any);

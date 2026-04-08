@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/useToast";
 
 interface Grupo {
   id: number;
+  idGrupo?: number;
   codigo: string;
   semestre: number;
   idEspecialidad: number;
@@ -79,9 +80,11 @@ export default function AddAlumnoForm({
           idGrupo: undefined,
         });
       } else {
-        const found = grupos.find((gr) => String(gr.id) === value);
+        const found = grupos.find(
+          (gr) => String(gr.idGrupo || gr.id) === value,
+        );
         if (found) {
-          setFormData({ ...formData, [name]: found.id });
+          setFormData({ ...formData, [name]: found.idGrupo || found.id });
         } else {
           const maybeNum = Number(value);
           setFormData({
@@ -276,7 +279,10 @@ export default function AddAlumnoForm({
           <SelectContent>
             <SelectItem value="0">Sin grupo</SelectItem>
             {gruposFiltrados.map((grupo) => (
-              <SelectItem key={grupo.id} value={grupo.id.toString()}>
+              <SelectItem
+                key={grupo.idGrupo || grupo.id}
+                value={String(grupo.idGrupo || grupo.id)}
+              >
                 {grupo.codigo} - Semestre {grupo.semestre}°
               </SelectItem>
             ))}

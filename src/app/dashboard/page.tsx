@@ -639,13 +639,13 @@ export default function DashboardPage() {
             <ul className="text-sm text-gray-700 space-y-2">
               {docentes.slice(0, 5).map((d) => (
                 <li
-                  key={`${d.id}-${d.email}`}
+                  key={`${d.idDocente || d.id}-${d.usuario?.email || ""}`}
                   className="flex items-center justify-between"
                 >
                   <span>
-                    {d.nombre} {d.apellidoPaterno}
+                    {d.usuario?.nombre} {d.usuario?.apellidoPaterno}
                   </span>
-                  <span className="text-gray-500">{d.email}</span>
+                  <span className="text-gray-500">{d.usuario?.email}</span>
                 </li>
               ))}
               {docentes.length === 0 && (
@@ -664,13 +664,13 @@ export default function DashboardPage() {
             <ul className="text-sm text-gray-700 space-y-2">
               {alumnos.slice(0, 5).map((a) => (
                 <li
-                  key={`${a.id}-${a.email}`}
+                  key={`${a.idEstudiante || a.id}-${a.usuario?.email || ""}`}
                   className="flex items-center justify-between"
                 >
                   <span>
-                    {a.nombre} {a.apellidoPaterno}
+                    {a.usuario?.nombre} {a.usuario?.apellidoPaterno}
                   </span>
-                  <span className="text-gray-500">{a.email}</span>
+                  <span className="text-gray-500">{a.usuario?.email}</span>
                 </li>
               ))}
               {alumnos.length === 0 && (

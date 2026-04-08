@@ -18,6 +18,13 @@ interface BaseItem {
   idDocente?: number;
   idAdministrativo?: number;
   idUsuario?: number;
+  usuario?: {
+    nombre?: string;
+    apellidoPaterno?: string;
+    apellidoMaterno?: string;
+    email?: string;
+    telefono?: string;
+  };
 }
 
 interface DataTableProps {
@@ -66,29 +73,19 @@ export default function DataTable({
   };
 
   const renderCell = (column: string, item: Docente | Alumno | Admin) => {
-    // Usamos el ID del item + el nombre de la columna para crear una key única por celda
     const cellKey = `${getStableItemId(item as BaseItem)}-${column}`;
+    const usuario = (item as BaseItem).usuario;
+    const nombreCompleto = usuario
+      ? `${usuario.nombre || ""} ${usuario.apellidoPaterno || ""} ${usuario.apellidoMaterno || ""}`.trim()
+      : "";
 
     switch (column) {
       case "Nombre":
-        if ("nombre" in item && "apellidoPaterno" in item) {
-          const nombreCompleto =
-            `${item.nombre} ${item.apellidoPaterno} ${item.apellidoMaterno || ""}`.trim();
-          return <TableCell key={cellKey}>{nombreCompleto}</TableCell>;
-        }
-        return <TableCell key={cellKey}></TableCell>;
+        return <TableCell key={cellKey}>{nombreCompleto}</TableCell>;
       case "Email":
-        return (
-          <TableCell key={cellKey}>
-            {"email" in item ? item.email : ""}
-          </TableCell>
-        );
+        return <TableCell key={cellKey}>{usuario?.email || ""}</TableCell>;
       case "Teléfono":
-        return (
-          <TableCell key={cellKey}>
-            {(item as Docente).telefono || ""}
-          </TableCell>
-        );
+        return <TableCell key={cellKey}>{usuario?.telefono || ""}</TableCell>;
       case "Especialidad":
         if ("especialidad" in item) {
           return <TableCell key={cellKey}>{item.especialidad}</TableCell>;
@@ -164,7 +161,9 @@ export default function DataTable({
               </TableRow>
             ) : (
               data.map((item) => (
-                <TableRow key={`${getStableItemId(item as BaseItem)}-${(item as any).email || ""}`}>
+                <TableRow
+                  key={`${getStableItemId(item as BaseItem)}-${(item as BaseItem).usuario?.email || ""}`}
+                >
                   {allColumns()
                     .filter((col) => visibleColumns.includes(col))
                     .map((col) => renderCell(col, item))}

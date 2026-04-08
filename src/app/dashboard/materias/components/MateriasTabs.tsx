@@ -25,6 +25,7 @@ import EditEspecialidadModal from "@/components/common/Modal/EditEspecialidadMod
 
 interface Materia {
   id?: number;
+  idMateria?: number;
   nombre: string;
   codigo: string;
   totalHoras: number;
@@ -34,6 +35,7 @@ interface Materia {
 
 interface Grupo {
   id?: number;
+  idGrupo?: number;
   codigo: string;
   semestre: number;
   integrantes: number;
@@ -42,6 +44,7 @@ interface Grupo {
   idEspecialidad?: number;
   idPeriodo?: number;
   idDocente?: number;
+  docenteTutorId?: number;
   idMaterias?: number[];
 }
 
@@ -60,6 +63,7 @@ interface Props {
   onDeleteEspecialidad?: (id: number) => Promise<boolean> | boolean;
   especialidades?: Array<{
     id: number;
+    idEspecialidad?: number;
     nombre: string;
     codigo: string;
     descripcion?: string;
@@ -67,12 +71,16 @@ interface Props {
   }>;
   docentes?: Array<{
     id: number;
-    nombre: string;
-    apellidoPaterno: string;
-    apellidoMaterno?: string;
+    idDocente?: number;
+    usuario?: {
+      nombre?: string;
+      apellidoPaterno?: string;
+      apellidoMaterno?: string;
+    };
   }>;
   periodos?: Array<{
     id: number;
+    idPeriodo?: number;
     nombre: string;
     codigo: string;
     activo: boolean;
@@ -155,7 +163,7 @@ export default function MateriasTabs({
     (Partial<MateriaFormData> & { id?: number }) | null
   >(null);
   const [editingGrupo, setEditingGrupo] = useState<
-    (Partial<GrupoFormData> & { id?: number }) | null
+    (Partial<GrupoFormData> & { id?: number; idGrupo?: number }) | null
   >(null);
 
   // Paginación
@@ -565,8 +573,12 @@ export default function MateriasTabs({
               grupos={pagedGrupos}
               visibleColumns={grupoVisibleColumns}
               onEdit={async (g) => {
-                const grupoData: Partial<GrupoFormData> & { id?: number } = {
-                  id: g.id,
+                const grupoData: Partial<GrupoFormData> & {
+                  id?: number;
+                  idGrupo?: number;
+                } = {
+                  id: g.idGrupo || g.id,
+                  idGrupo: g.idGrupo || g.id,
                   codigo: g.codigo,
                   semestre: g.semestre,
                   turno: ((g as any).turno as any) ?? "MATUTINO",
@@ -574,6 +586,7 @@ export default function MateriasTabs({
                   idEspecialidad: (g as any).idEspecialidad ?? 0,
                   idPeriodo: (g as any).idPeriodo ?? 0,
                   idDocente: (g as any).idDocente ?? 0,
+                  docenteTutorId: (g as any).docenteTutorId ?? 0,
                   idMaterias: (g as any).idMaterias ?? [],
                   activo: (g as any).activo ?? true,
                 };
@@ -584,8 +597,9 @@ export default function MateriasTabs({
                 if (
                   confirm(`¿Estás seguro de eliminar el grupo "${g.codigo}"?`)
                 ) {
-                  if (g.id && onDeleteGrupo) {
-                    const ok = await onDeleteGrupo(g.id);
+                  const grupoId = g.idGrupo || g.id;
+                  if (grupoId && onDeleteGrupo) {
+                    const ok = await onDeleteGrupo(grupoId);
                     // El parent debería refrescar los datos
                   }
                 }

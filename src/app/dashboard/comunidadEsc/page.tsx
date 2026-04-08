@@ -37,6 +37,46 @@ import { useCommunity } from "@/hooks/useCommunity";
 type TabType = "docentes" | "alumnos" | "administradores";
 
 export default function CommunityManagementPage() {
+  const getMemberId = (item: CommunityMember | null) => {
+    if (!item) return 0;
+
+    return (
+      (item as any).idEstudiante ||
+      (item as any).idDocente ||
+      (item as any).idAdministrativo ||
+      (item as any).idGrupo ||
+      (item as any).id ||
+      0
+    );
+  };
+
+  const getFlattenedMemberData = (item: CommunityMember | null) => {
+    if (!item) return null;
+
+    const usuario = (item as any).usuario || {};
+    const grupo = (item as any).grupo;
+
+    return {
+      ...(item as any),
+      id: getMemberId(item),
+      nombre: usuario.nombre || (item as any).nombre || "",
+      apellidoPaterno:
+        usuario.apellidoPaterno || (item as any).apellidoPaterno || "",
+      apellidoMaterno:
+        usuario.apellidoMaterno || (item as any).apellidoMaterno || "",
+      email: usuario.email || (item as any).email || "",
+      telefono: usuario.telefono || (item as any).telefono || "",
+      fechaNacimiento:
+        usuario.fechaNacimiento || (item as any).fechaNacimiento || "",
+      curp: usuario.curp || (item as any).curp || "",
+      numeroControl: (item as any).matricula,
+      semestreActual: (item as any).semestre,
+      idGrupo:
+        (typeof grupo === "object" && grupo !== null ? grupo.idGrupo : undefined) ||
+        (item as any).idGrupo,
+    };
+  };
+
   // --- Hook de datos ---
   const {
     docentes,
@@ -181,12 +221,13 @@ export default function CommunityManagementPage() {
   // --- Filtered Data ---
   const filteredData = getCurrentData()!.filter((item: CommunityMember) => {
     const searchLower = searchTerm.toLowerCase();
+    const usuario = (item as any).usuario || {};
 
     const matchesSearch =
-      ("nombre" in item &&
-        (item.nombre || "").toLowerCase().includes(searchLower)) ||
-      ("email" in item &&
-        (item.email || "").toLowerCase().includes(searchLower)) ||
+      (usuario.nombre || "").toLowerCase().includes(searchLower) ||
+      (usuario.apellidoPaterno || "").toLowerCase().includes(searchLower) ||
+      (usuario.apellidoMaterno || "").toLowerCase().includes(searchLower) ||
+      (usuario.email || "").toLowerCase().includes(searchLower) ||
       ("codigo" in item &&
         (item.codigo || "").toLowerCase().includes(searchLower)) ||
       ("matricula" in item &&
@@ -254,10 +295,10 @@ export default function CommunityManagementPage() {
   const handleDelete = async (item: CommunityMember) => {
     if (!confirm("¿Seguro que deseas eliminar este registro?")) return;
     let ok = false;
-    if (activeTab === "docentes") ok = await deleteDocente((item as any).id);
-    if (activeTab === "alumnos") ok = await deleteAlumno((item as any).id);
+    if (activeTab === "docentes") ok = await deleteDocente((item as any).idDocente);
+    if (activeTab === "alumnos") ok = await deleteAlumno((item as any).idEstudiante);
     if (activeTab === "administradores")
-      ok = await deleteAdministrador((item as any).id);
+      ok = await deleteAdministrador((item as any).idAdministrativo);
     if (ok) {
       // refresh se hace dentro de los métodos delete*
     }
@@ -413,9 +454,9 @@ export default function CommunityManagementPage() {
             especialidades={especialidades}
             initialData={
               {
-                ...(selectedItem as any),
+                ...getFlattenedMemberData(selectedItem),
                 fechaNacimiento: formatDate(
-                  (selectedItem as any).fechaNacimiento,
+                  getFlattenedMemberData(selectedItem)?.fechaNacimiento,
                 ),
                 fechaContratacion: formatDate(
                   (selectedItem as any).fechaContratacion,
@@ -423,7 +464,7 @@ export default function CommunityManagementPage() {
               } as any
             }
             onSubmit={async (data) => {
-              const id = (selectedItem as any).id;
+              const id = (selectedItem as any).idDocente;
               const ok = await updateDocente(id, data);
               if (ok) setOpenEditDocente(false);
             }}
@@ -435,26 +476,23 @@ export default function CommunityManagementPage() {
             grupos={grupos}
             initialData={
               {
-                ...(selectedItem as any),
-                // Mapear campo de lista a estructura del formulario
+                ...getFlattenedMemberData(selectedItem),
                 semestreActual: (selectedItem as any).semestre,
-                // idEspecialidad se resuelve por nombre si es posible
                 idEspecialidad: (() => {
                   const nombre = (selectedItem as any).especialidad;
                   const found = especialidades.find((e) => e.nombre === nombre);
                   return found ? found.id : 0;
                 })(),
-                // idGrupo ya viene del backend
-                idGrupo: (selectedItem as any).idGrupo,
+                idGrupo: getFlattenedMemberData(selectedItem)?.idGrupo,
                 numeroControl: (selectedItem as any).matricula,
                 fechaNacimiento: formatDate(
-                  (selectedItem as any).fechaNacimiento,
+                  getFlattenedMemberData(selectedItem)?.fechaNacimiento,
                 ),
                 fechaIngreso: formatDate((selectedItem as any).fechaIngreso),
               } as any
             }
             onSubmit={async (data) => {
-              const id = (selectedItem as any).id;
+              const id = (selectedItem as any).idEstudiante;
               const ok = await updateAlumno(id, data as any);
               if (ok) setOpenEditAlumno(false);
             }}
@@ -464,14 +502,14 @@ export default function CommunityManagementPage() {
             onOpenChange={setOpenEditAdmin}
             initialData={
               {
-                ...(selectedItem as any),
+                ...getFlattenedMemberData(selectedItem),
                 fechaNacimiento: formatDate(
-                  (selectedItem as any).fechaNacimiento,
+                  getFlattenedMemberData(selectedItem)?.fechaNacimiento,
                 ),
               } as any
             }
             onSubmit={async (data) => {
-              const id = (selectedItem as any).id;
+              const id = (selectedItem as any).idAdministrativo;
               const ok = await updateAdministrador(id, data);
               if (ok) setOpenEditAdmin(false);
             }}
@@ -496,8 +534,12 @@ export default function CommunityManagementPage() {
                 <div className="text-sm text-gray-700 mb-4 p-3 bg-gray-50 rounded-md">
                   <p>
                     <strong>Alumno:</strong>{" "}
-                    {selectedItem &&
-                      `${(selectedItem as any).nombre} ${(selectedItem as any).apellidoPaterno}`}
+                    {(() => {
+                      const alumno = getFlattenedMemberData(selectedItem);
+                      return alumno
+                        ? `${alumno.nombre} ${alumno.apellidoPaterno}`.trim()
+                        : "";
+                    })()}
                   </p>
                   <p>
                     <strong>Matrícula:</strong>{" "}

@@ -27,6 +27,7 @@ export interface GrupoDTO {
   aula?: string;
   idPeriodo?: number;
   idDocente?: number;
+  docenteTutorId?: number;
   idMaterias?: number[];
   especialidadNombre?: string;
   especialidadCodigo?: string;
@@ -53,6 +54,7 @@ export interface CreateGrupoInput {
   idEspecialidad?: number;
   idPeriodo?: number;
   idDocente?: number;
+  docenteTutorId?: number;
   idMateria?: number;
   idMaterias?: number[];
   turno?: string;
@@ -170,6 +172,12 @@ export function useAcademico() {
             getNum(primeraClase?.idDocente) ??
             getNum(primeraClase?.docente?.idDocente) ??
             getNum(primeraClase?.docente?.id) ??
+            0,
+          docenteTutorId:
+            getNum(g.docenteTutorId) ??
+            getNum(g.idDocenteTutor) ??
+            getNum(g.docenteTutor?.idDocente) ??
+            getNum(g.docenteTutor?.id) ??
             0,
           idMaterias: clases
             .map((c: any) => {
@@ -297,6 +305,9 @@ export function useAcademico() {
         periodoId: Number(data.idPeriodo),
         especialidadId: Number(data.idEspecialidad),
         docenteId: data.idDocente ? Number(data.idDocente) : null,
+        docenteTutorId: data.docenteTutorId
+          ? Number(data.docenteTutorId)
+          : null,
         materiasIds: data.idMaterias
           ? data.idMaterias.map((id: any) => Number(id))
           : [],
@@ -345,6 +356,9 @@ export function useAcademico() {
 
       const periodoId = data.idPeriodo ? Number(data.idPeriodo) : undefined;
       const docenteId = data.idDocente ? Number(data.idDocente) : undefined;
+      const docenteTutorId = data.docenteTutorId
+        ? Number(data.docenteTutorId)
+        : undefined;
 
       const payload = {
         nombre: data.codigo,
@@ -353,6 +367,7 @@ export function useAcademico() {
         aula: data.aula,
         periodoId,
         docenteId,
+        docenteTutorId,
         materiasIds: materiasIdsNormalizadas,
 
         especialidadId: data.idEspecialidad

@@ -19,6 +19,7 @@ import { MoreHorizontal } from "lucide-react";
 
 interface Grupo {
   id?: number;
+  idGrupo?: number;
   codigo: string;
   semestre: number;
   turno?: string;
@@ -88,7 +89,7 @@ export default function GruposTable({
 
           <TableBody>
             {grupos.map((grupo) => (
-              <TableRow key={grupo.codigo}>
+              <TableRow key={grupo.idGrupo || grupo.id || grupo.codigo}>
                 {visibleColumns.includes("Código") && (
                   <TableCell>{grupo.codigo}</TableCell>
                 )}

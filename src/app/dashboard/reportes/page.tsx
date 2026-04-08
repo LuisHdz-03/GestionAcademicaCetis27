@@ -37,6 +37,7 @@ interface TutorFamiliar {
 
 interface Alumno {
   id: number;
+  idEstudiante?: number;
   nombre: string;
   apellidoPaterno: string;
   apellidoMaterno: string;
@@ -50,6 +51,13 @@ interface Alumno {
   nombreTutor?: string;
   nombrePapaMamaTutor?: string;
   tutor?: TutorFamiliar | null;
+  usuario?: {
+    nombre?: string;
+    apellidoPaterno?: string;
+    apellidoMaterno?: string;
+    telefono?: string;
+    email?: string;
+  };
 }
 
 interface Reporte {
@@ -72,6 +80,12 @@ interface Reporte {
 export default function ReportesPage() {
   const { toast } = useToast();
   const { user } = useAuth();
+
+  const getAlumnoNombreCompleto = (alumno: Alumno) =>
+    `${alumno.usuario?.nombre || alumno.nombre || ""} ${alumno.usuario?.apellidoPaterno || alumno.apellidoPaterno || ""} ${alumno.usuario?.apellidoMaterno || alumno.apellidoMaterno || ""}`.trim();
+
+  const getAlumnoTelefono = (alumno: Alumno) =>
+    alumno.tutor?.telefono || alumno.usuario?.telefono || alumno.telefono || "";
 
   const normalizarTexto = (texto: string) => {
     if (!texto) return "";
@@ -219,6 +233,7 @@ export default function ReportesPage() {
 
     return {
       id: a.idEstudiante || a.id,
+      idEstudiante: a.idEstudiante || a.id,
       nombre: a.usuario?.nombre || a.nombre || "Sin nombre",
       apellidoPaterno: a.usuario?.apellidoPaterno || a.apellidoPaterno || "",
       apellidoMaterno: a.usuario?.apellidoMaterno || a.apellidoMaterno || "",
@@ -235,6 +250,7 @@ export default function ReportesPage() {
       nombreTutor: a.nombreTutorEscolar || a.tutorEscolar?.nombre || "", // Tutor escolar
       nombrePapaMamaTutor: nombrePapaMamaTutor, // El string final ya armado
       telefono: telefonoContacto,
+      usuario: a.usuario,
     };
   };
 
@@ -384,8 +400,7 @@ export default function ReportesPage() {
 
       if (valor.trim().length >= 2) {
         const filtrados = alumnos.filter((alumno) => {
-          const nombreCompleto =
-            `${alumno.nombre || ""} ${alumno.apellidoPaterno || ""} ${alumno.apellidoMaterno || ""}`.toLowerCase();
+          const nombreCompleto = getAlumnoNombreCompleto(alumno).toLowerCase();
           const matricula = String(alumno.matricula || "").toLowerCase();
           const busqueda = valor.toLowerCase();
           return (
@@ -406,8 +421,7 @@ export default function ReportesPage() {
   const seleccionarAlumno = useCallback(
     (alumno: Alumno) => {
       setAlumnoSeleccionado(alumno);
-      const nombreCompleto =
-        `${alumno.nombre} ${alumno.apellidoPaterno} ${alumno.apellidoMaterno || ""}`.trim();
+      const nombreCompleto = getAlumnoNombreCompleto(alumno);
       setBusquedaAlumno(`${alumno.matricula} - ${nombreCompleto}`);
       setMostrarSugerencias(false);
 
@@ -451,9 +465,8 @@ export default function ReportesPage() {
         nombreFirmaAlumno: nombreCompleto,
         leClasesReportado,
         nombreTutor: alumno.nombreTutor || "",
-        // Asignar directamente lo que ya preparó procesarEstudiante
         nombrePapaMamaTutor: alumno.nombrePapaMamaTutor || "",
-        telefono: alumno.telefono || "",
+        telefono: getAlumnoTelefono(alumno),
         titulo: `Reporte de conducta - ${nombreCompleto}`,
       }));
     },
@@ -493,9 +506,9 @@ export default function ReportesPage() {
         `${cargoReal} - ${user?.nombre} ${user?.apellidoPaterno}`.toUpperCase();
 
       const payload = {
-        estudianteId: alumnoSeleccionado.id,
-        alumnoId: alumnoSeleccionado.id,
-        idEstudiante: alumnoSeleccionado.id,
+        estudianteId: alumnoSeleccionado.idEstudiante || alumnoSeleccionado.id,
+        alumnoId: alumnoSeleccionado.idEstudiante || alumnoSeleccionado.id,
+        idEstudiante: alumnoSeleccionado.idEstudiante || alumnoSeleccionado.id,
         titulo: formData.titulo || "Reporte Escolar",
         descripcion: formData.motivoReporte,
         tipo: formData.tipo,
@@ -776,7 +789,7 @@ export default function ReportesPage() {
                 <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
                   {alumnosFiltrados.slice(0, 10).map((alumno) => (
                     <div
-                      key={alumno.id}
+                      key={alumno.idEstudiante || alumno.id}
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
                       onClick={() => seleccionarAlumno(alumno)}
                     >
@@ -784,7 +797,7 @@ export default function ReportesPage() {
                         {alumno.matricula}
                       </div>
                       <div className="text-sm text-gray-600">
-                        {`${alumno.nombre} ${alumno.apellidoPaterno} ${alumno.apellidoMaterno || ""}`.trim()}
+                        {getAlumnoNombreCompleto(alumno)}
                       </div>
                       <div className="text-xs text-gray-500">
                         {alumno.especialidad} - Grupo {alumno.grupo}

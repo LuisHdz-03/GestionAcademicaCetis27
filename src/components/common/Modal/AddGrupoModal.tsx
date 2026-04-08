@@ -20,12 +20,14 @@ import {
 
 interface Especialidad {
   id: number;
+  idEspecialidad?: number;
   nombre: string;
   codigo: string;
 }
 
 interface Periodo {
   id: number;
+  idPeriodo?: number;
   nombre: string;
   codigo: string;
   activo?: boolean;
@@ -33,15 +35,19 @@ interface Periodo {
 
 interface Materia {
   id: number;
+  idMateria?: number;
   nombre: string;
   codigo: string;
 }
 
 interface Docente {
   id: number;
-  nombre: string;
-  apellidoPaterno: string;
-  apellidoMaterno?: string;
+  idDocente?: number;
+  usuario?: {
+    nombre?: string;
+    apellidoPaterno?: string;
+    apellidoMaterno?: string;
+  };
 }
 
 interface EditGrupoModalProps {
@@ -65,6 +71,7 @@ const initialFormState = {
   aula: "",
   periodoId: 0,
   docenteId: 0,
+  docenteTutorId: 0,
   especialidadId: 0,
   materiasIds: [] as number[],
 };
@@ -136,6 +143,8 @@ export default function EditGrupoModal({
           aula: initialData.aula || "",
           periodoId: initialData.periodoId || initialData.idPeriodo || 0,
           docenteId: initialData.docenteId || initialData.idDocente || 0,
+          docenteTutorId:
+            initialData.docenteTutorId || initialData.idDocenteTutor || 0,
           especialidadId: currentEspId,
           materiasIds: idsExistentes,
         });
@@ -157,7 +166,11 @@ export default function EditGrupoModal({
   const handleSelectChange = (name: string, value: string) => {
     let newValue: any = value;
     // Solo parsear a número si el campo es uno de los siguientes
-    if (["periodoId", "especialidadId", "grado", "docenteId"].includes(name)) {
+    if (
+      ["periodoId", "especialidadId", "grado", "docenteId", "docenteTutorId"].includes(
+        name,
+      )
+    ) {
       newValue = parseInt(value, 10);
       if (isNaN(newValue)) newValue = 0;
     }
@@ -357,8 +370,38 @@ export default function EditGrupoModal({
                 </SelectTrigger>
                 <SelectContent>
                   {docentes.map((d) => (
-                    <SelectItem key={d.id} value={d.id.toString()}>
-                      {d.nombre} {d.apellidoPaterno} {d.apellidoMaterno || ""}
+                    <SelectItem
+                      key={d.idDocente || d.id}
+                      value={String(d.idDocente || d.id)}
+                    >
+                      {d.usuario?.nombre || ""} {d.usuario?.apellidoPaterno || ""}{" "}
+                      {d.usuario?.apellidoMaterno || ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Docente tutor</Label>
+              <Select
+                onValueChange={(v) => handleSelectChange("docenteTutorId", v)}
+                value={
+                  formData.docenteTutorId > 0
+                    ? formData.docenteTutorId.toString()
+                    : ""
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar tutor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {docentes.map((d) => (
+                    <SelectItem
+                      key={`tutor-${d.idDocente || d.id}`}
+                      value={String(d.idDocente || d.id)}
+                    >
+                      {d.usuario?.nombre || ""} {d.usuario?.apellidoPaterno || ""}{" "}
+                      {d.usuario?.apellidoMaterno || ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
