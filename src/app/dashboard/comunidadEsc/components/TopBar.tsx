@@ -61,10 +61,18 @@ export default function TopBar({
   // Estado para controlar la pantalla de carga
   const [isUploading, setIsUploading] = useState(false);
 
-  const descargarPlantillaAdministrativos = async () => {
+  const handleDescargarPlantilla = async () => {
+    const endpointMap: Record<string, string> = {
+      alumnos: "alumnos/plantilla",
+      docentes: "docentes/plantilla",
+      administradores: "admins/plantilla/excel",
+    };
+    const endpoint = endpointMap[activeTab];
+    if (!endpoint) return;
+
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/admins/plantilla/excel`, {
+      const response = await fetch(`${API_URL}/${endpoint}`, {
         method: "GET",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -76,7 +84,7 @@ export default function TopBar({
           response.status === 403
             ? "No tienes permisos para descargar la plantilla."
             : response.status === 404
-              ? "No se encontró la plantilla de administrativos."
+              ? "No se encontró la plantilla."
               : "No se pudo descargar la plantilla.";
         alert(errorMsg);
         return;
@@ -91,7 +99,7 @@ export default function TopBar({
       const rawFileName =
         fileNameMatch?.[1] ||
         fileNameMatch?.[2] ||
-        "plantilla_administrativos.xlsx";
+        `plantilla_${activeTab}.xlsx`;
       const fileName = decodeURIComponent(rawFileName);
 
       const objectUrl = URL.createObjectURL(blob);
@@ -265,12 +273,12 @@ export default function TopBar({
           <HiArrowDownTray className="w-4 h-4" /> Cargar CSV
         </Button>
 
-        {activeTab === "administradores" && (
+        {["alumnos", "docentes", "administradores"].includes(activeTab) && (
           <Button
             variant="outline"
             className="gap-2"
             disabled={isUploading}
-            onClick={descargarPlantillaAdministrativos}
+            onClick={handleDescargarPlantilla}
           >
             <HiArrowUpTray className="w-4 h-4" /> Descargar Machote
           </Button>

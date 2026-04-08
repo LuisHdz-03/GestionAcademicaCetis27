@@ -4,7 +4,7 @@ const API_URL =
 export async function uploadCsv(
   file: File | null | undefined,
   endpoint: string,
-  fieldName = "archivoExcel",
+  fieldName = "archivo",
 ) {
   if (!file) {
     return { ok: false, status: 0, data: { message: "No file provided" } };
