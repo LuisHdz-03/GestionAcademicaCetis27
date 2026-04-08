@@ -12,6 +12,17 @@ export interface AlumnoFormData {
   direccion?: string;
   semestreActual: number;
   fechaIngreso?: string;
+  credencialFechaEmision?: string;
+  credencialFechaExpiracion?: string;
+  tutor?: {
+    nombre?: string;
+    apellidoPaterno?: string;
+    apellidoMaterno?: string;
+    telefono?: string;
+    email?: string;
+    parentesco?: string;
+    direccion?: string;
+  };
   activo: boolean;
   password?: string;
 }

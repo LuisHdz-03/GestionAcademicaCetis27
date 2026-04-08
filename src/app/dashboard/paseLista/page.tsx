@@ -996,7 +996,7 @@ export default function PaseDeListaPage() {
                   JUSTIFICADO: "bg-blue-100 text-blue-700",
                 };
                 return (
-                  <TableRow key={r.id || r.idAsistencia || i}>
+                  <TableRow key={r.idAsistencia || r.id || i}>
                     <TableCell className="font-medium">
                       {apellido} {nombre}
                     </TableCell>

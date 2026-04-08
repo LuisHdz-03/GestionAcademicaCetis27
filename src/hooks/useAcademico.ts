@@ -3,6 +3,7 @@ import { useToast } from "./useToast";
 
 export interface MateriaDTO {
   id: number;
+  idMateria?: number;
   nombre: string;
   codigo: string;
   idEspecialidad?: number;
@@ -18,6 +19,7 @@ export interface MateriaDTO {
 
 export interface GrupoDTO {
   id: number;
+  idGrupo?: number;
   nombre: string;
   codigo: string;
   semestre?: number;
@@ -90,6 +92,7 @@ export function useAcademico() {
       // traemos los datos con esto
       const materiasMapeadas: MateriaDTO[] = json.map((m: any) => ({
         id: m.idMateria,
+        idMateria: m.idMateria,
         nombre: m.nombre,
         codigo: m.codigo || m.nombre.substring(0, 3).toUpperCase(),
         idEspecialidad:
@@ -150,6 +153,7 @@ export function useAcademico() {
 
         return {
           id: g.idGrupo,
+          idGrupo: g.idGrupo,
           nombre: g.nombre,
           codigo: g.nombre,
           semestre: g.grado,
@@ -339,13 +343,16 @@ export function useAcademico() {
           )
         : undefined;
 
+      const periodoId = data.idPeriodo ? Number(data.idPeriodo) : undefined;
+      const docenteId = data.idDocente ? Number(data.idDocente) : undefined;
+
       const payload = {
         nombre: data.codigo,
         grado: data.semestre ? Number(data.semestre) : undefined,
         turno: data.turno,
         aula: data.aula,
-        periodoId: data.idPeriodo ? Number(data.idPeriodo) : undefined,
-        docenteId: data.idDocente ? Number(data.idDocente) : undefined,
+        periodoId,
+        docenteId,
         materiasIds: materiasIdsNormalizadas,
 
         especialidadId: data.idEspecialidad

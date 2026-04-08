@@ -13,7 +13,6 @@ import {
   AdminFormData,
   GrupoFormData,
 } from "@/types/modal";
-import { headers } from "next/headers";
 
 interface Especialidad {
   id: number;
@@ -170,9 +169,13 @@ export function useCommunity(): UseCommunityReturn {
         const rawEsp = d.especialidad ?? d.especialidadNombre ?? d.Especialidad;
         const espNombre =
           typeof rawEsp === "string" ? rawEsp : (rawEsp?.nombre ?? "");
+        const idDocente = Number(d.idDocente ?? d.id ?? 0);
+        const idUsuario = Number(d.idUsuario ?? d.usuarioId ?? d.usuario?.id ?? 0);
 
         return {
-          id: d.id,
+          id: idDocente,
+          idDocente,
+          idUsuario: idUsuario || undefined,
           nombre: d.nombre,
           apellidoPaterno: d.apellidoPaterno,
           apellidoMaterno: d.apellidoMaterno,
@@ -207,35 +210,47 @@ export function useCommunity(): UseCommunityReturn {
 
       const result = await response.json();
 
-      const alumnosMapeados = result.map((a: any) => ({
-        id: a.idEstudiante || a.id,
-        nombre: a.nombre || a.usuario?.nombre || "",
-        apellidoPaterno: a.apellidoPaterno || a.usuario?.apellidoPaterno || "",
-        apellidoMaterno: a.apellidoMaterno || a.usuario?.apellidoMaterno || "",
-        email: a.email || a.usuario?.email || "",
-        telefono: a.telefono || a.usuario?.telefono || "",
-        fechaNacimiento: a.fechaNacimiento || a.usuario?.fechaNacimiento || "",
-        curp: a.curp || a.usuario?.curp || "",
-        matricula: a.matricula || "",
-        semestre: a.semestre || 1,
-        fechaIngreso: a.fechaIngreso || "",
-        idEspecialidad:
-          a.especialidad?.idEspecialidad || a.grupo?.especialidadId || 0,
+      const alumnosMapeados = result.map((a: any) => {
+        const idEstudiante = Number(a.idEstudiante ?? a.id ?? 0);
+        const idUsuario = Number(
+          a.idUsuario ?? a.usuarioId ?? a.usuario?.idUsuario ?? a.usuario?.id ?? 0,
+        );
+        const idGrupo = Number(a.grupoId ?? a.idGrupo ?? a.grupo?.idGrupo ?? 0);
 
-        especialidad:
-          a.especialidad?.nombre ||
-          a.grupo?.especialidad?.nombre ||
-          "Sin Asignar",
-        idGrupo: a.grupoId || a.idGrupo || 0,
-        grupo: a.grupo?.nombre || "Sin Grupo",
-        activo: a.activo ?? a.usuario?.activo ?? true,
-        direccion: a.direccion || a.usuario?.direccion || "",
-        fotoUrl: a.fotoUrl || "",
-        datosVerificados: a.datosVerificados || false,
-        credencialFechaEmision: a.credencialFechaEmision || null,
-        credencialFechaExpiracion: a.credencialFechaExpiracion || null,
-        tutor: a.tutor || null,
-      }));
+        return {
+          id: idEstudiante,
+          idEstudiante,
+          idUsuario: idUsuario || undefined,
+          nombre: a.usuario?.nombre || a.nombre || "",
+          apellidoPaterno: a.usuario?.apellidoPaterno || a.apellidoPaterno || "",
+          apellidoMaterno: a.usuario?.apellidoMaterno || a.apellidoMaterno || "",
+          email: a.usuario?.email || a.email || "",
+          telefono: a.telefono || a.usuario?.telefono || "",
+          fechaNacimiento: a.usuario?.fechaNacimiento || a.fechaNacimiento || "",
+          curp: a.usuario?.curp || a.curp || "",
+          matricula: a.matricula || "",
+          semestre: a.semestre || 1,
+          fechaIngreso: a.fechaIngreso || "",
+          idEspecialidad:
+            a.especialidad?.idEspecialidad ||
+            a.grupo?.especialidadId ||
+            a.grupo?.especialidad?.idEspecialidad ||
+            0,
+          especialidad:
+            a.especialidad?.nombre ||
+            a.grupo?.especialidad?.nombre ||
+            "Sin Asignar",
+          idGrupo: idGrupo || undefined,
+          grupo: a.grupo?.nombre || "Sin Grupo",
+          activo: a.activo ?? a.usuario?.activo ?? true,
+          direccion: a.direccion || a.usuario?.direccion || "",
+          fotoUrl: a.fotoUrl || "",
+          datosVerificados: a.datosVerificados || false,
+          credencialFechaEmision: a.credencialFechaEmision || null,
+          credencialFechaExpiracion: a.credencialFechaExpiracion || null,
+          tutor: a.tutor || null,
+        };
+      });
 
       setAlumnos(alumnosMapeados);
     } catch (err) {
@@ -257,7 +272,9 @@ export function useCommunity(): UseCommunityReturn {
       const result = await response.json();
 
       const adminMapeados = result.map((a: any) => ({
-        id: a.id,
+        id: Number(a.idAdministrativo ?? a.id ?? 0),
+        idAdministrativo: Number(a.idAdministrativo ?? a.id ?? 0),
+        idUsuario: Number(a.idUsuario ?? a.usuarioId ?? a.usuario?.id ?? 0) || undefined,
         nombre: a.nombre,
         apellidoPaterno: a.apellidoPaterno || "",
         apellidoMaterno: a.apellidoMaterno || "",
@@ -323,16 +340,21 @@ export function useCommunity(): UseCommunityReturn {
       const result = await response.json();
 
       const gruposMapeados = result.map((g: any) => ({
-        id: g.idGrupo,
+        id: Number(g.idGrupo ?? g.id ?? 0),
+        idGrupo: Number(g.idGrupo ?? g.id ?? 0),
         codigo: g.nombre,
         semestre: g.grado,
         turno: g.turno,
         aula: g.aula || "Por definir",
         idEspecialidad: g.especialidadId,
         especialidadNombre: g.especialidad?.nombre || "N/A",
-        idPeriodo: g.periodoId,
-        idDocente: 0,
-        idMateria: 0,
+        idPeriodo: Number(g.periodoId ?? g.periodo?.idPeriodo ?? 0),
+        idDocente: Number(g.docenteId ?? g.docente?.idDocente ?? 0),
+        idMaterias: Array.isArray(g.clases)
+          ? g.clases
+              .map((c: any) => Number(c.materiasId ?? c.materiaId ?? c.idMateria ?? 0))
+              .filter((id: number) => id > 0)
+          : [],
         activo: true,
       }));
 
@@ -391,7 +413,8 @@ export function useCommunity(): UseCommunityReturn {
           Number(m.horasTeoria || 0) + Number(m.horasPractica || 0);
 
         return {
-          id: m.idMateria || m.id,
+          id: Number(m.idMateria ?? m.id ?? 0),
+          idMateria: Number(m.idMateria ?? m.id ?? 0),
           nombre: m.nombre,
           codigo: m.codigo || m.clave || "N/A",
           semestre: m.semestre || 1,
@@ -594,16 +617,28 @@ export function useCommunity(): UseCommunityReturn {
 
   const updateAlumno = async (id: number, data: Partial<AlumnoFormData>) => {
     try {
+      const dataExt = data as Partial<AlumnoFormData> & {
+        credencialFechaEmision?: string;
+        credencialFechaExpiracion?: string;
+        tutor?: {
+          nombre?: string;
+          apellidoPaterno?: string;
+          apellidoMaterno?: string;
+          telefono?: string;
+          email?: string;
+          parentesco?: string;
+          direccion?: string;
+        };
+      };
+
       const payload = {
-        nombre: data.nombre,
-        apellidoPaterno: data.apellidoPaterno,
-        apellidoMaterno: data.apellidoMaterno,
-        curp: data.curp,
         telefono: data.telefono,
         direccion: data.direccion,
-        matricula: data.numeroControl,
         semestre: data.semestreActual,
         grupoId: data.idGrupo,
+        credencialFechaEmision: dataExt.credencialFechaEmision,
+        credencialFechaExpiracion: dataExt.credencialFechaExpiracion,
+        tutor: dataExt.tutor,
       };
 
       const response = await fetch(`${API_URL}/estudiantes/${id}`, {
@@ -846,10 +881,29 @@ export function useCommunity(): UseCommunityReturn {
 
   const updateGrupo = async (id: number, data: Partial<GrupoFormData>) => {
     try {
+      const materiasIds = Array.isArray(data.idMaterias)
+        ? Array.from(new Set(data.idMaterias.map((m) => Number(m)))).filter(
+            (m) => Number.isFinite(m) && m > 0,
+          )
+        : [];
+
+      const payload = {
+        nombre: data.codigo,
+        grado: data.semestre ? Number(data.semestre) : undefined,
+        turno: data.turno,
+        aula: data.aula,
+        especialidadId: data.idEspecialidad
+          ? Number(data.idEspecialidad)
+          : undefined,
+        periodoId: data.idPeriodo ? Number(data.idPeriodo) : undefined,
+        docenteId: data.idDocente ? Number(data.idDocente) : undefined,
+        materiasIds,
+      };
+
       const response = await fetch(`${API_URL}/grupos/${id}`, {
         method: "PUT",
         headers: getAuthHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       if (!response.ok) throw new Error("Error al actualizar");
       await fetchGrupos();

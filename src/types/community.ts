@@ -2,6 +2,8 @@
 
 export interface Alumno {
   id: number;
+  idEstudiante?: number;
+  idUsuario?: number;
   nombre: string;
   apellidoPaterno: string;
   apellidoMaterno: string;
@@ -21,6 +23,8 @@ export interface Alumno {
 
 export interface Docente {
   id: number;
+  idDocente?: number;
+  idUsuario?: number;
   nombre: string;
   apellidoPaterno: string;
   apellidoMaterno: string;
@@ -36,6 +40,8 @@ export interface Docente {
 
 export interface Admin {
   id: number;
+  idAdministrativo?: number;
+  idUsuario?: number;
   nombre: string;
   apellidoPaterno: string;
   apellidoMaterno: string;
@@ -51,8 +57,10 @@ export interface Admin {
 
 export interface Grupo {
   id: number;
+  idGrupo?: number;
   codigo: string;
   semestre: number;
+  turno?: string;
   aula: string;
   idEspecialidad: number;
   especialidadNombre?: string;
@@ -60,7 +68,8 @@ export interface Grupo {
   idPeriodo: number;
   idDocente: number;
   docenteNombre?: string;
-  idMateria: number;
+  idMateria?: number;
+  idMaterias?: number[];
   materiaNombre?: string;
   activo: boolean;
   integrantes?: number;

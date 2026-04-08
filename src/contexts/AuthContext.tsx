@@ -281,22 +281,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
       }
 
+      const perfilEstudiante = Array.isArray(result.usuario.perfilEstudiante)
+        ? result.usuario.perfilEstudiante[0]
+        : result.usuario.perfilEstudiante;
+      const perfilDocente = Array.isArray(result.usuario.perfilDocente)
+        ? result.usuario.perfilDocente[0]
+        : result.usuario.perfilDocente;
+      const perfilAdministrativo = Array.isArray(
+        result.usuario.perfilAdministrativo,
+      )
+        ? result.usuario.perfilAdministrativo[0]
+        : result.usuario.perfilAdministrativo;
+
       const usuarioFormateado: User = {
-        id: result.usuario.id || result.usuario.idUsuario,
+        id: result.usuario.idUsuario || result.usuario.id,
         email: result.usuario.email || result.usuario.correo || "",
         username:
           result.usuario.username || result.usuario.usuario || username.trim(),
-        nombre: result.usuario.nombre,
+        nombre:
+          result.usuario.nombre ||
+          perfilEstudiante?.usuario?.nombre ||
+          perfilDocente?.usuario?.nombre ||
+          perfilAdministrativo?.usuario?.nombre ||
+          "",
         apellidoPaterno:
           result.usuario.apellidoPaterno ||
           result.usuario.datos?.apellidoPaterno ||
+          perfilEstudiante?.usuario?.apellidoPaterno ||
+          perfilDocente?.usuario?.apellidoPaterno ||
+          perfilAdministrativo?.usuario?.apellidoPaterno ||
           "",
         apellidoMaterno:
           result.usuario.apellidoMaterno ||
           result.usuario.datos?.apellidoMaterno ||
+          perfilEstudiante?.usuario?.apellidoMaterno ||
+          perfilDocente?.usuario?.apellidoMaterno ||
+          perfilAdministrativo?.usuario?.apellidoMaterno ||
           "",
-        tipoUsuario: result.usuario.rol.toLowerCase() as UserRole,
-        cargo: result.usuario.cargo || result.usuario.datos?.cargo || "",
+        tipoUsuario: (
+          result.usuario.rol ||
+          result.usuario.tipoUsuario ||
+          ""
+        ).toLowerCase() as UserRole,
+        cargo:
+          result.usuario.cargo ||
+          result.usuario.datos?.cargo ||
+          perfilAdministrativo?.cargo ||
+          "",
       };
 
       const tipoNorm = usuarioFormateado.tipoUsuario.toUpperCase();

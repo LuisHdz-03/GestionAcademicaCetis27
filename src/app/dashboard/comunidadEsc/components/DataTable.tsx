@@ -13,7 +13,11 @@ import { Docente, Alumno, Admin } from "@/types/community";
 
 // Tipo base que garantiza que todos tengan id
 interface BaseItem {
-  id: number;
+  id?: number;
+  idEstudiante?: number;
+  idDocente?: number;
+  idAdministrativo?: number;
+  idUsuario?: number;
 }
 
 interface DataTableProps {
@@ -33,6 +37,14 @@ export default function DataTable({
   handleEditExtra,
   visibleColumns,
 }: DataTableProps) {
+  const getStableItemId = (item: BaseItem) =>
+    item.idEstudiante ||
+    item.idDocente ||
+    item.idAdministrativo ||
+    item.idUsuario ||
+    item.id ||
+    0;
+
   const allColumns = () => {
     switch (activeTab) {
       case "docentes":
@@ -55,7 +67,7 @@ export default function DataTable({
 
   const renderCell = (column: string, item: Docente | Alumno | Admin) => {
     // Usamos el ID del item + el nombre de la columna para crear una key única por celda
-    const cellKey = `${(item as BaseItem).id}-${column}`;
+    const cellKey = `${getStableItemId(item as BaseItem)}-${column}`;
 
     switch (column) {
       case "Nombre":
@@ -152,9 +164,7 @@ export default function DataTable({
               </TableRow>
             ) : (
               data.map((item) => (
-                <TableRow
-                  key={(item as any).id || (item as any).email || Math.random()}
-                >
+                <TableRow key={`${getStableItemId(item as BaseItem)}-${(item as any).email || ""}`}>
                   {allColumns()
                     .filter((col) => visibleColumns.includes(col))
                     .map((col) => renderCell(col, item))}
