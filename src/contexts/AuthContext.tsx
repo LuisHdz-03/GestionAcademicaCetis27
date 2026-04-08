@@ -17,7 +17,13 @@ export type UserRole =
   | "alumno"
   | "guardia"
   | "prefecto"
-  | "administrativo";
+  | "administrativo"
+  | "directivo";
+
+export interface UserCapabilities {
+  accesoInstitucionalCompleto?: boolean;
+  puedeVerBitacoraCompleta?: boolean;
+}
 
 export interface User {
   id: number;
@@ -28,12 +34,15 @@ export interface User {
   apellidoMaterno?: string;
   tipoUsuario: UserRole;
   cargo?: string;
+  capacidades?: UserCapabilities;
+  passwordChangeRequired?: boolean;
 }
 
 interface LoginResponse {
   mensaje?: string;
   token: string;
   usuario: any;
+  passwordChangeRequired?: boolean;
 }
 
 type AuthContextType = {
@@ -64,6 +73,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     window.location.replace("/auth/login");
   }, [isClient]);
+
+  const obtenerMiPerfil = useCallback(async (token: string) => {
+    const endpoints = ["/auth/mi-perfil", "/auth/perfil"];
+
+    for (const endpoint of endpoints) {
+      try {
+        const res = await fetch(`${API_URL}${endpoint}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          signal: AbortSignal.timeout(5000),
+        });
+
+        if (res.status === 401) {
+          throw new Error("UNAUTHORIZED");
+        }
+
+        if (res.status === 403) {
+          throw new Error("FORBIDDEN");
+        }
+
+        if (!res.ok) {
+          continue;
+        }
+
+        const data = await res.json();
+        if (data?.usuario) {
+          return data;
+        }
+      } catch (error: any) {
+        if (
+          error?.message === "UNAUTHORIZED" ||
+          error?.message === "FORBIDDEN"
+        ) {
+          throw error;
+        }
+      }
+    }
+
+    return null;
+  }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -109,8 +160,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           usuario = parsedUser as User;
 
-          // Si es administrativo y no tiene cargo guardado, obtenerlo
-          if (usuario.tipoUsuario === "administrativo" && !usuario.cargo) {
+          // Si es administrativo/directivo y no tiene cargo guardado, obtenerlo
+          if (
+            (usuario.tipoUsuario === "administrativo" ||
+              usuario.tipoUsuario === "directivo") &&
+            !usuario.cargo
+          ) {
             try {
               const adminRes = await fetch(`${API_URL}/administrativos`, {
                 headers: {
@@ -139,6 +194,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 "No se pudo obtener el cargo del administrativo:",
                 err,
               );
+            }
+          }
+
+          try {
+            const perfilPayload = await obtenerMiPerfil(token);
+            if (perfilPayload?.usuario) {
+              usuario = {
+                ...usuario,
+                email: perfilPayload.usuario.email || usuario.email,
+                tipoUsuario: (
+                  perfilPayload.usuario.rol || usuario.tipoUsuario
+                ).toLowerCase() as UserRole,
+                cargo: perfilPayload.usuario.perfil?.cargo || usuario.cargo,
+                capacidades: {
+                  accesoInstitucionalCompleto:
+                    !!perfilPayload.capacidades?.accesoInstitucionalCompleto,
+                  puedeVerBitacoraCompleta:
+                    !!perfilPayload.capacidades?.puedeVerBitacoraCompleta,
+                },
+              };
+              localStorage.setItem("usuario", JSON.stringify(usuario));
+            }
+          } catch (error: any) {
+            if (error?.message === "UNAUTHORIZED") {
+              toast({
+                title: "Sesión inválida",
+                description: "Tu sesión expiró. Inicia sesión nuevamente.",
+                variant: "destructive",
+              });
+              logout();
+              setIsLoading(false);
+              return;
             }
           }
 
@@ -178,7 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkAuth();
-  }, [isClient, logout, toast]);
+  }, [isClient, logout, obtenerMiPerfil, toast]);
 
   // 3. NUEVO: useEffect para monitorear activamente la expiración del token
   useEffect(() => {
@@ -328,11 +415,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           result.usuario.datos?.cargo ||
           perfilAdministrativo?.cargo ||
           "",
+        passwordChangeRequired: !!result.passwordChangeRequired,
       };
 
       const tipoNorm = usuarioFormateado.tipoUsuario.toUpperCase();
       if (
-        (tipoNorm === "ADMINISTRATIVO" || tipoNorm === "PREFECTO") &&
+        (tipoNorm === "ADMINISTRATIVO" ||
+          tipoNorm === "DIRECTIVO" ||
+          tipoNorm === "PREFECTO") &&
         !usuarioFormateado.cargo
       ) {
         try {
@@ -360,6 +450,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      try {
+        const perfilPayload = await obtenerMiPerfil(result.token);
+        if (perfilPayload?.usuario) {
+          usuarioFormateado.email =
+            perfilPayload.usuario.email || usuarioFormateado.email;
+          usuarioFormateado.tipoUsuario = (
+            perfilPayload.usuario.rol || usuarioFormateado.tipoUsuario
+          ).toLowerCase() as UserRole;
+          usuarioFormateado.cargo =
+            perfilPayload.usuario.perfil?.cargo || usuarioFormateado.cargo;
+          usuarioFormateado.capacidades = {
+            accesoInstitucionalCompleto:
+              !!perfilPayload.capacidades?.accesoInstitucionalCompleto,
+            puedeVerBitacoraCompleta:
+              !!perfilPayload.capacidades?.puedeVerBitacoraCompleta,
+          };
+        }
+      } catch (error) {
+        console.warn("No se pudo sincronizar mi perfil tras login");
+      }
+
       localStorage.setItem("token", result.token);
       localStorage.setItem("usuario", JSON.stringify(usuarioFormateado));
       setUser(usuarioFormateado);
@@ -377,6 +488,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         usuarioFormateado.tipoUsuario === "guardia" || esPrefecto
           ? "/dashboard/scan-qr"
           : "/dashboard";
+
+      if (usuarioFormateado.passwordChangeRequired) {
+        toast({
+          title: "Cambio de contraseña requerido",
+          description:
+            "Por seguridad debes actualizar tu contraseña al ingresar.",
+          variant: "destructive",
+        });
+      }
 
       router.push(redirectPath);
       router.refresh();

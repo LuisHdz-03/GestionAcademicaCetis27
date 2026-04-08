@@ -87,10 +87,10 @@ export default function DashboardHeader({
       return;
     }
 
-    if (passwords.nueva.length < 6) {
+    if (passwords.nueva.length < 8) {
       toast({
         title: "Atención",
-        description: "La nueva contraseña debe tener al menos 6 caracteres.",
+        description: "La nueva contraseña debe tener al menos 8 caracteres.",
         variant: "destructive",
       });
       return;
@@ -106,7 +106,6 @@ export default function DashboardHeader({
           ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify({
-          idUsuario: user?.id || (user as any)?.idUsuario, // <-- Asegurado idUsuario
           passwordActual: passwords.actual,
           passwordNueva: passwords.nueva,
         }),

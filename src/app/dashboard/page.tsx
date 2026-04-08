@@ -135,10 +135,10 @@ export default function DashboardPage() {
       "SECRETARIO",
     ];
 
-    // Solo ADMINISTRATIVO con cargos directivos puede ver el dashboard
     const tieneDashboardAcceso =
-      tipoUsuario === "ADMINISTRATIVO" &&
-      cargosDirectivos.includes(cargoUsuario);
+      tipoUsuario === "DIRECTIVO" ||
+      (tipoUsuario === "ADMINISTRATIVO" &&
+        cargosDirectivos.includes(cargoUsuario));
 
     if (!tieneDashboardAcceso) {
       // Redirigir según rol/cargo a su primera opción disponible
