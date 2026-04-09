@@ -35,14 +35,14 @@ export default function LoginForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Campo Username */}
+      {/* Campo Usuario o Correo */}
       <div className="space-y-2">
-        <Label htmlFor="username">Nombre de usuario</Label>
+        <Label htmlFor="username">Usuario o correo</Label>
         <Input
           id="username"
           name="username"
           type="text"
-          placeholder="Ingresa tu usuario"
+          placeholder="Ingresa tu usuario o correo"
           value={formData.username}
           onChange={handleChange}
           disabled={isLoading}

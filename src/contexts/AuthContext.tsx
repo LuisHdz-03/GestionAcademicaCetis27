@@ -313,52 +313,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (!username || !password) {
-      throw new Error("El nombre de usuario y la contraseña son requeridos");
+      throw new Error("El usuario/correo y la contraseña son requeridos");
     }
 
     setIsLoading(true);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const identificador = username.trim();
+      const payloads = [
+        { username: identificador, password, plataforma: "WEB" },
+        { email: identificador, password, plataforma: "WEB" },
+        { correo: identificador, password, plataforma: "WEB" },
+        { usuario: identificador, password, plataforma: "WEB" },
+      ];
 
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          username: username.trim(),
-          password: password,
-          plataforma: "WEB",
-        }),
-        signal: controller.signal,
-      });
+      let response: Response | null = null;
+      let result: LoginResponse | null = null;
+      let ultimoError = "Error en la autenticación";
 
-      clearTimeout(timeoutId);
-      const contentType = response.headers.get("content-type");
-      const responseText = await response.text();
+      for (const payload of payloads) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      if (!contentType || !contentType.includes("application/json")) {
-        console.error("Expected JSON response but got:", contentType);
-        throw new Error("La respuesta del servidor no es un JSON válido");
+        try {
+          const intento = await fetch(`${API_URL}/auth/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+          const contentType = intento.headers.get("content-type");
+          const responseText = await intento.text();
+
+          if (!contentType || !contentType.includes("application/json")) {
+            console.error("Expected JSON response but got:", contentType);
+            throw new Error("La respuesta del servidor no es un JSON válido");
+          }
+
+          let parsed: LoginResponse;
+          try {
+            parsed = JSON.parse(responseText);
+          } catch (e) {
+            console.error("Failed to parse JSON response:", e);
+            throw new Error("Error al procesar la respuesta del servidor");
+          }
+
+          if (intento.ok) {
+            response = intento;
+            result = parsed;
+            break;
+          }
+
+          ultimoError =
+            parsed.mensaje || (parsed as any).error || "Error en la autenticación";
+
+          // Si son errores típicos de credenciales, intentamos la siguiente llave.
+          if ([400, 401].includes(intento.status)) {
+            continue;
+          }
+
+          throw new Error(ultimoError);
+        } finally {
+          clearTimeout(timeoutId);
+        }
       }
 
-      let result: LoginResponse;
-      try {
-        result = JSON.parse(responseText);
-      } catch (e) {
-        console.error("Failed to parse JSON response:", e);
-        throw new Error("Error al procesar la respuesta del servidor");
-      }
-
-      if (!response.ok) {
-        const errorMessage =
-          result.mensaje ||
-          (result as any).error ||
-          "Error en la autenticación";
-        throw new Error(errorMessage);
+      if (!response || !result) {
+        throw new Error(ultimoError);
       }
 
       if (!result.token || !result.usuario) {
