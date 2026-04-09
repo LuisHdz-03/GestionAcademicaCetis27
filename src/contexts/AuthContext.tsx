@@ -38,6 +38,13 @@ export interface User {
   passwordChangeRequired?: boolean;
 }
 
+export interface PeriodoActivo {
+  idPeriodo: number;
+  nombre: string;
+  fechaInicio: string;
+  fechaFin: string;
+}
+
 interface LoginResponse {
   mensaje?: string;
   token: string;
@@ -47,6 +54,7 @@ interface LoginResponse {
 
 type AuthContextType = {
   user: User | null;
+  periodoActivo: PeriodoActivo | null; 
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
@@ -60,6 +68,9 @@ const API_URL =
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [periodoActivo, setPeriodoActivo] = useState<PeriodoActivo | null>(
+    null,
+  ); 
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
@@ -71,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
     setUser(null);
+    setPeriodoActivo(null); 
     window.location.replace("/auth/login");
   }, [isClient]);
 
@@ -160,7 +172,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           usuario = parsedUser as User;
 
-          // Si es administrativo/directivo y no tiene cargo guardado, obtenerlo
           if (
             (usuario.tipoUsuario === "administrativo" ||
               usuario.tipoUsuario === "directivo") &&
@@ -229,6 +240,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
 
+          try {
+            const resPeriodo = await fetch(`${API_URL}/periodos/activo`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              signal: AbortSignal.timeout(5000),
+            });
+            if (resPeriodo.ok) {
+              const dataPeriodo = await resPeriodo.json();
+              setPeriodoActivo(dataPeriodo);
+            } else {
+              setPeriodoActivo(null);
+            }
+          } catch (error) {
+            console.warn("No se pudo cargar el periodo activo global", error);
+            setPeriodoActivo(null);
+          }
+
           setUser(usuario);
         } catch (error) {
           console.error("Error al validar usuario:", error);
@@ -253,9 +283,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               return;
             }
           }
-        } catch {
-          // Ignorar error de decodificación
-        }
+        } catch {}
       } catch (error) {
         console.error("Error inesperado en checkAuth:", error);
         logout();
@@ -267,9 +295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, [isClient, logout, obtenerMiPerfil, toast]);
 
-  // 3. NUEVO: useEffect para monitorear activamente la expiración del token
   useEffect(() => {
-    // Si no hay usuario logueado o no estamos en el cliente, no hacemos nada
     if (!isClient || !user) return;
 
     const checkTokenExpiration = () => {
@@ -283,7 +309,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const [, payloadB64] = token.split(".");
         if (payloadB64) {
           const decoded = JSON.parse(atob(payloadB64));
-          // Revisamos si el token ya caducó
           if (decoded.exp && decoded.exp * 1000 < Date.now()) {
             toast({
               title: "Sesión caducada",
@@ -298,10 +323,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Ejecuta la revisión cada 60 segundos (60000 milisegundos)
     const intervalId = setInterval(checkTokenExpiration, 60000);
-
-    // Limpia el intervalo cuando el componente se desmonta
     return () => clearInterval(intervalId);
   }, [isClient, user, logout, toast]);
 
@@ -370,9 +392,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           ultimoError =
-            parsed.mensaje || (parsed as any).error || "Error en la autenticación";
+            parsed.mensaje ||
+            (parsed as any).error ||
+            "Error en la autenticación";
 
-          // Si son errores típicos de credenciales, intentamos la siguiente llave.
           if ([400, 401].includes(intento.status)) {
             continue;
           }
@@ -497,6 +520,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn("No se pudo sincronizar mi perfil tras login");
       }
 
+      try {
+        const resPeriodo = await fetch(`${API_URL}/periodos/activo`, {
+          headers: {
+            Authorization: `Bearer ${result.token}`,
+            "Content-Type": "application/json",
+          },
+          signal: AbortSignal.timeout(5000),
+        });
+        if (resPeriodo.ok) {
+          const dataPeriodo = await resPeriodo.json();
+          setPeriodoActivo(dataPeriodo);
+        }
+      } catch (error) {
+        console.warn("No se pudo cargar el periodo activo durante el login");
+      }
+
       localStorage.setItem("token", result.token);
       localStorage.setItem("usuario", JSON.stringify(usuarioFormateado));
       setUser(usuarioFormateado);
@@ -537,6 +576,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = {
     user,
+    periodoActivo, 
     isAuthenticated: !!user,
     isLoading,
     login,
