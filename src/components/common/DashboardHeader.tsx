@@ -122,51 +122,74 @@ export default function DashboardHeader({
       }
 
       const data = await response.json();
-      const usuarioEditable =
-        data?.usuario ||
-        data?.datosActuales ||
-        data?.perfil ||
-        data?.data?.usuario ||
-        data?.data?.datosActuales ||
-        data?.data?.perfil ||
-        data ||
-        {};
+      const asObject = (v: any) => {
+        if (Array.isArray(v)) return v[0] || {};
+        return v && typeof v === "object" ? v : {};
+      };
 
-      const getCampo = (...candidatos: any[]) => {
-        const valor = candidatos.find(
-          (c) => c !== undefined && c !== null && String(c).trim() !== "",
-        );
-        return valor ?? "";
+      const sources = [
+        asObject(data),
+        asObject(data?.data),
+        asObject(data?.usuario),
+        asObject(data?.data?.usuario),
+        asObject(data?.perfil),
+        asObject(data?.data?.perfil),
+        asObject(data?.datosActuales),
+        asObject(data?.data?.datosActuales),
+        asObject(data?.usuario?.perfil),
+        asObject(data?.data?.usuario?.perfil),
+      ];
+
+      const pickByAliases = (aliases: string[]) => {
+        for (const src of sources) {
+          for (const key of aliases) {
+            const value = src?.[key];
+            if (value !== undefined && value !== null && String(value).trim() !== "") {
+              return value;
+            }
+          }
+        }
+        return "";
       };
 
       const perfil = {
-        email: getCampo(
-          usuarioEditable.email,
-          usuarioEditable.usuario?.email,
-          data?.email,
-          data?.data?.email,
-          user?.email,
-        ),
-        telefono: getCampo(
-          usuarioEditable.telefono,
-          usuarioEditable.usuario?.telefono,
-          data?.telefono,
-          data?.data?.telefono,
+        email:
+          String(
+            pickByAliases([
+              "email",
+              "correo",
+              "correoElectronico",
+              "mail",
+            ]) || user?.email || "",
+          ).trim(),
+        telefono: String(
+          pickByAliases([
+            "telefono",
+            "telefonoCelular",
+            "celular",
+            "numeroTelefono",
+            "phone",
+            "movil",
+          ]),
         )
           .toString()
           .replace(/\D/g, "")
           .slice(0, 10),
-        direccion: getCampo(
-          usuarioEditable.direccion,
-          usuarioEditable.usuario?.direccion,
-          data?.direccion,
-          data?.data?.direccion,
-        ),
-        fechaNacimiento: getCampo(
-          usuarioEditable.fechaNacimiento,
-          usuarioEditable.usuario?.fechaNacimiento,
-          data?.fechaNacimiento,
-          data?.data?.fechaNacimiento,
+        direccion: String(
+          pickByAliases([
+            "direccion",
+            "domicilio",
+            "calle",
+            "address",
+          ]),
+        ).trim(),
+        fechaNacimiento: String(
+          pickByAliases([
+            "fechaNacimiento",
+            "fecha_nacimiento",
+            "birthDate",
+            "nacimiento",
+          ]),
         )
           .toString()
           .substring(0, 10),
