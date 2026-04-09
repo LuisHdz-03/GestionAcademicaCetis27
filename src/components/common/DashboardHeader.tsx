@@ -122,16 +122,52 @@ export default function DashboardHeader({
       }
 
       const data = await response.json();
-      const usuarioEditable = data?.usuario || data || {};
+      const usuarioEditable =
+        data?.usuario ||
+        data?.datosActuales ||
+        data?.perfil ||
+        data?.data?.usuario ||
+        data?.data?.datosActuales ||
+        data?.data?.perfil ||
+        data ||
+        {};
+
+      const getCampo = (...candidatos: any[]) => {
+        const valor = candidatos.find(
+          (c) => c !== undefined && c !== null && String(c).trim() !== "",
+        );
+        return valor ?? "";
+      };
 
       const perfil = {
-        email: usuarioEditable.email || user?.email || "",
-        telefono: (usuarioEditable.telefono || "")
+        email: getCampo(
+          usuarioEditable.email,
+          usuarioEditable.usuario?.email,
+          data?.email,
+          data?.data?.email,
+          user?.email,
+        ),
+        telefono: getCampo(
+          usuarioEditable.telefono,
+          usuarioEditable.usuario?.telefono,
+          data?.telefono,
+          data?.data?.telefono,
+        )
           .toString()
           .replace(/\D/g, "")
           .slice(0, 10),
-        direccion: usuarioEditable.direccion || "",
-        fechaNacimiento: (usuarioEditable.fechaNacimiento || "")
+        direccion: getCampo(
+          usuarioEditable.direccion,
+          usuarioEditable.usuario?.direccion,
+          data?.direccion,
+          data?.data?.direccion,
+        ),
+        fechaNacimiento: getCampo(
+          usuarioEditable.fechaNacimiento,
+          usuarioEditable.usuario?.fechaNacimiento,
+          data?.fechaNacimiento,
+          data?.data?.fechaNacimiento,
+        )
           .toString()
           .substring(0, 10),
       };
