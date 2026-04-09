@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { HiBars3 } from "react-icons/hi2";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/useToast";
 
@@ -28,12 +29,14 @@ interface DashboardHeaderProps {
   nombreUsuario: string;
   tipoUsuario: string;
   avatarUrl: string;
+  onOpenMobileSidebar?: () => void;
 }
 
 export default function DashboardHeader({
   nombreUsuario,
   tipoUsuario,
   avatarUrl,
+  onOpenMobileSidebar,
 }: DashboardHeaderProps) {
   const { user, logout } = useAuth();
   const { toast } = useToast();
@@ -222,26 +225,45 @@ export default function DashboardHeader({
   return (
     <>
       <header
-        className="border-b px-5 py-1"
+        className="border-b px-3 py-2 sm:px-4 lg:px-5"
         style={{ backgroundColor: headerBg }}
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold" style={{ color: textColor }}>
-              Gestión Académica
-            </h1>
-            <p className="text-sm mt-1" style={{ color: mutedTextColor }}>
-              {tipoUsuario}
-            </p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onOpenMobileSidebar}
+              className="lg:hidden h-9 w-9 p-0 hover:bg-[#50172A]"
+              style={{ color: textColor }}
+              aria-label="Abrir menú"
+            >
+              <HiBars3 className="h-5 w-5" />
+            </Button>
+            <div className="min-w-0">
+              <h1
+                className="text-lg sm:text-xl lg:text-2xl font-bold truncate"
+                style={{ color: textColor }}
+              >
+                Gestión Académica
+              </h1>
+              <p
+                className="text-xs sm:text-sm mt-0.5 sm:mt-1 truncate"
+                style={{ color: mutedTextColor }}
+              >
+                {tipoUsuario}
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex items-center space-x-2 hover:bg-[#50172A] rounded-md"
+                  className="flex items-center space-x-2 hover:bg-[#50172A] rounded-md max-w-[60vw]"
                   style={{ color: textColor }}
                 >
                   <Avatar className="h-8 w-8">

@@ -25,9 +25,18 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 
-export default function Sidebar() {
+interface SidebarProps {
+  isMobile?: boolean;
+  onNavigate?: () => void;
+}
+
+export default function Sidebar({
+  isMobile = false,
+  onNavigate,
+}: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const { user } = useAuth();
+  const expanded = isMobile ? true : isExpanded;
 
   // 1. Función para normalizar texto (limpiar acentos)
   const normalizarTexto = (texto: string) => {
@@ -160,11 +169,11 @@ export default function Sidebar() {
         className={cn(
           sidebarBgClass,
           "border-r h-screen flex flex-col transition-all duration-300 ease-in-out",
-          isExpanded ? "w-64" : "w-16",
+          isMobile ? "w-72 max-w-[85vw]" : expanded ? "w-64" : "w-16",
         )}
       >
         <div className="flex items-center justify-between p-4">
-          {isExpanded && (
+          {expanded && (
             <div className="flex items-center space-x-3">
               <div className="bg-white rounded-full w-10 h-10 flex items-center justify-center">
                 <img
@@ -188,13 +197,15 @@ export default function Sidebar() {
             variant="ghost"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
+            aria-label={expanded ? "Colapsar menú" : "Expandir menú"}
             className={cn(
               "h-8 w-8 p-0 rounded-md transition-colors duration-150 flex items-center justify-center",
               textClass,
               hoverBgClass,
+              isMobile && "hidden",
             )}
           >
-            {isExpanded ? (
+            {expanded ? (
               <HiChevronLeft size={20} />
             ) : (
               <HiChevronRight size={20} />
@@ -214,7 +225,7 @@ export default function Sidebar() {
                 asChild
                 className={cn(
                   "w-full h-10 rounded-md transition-colors duration-150",
-                  isExpanded ? "justify-start px-3" : "justify-center px-0",
+                  expanded ? "justify-start px-3" : "justify-center px-0",
                   textClass,
                   hoverBgClass,
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
@@ -222,15 +233,16 @@ export default function Sidebar() {
               >
                 <Link
                   href={item.href}
+                  onClick={onNavigate}
                   className={cn(
                     "flex items-center w-full",
-                    !isExpanded && "justify-center",
+                    !expanded && "justify-center",
                   )}
                 >
                   <span className="h-5 w-5 flex items-center justify-center flex-shrink-0">
                     <Icon size={20} />
                   </span>
-                  {isExpanded && (
+                  {expanded && (
                     <span className="ml-3 text-sm font-medium transition-all duration-150">
                       {item.label}
                     </span>
@@ -239,7 +251,7 @@ export default function Sidebar() {
               </Button>
             );
 
-            if (!isExpanded) {
+            if (!expanded) {
               return (
                 <Tooltip key={index} delayDuration={0}>
                   <TooltipTrigger asChild>{menuButton}</TooltipTrigger>
@@ -272,7 +284,7 @@ export default function Sidebar() {
               </AvatarFallback>
             </Avatar>
 
-            {isExpanded && (
+            {expanded && (
               <div className="flex-1 min-w-0">
                 <p className={cn("text-sm font-medium truncate", textClass)}>
                   {user?.nombre || "Usuario"} {user?.apellidoPaterno || ""}
