@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -33,10 +34,42 @@ import {
 } from "@/types/community";
 import { DocenteFormData, AlumnoFormData, AdminFormData } from "@/types/modal";
 import { useCommunity } from "@/hooks/useCommunity";
+import { useAuth } from "@/contexts/AuthContext";
 
 type TabType = "docentes" | "alumnos" | "administradores";
 
 export default function CommunityManagementPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const normalizarTexto = (texto: string) =>
+    (texto || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .trim();
+
+  const tieneAccesoComunidad = () => {
+    const tipoUsuario = normalizarTexto(
+      user?.tipoUsuario || (user as any)?.rol || "",
+    );
+    const cargoUsuario = normalizarTexto(user?.cargo || "");
+    const cargosPermitidos = [
+      "DIRECTOR",
+      "SUBDIRECTORA ACADEMICA",
+      "COORDINADOR",
+      "COORDINADOR ACADEMICO",
+      "JEFE DE DEPARTAMENTO",
+      "SECRETARIO",
+    ];
+
+    return (
+      tipoUsuario === "DIRECTIVO" ||
+      (tipoUsuario === "ADMINISTRATIVO" &&
+        cargosPermitidos.includes(cargoUsuario))
+    );
+  };
+
   const getMemberId = (item: CommunityMember | null) => {
     if (!item) return 0;
 
@@ -72,8 +105,9 @@ export default function CommunityManagementPage() {
       numeroControl: (item as any).matricula,
       semestreActual: (item as any).semestre,
       idGrupo:
-        (typeof grupo === "object" && grupo !== null ? grupo.idGrupo : undefined) ||
-        (item as any).idGrupo,
+        (typeof grupo === "object" && grupo !== null
+          ? grupo.idGrupo
+          : undefined) || (item as any).idGrupo,
     };
   };
 
@@ -143,12 +177,22 @@ export default function CommunityManagementPage() {
 
   // --- Cargar datos al montar el componente ---
   useEffect(() => {
+    if (!user) return;
+    if (!tieneAccesoComunidad()) {
+      if (normalizarTexto(user.tipoUsuario || "") === "DOCENTE") {
+        router.replace("/dashboard/mis-clases");
+      } else {
+        router.replace("/dashboard/reportes");
+      }
+      return;
+    }
+
     fetchDocentes();
     fetchAlumnos();
     fetchAdministradores();
     fetchEspecialidades();
     fetchGrupos();
-  }, []);
+  }, [user]);
 
   // --- Filters (dinámicos con base en BD) ---
   const docentesFilters = [
@@ -295,8 +339,10 @@ export default function CommunityManagementPage() {
   const handleDelete = async (item: CommunityMember) => {
     if (!confirm("¿Seguro que deseas eliminar este registro?")) return;
     let ok = false;
-    if (activeTab === "docentes") ok = await deleteDocente((item as any).idDocente);
-    if (activeTab === "alumnos") ok = await deleteAlumno((item as any).idEstudiante);
+    if (activeTab === "docentes")
+      ok = await deleteDocente((item as any).idDocente);
+    if (activeTab === "alumnos")
+      ok = await deleteAlumno((item as any).idEstudiante);
     if (activeTab === "administradores")
       ok = await deleteAdministrador((item as any).idAdministrativo);
     if (ok) {

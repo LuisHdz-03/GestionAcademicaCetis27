@@ -51,6 +51,7 @@ export default function DashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isCheckingPermissions, setIsCheckingPermissions] = useState(true);
+  const [hasDashboardAccess, setHasDashboardAccess] = useState(false);
 
   const [activePeriod, setActivePeriod] = useState<{
     idPeriodo: number;
@@ -86,7 +87,11 @@ export default function DashboardPage() {
       const res = await fetch(`${API_URL}/periodos`, {
         headers: getAuthHeaders(),
       });
-      if (!res.ok) throw new Error("Error al obtener período activo");
+      if (!res.ok) {
+        setHasActivePeriod(false);
+        setActivePeriod(null);
+        return;
+      }
       const data = await res.json();
 
       // Buscamos cuál es el activo de la lista que nos manda Prisma
@@ -100,7 +105,7 @@ export default function DashboardPage() {
         setHasActivePeriod(false);
       }
     } catch (err) {
-      console.error(err);
+      console.warn("No se pudo obtener el periodo activo", err);
       setHasActivePeriod(false);
     }
   };
@@ -141,6 +146,7 @@ export default function DashboardPage() {
         cargosDirectivos.includes(cargoUsuario));
 
     if (!tieneDashboardAcceso) {
+      setHasDashboardAccess(false);
       // Redirigir según rol/cargo a su primera opción disponible
       if (tipoUsuario === "DOCENTE") {
         router.push("/dashboard/mis-clases");
@@ -154,17 +160,19 @@ export default function DashboardPage() {
       }
     } else {
       // Tiene permiso, permitir ver el dashboard
+      setHasDashboardAccess(true);
       setIsCheckingPermissions(false);
     }
   }, [user, router]);
 
   useEffect(() => {
+    if (!hasDashboardAccess) return;
     fetchActivePeriod();
     fetchDocentes();
     fetchAlumnos();
     fetchAdministradores();
     fetchMaterias();
-  }, []);
+  }, [hasDashboardAccess]);
 
   // cosas para editar el periodo
   const handleCreatePeriod = () => setIsModalOpen(true);

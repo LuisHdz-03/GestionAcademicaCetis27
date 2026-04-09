@@ -27,6 +27,7 @@ export interface UserCapabilities {
 
 export interface User {
   id: number;
+  idDocente?: number;
   email: string;
   username: string;
   nombre: string;
@@ -54,7 +55,7 @@ interface LoginResponse {
 
 type AuthContextType = {
   user: User | null;
-  periodoActivo: PeriodoActivo | null; 
+  periodoActivo: PeriodoActivo | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
@@ -70,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [periodoActivo, setPeriodoActivo] = useState<PeriodoActivo | null>(
     null,
-  ); 
+  );
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
@@ -82,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
     setUser(null);
-    setPeriodoActivo(null); 
+    setPeriodoActivo(null);
     window.location.replace("/auth/login");
   }, [isClient]);
 
@@ -431,6 +432,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const usuarioFormateado: User = {
         id: result.usuario.idUsuario || result.usuario.id,
+        idDocente:
+          Number(perfilDocente?.idDocente ?? perfilDocente?.id ?? 0) ||
+          undefined,
         email: result.usuario.email || result.usuario.correo || "",
         username:
           result.usuario.username || result.usuario.usuario || username.trim(),
@@ -576,7 +580,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = {
     user,
-    periodoActivo, 
+    periodoActivo,
     isAuthenticated: !!user,
     isLoading,
     login,

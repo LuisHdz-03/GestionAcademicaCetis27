@@ -70,11 +70,12 @@ export default function MisClasesPage() {
 
   useEffect(() => {
     const cargarClases = async () => {
-      const idUsuario = user?.id || (user as any)?.idUsuario;
-      if (!idUsuario) return;
+      const idDocente =
+        (user as any)?.idDocente || user?.id || (user as any)?.idUsuario;
+      if (!idDocente) return;
       setLoading(true);
       try {
-        const res = await fetch(`${API_URL}/clases/docente/${idUsuario}`, {
+        const res = await fetch(`${API_URL}/clases/docente/${idDocente}`, {
           headers: getAuthHeaders(),
         });
         const data = await res.json();
