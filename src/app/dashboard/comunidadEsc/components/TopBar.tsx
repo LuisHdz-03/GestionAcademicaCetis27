@@ -22,10 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
-import { uploadCsv } from "@/lib/upload";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
+import { uploadCsv, downloadTemplate, type TemplateType } from "@/lib/upload";
 
 interface TopBarProps {
   visibleColumns: string[];
@@ -62,54 +59,16 @@ export default function TopBar({
   const [isUploading, setIsUploading] = useState(false);
 
   const handleDescargarPlantilla = async () => {
-    const endpointMap: Record<string, string> = {
-      alumnos: "alumnos/plantilla",
-      docentes: "docentes/plantilla",
-      administradores: "admins/plantilla/excel",
+    const templateMap: Record<string, TemplateType> = {
+      alumnos: "estudiantes",
+      docentes: "docentes",
+      administradores: "administrativos",
     };
-    const endpoint = endpointMap[activeTab];
-    if (!endpoint) return;
+    const tipo = templateMap[activeTab];
+    if (!tipo) return;
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/${endpoint}`, {
-        method: "GET",
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-
-      if (!response.ok) {
-        const errorMsg =
-          response.status === 403
-            ? "No tienes permisos para descargar la plantilla."
-            : response.status === 404
-              ? "No se encontró la plantilla."
-              : "No se pudo descargar la plantilla.";
-        alert(errorMsg);
-        return;
-      }
-
-      const blob = await response.blob();
-      const contentDisposition =
-        response.headers.get("Content-Disposition") || "";
-      const fileNameMatch = contentDisposition.match(
-        /filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/i,
-      );
-      const rawFileName =
-        fileNameMatch?.[1] ||
-        fileNameMatch?.[2] ||
-        `plantilla_${activeTab}.xlsx`;
-      const fileName = decodeURIComponent(rawFileName);
-
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(objectUrl);
+      await downloadTemplate(tipo);
     } catch (error) {
       console.error("Error al descargar plantilla:", error);
       alert("Error de conexión al descargar la plantilla.");
