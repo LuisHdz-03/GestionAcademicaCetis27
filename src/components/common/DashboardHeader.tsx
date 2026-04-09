@@ -15,6 +15,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -41,11 +42,26 @@ export default function DashboardHeader({
   const { user, logout } = useAuth();
   const { toast } = useToast();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingPerfil, setLoadingPerfil] = useState(false);
   const [uploadingFirma, setUploadingFirma] = useState(false);
   const [firmaFile, setFirmaFile] = useState<File | null>(null);
+  const [perfilCompleto, setPerfilCompleto] = useState<boolean>(false);
+  const [camposFaltantes, setCamposFaltantes] = useState<string[]>([]);
+  const [perfilInicial, setPerfilInicial] = useState({
+    email: "",
+    telefono: "",
+    direccion: "",
+    fechaNacimiento: "",
+  });
+  const [perfilFormData, setPerfilFormData] = useState({
+    email: "",
+    telefono: "",
+    direccion: "",
+    fechaNacimiento: "",
+  });
   const [passwords, setPasswords] = useState({
     actual: "",
     nueva: "",
@@ -74,64 +90,165 @@ export default function DashboardHeader({
   const mutedTextColor = "#F2D7D5";
   const hoverBg = "#50172A";
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPasswords({ ...passwords, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePerfilChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPerfilFormData({ ...perfilFormData, [e.target.name]: e.target.value });
+  };
 
-    if (passwords.nueva !== passwords.confirmar) {
-      toast({
-        title: "Error",
-        description: "Las contraseñas nuevas no coinciden.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (passwords.nueva.length < 8) {
-      toast({
-        title: "Atención",
-        description: "La nueva contraseña debe tener al menos 8 caracteres.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
+  const cargarPerfilEditable = async () => {
+    setLoadingPerfil(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/auth/cambiar-password`, {
-        method: "PUT",
+      const response = await fetch(`${API_URL}/auth/perfil-editable`, {
+        method: "GET",
         headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          passwordActual: passwords.actual,
-          passwordNueva: passwords.nueva,
-        }),
       });
 
-      const data = await res.json();
+      if (!response.ok) {
+        throw new Error("No se pudo cargar el perfil editable");
+      }
 
-      if (!res.ok) {
-        throw new Error(data.error || "Error al cambiar la contraseña");
+      const data = await response.json();
+      const usuarioEditable = data?.usuario || data || {};
+
+      const perfil = {
+        email: usuarioEditable.email || user?.email || "",
+        telefono: usuarioEditable.telefono || "",
+        direccion: usuarioEditable.direccion || "",
+        fechaNacimiento: (usuarioEditable.fechaNacimiento || "").toString().substring(0, 10),
+      };
+
+      setPerfilInicial(perfil);
+      setPerfilFormData(perfil);
+      setPerfilCompleto(!!data?.perfilCompleto);
+      setCamposFaltantes(Array.isArray(data?.camposFaltantes) ? data.camposFaltantes : []);
+      setIsProfileModalOpen(true);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo abrir el perfil editable.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingPerfil(false);
+    }
+  };
+
+  const actualizarUsuarioLocal = (usuarioActualizado: any) => {
+    const guardado = localStorage.getItem("usuario");
+    if (!guardado) return;
+
+    try {
+      const actual = JSON.parse(guardado);
+      const merged = {
+        ...actual,
+        email: usuarioActualizado?.email || actual.email,
+      };
+      localStorage.setItem("usuario", JSON.stringify(merged));
+    } catch {
+      // Ignorar error de parseo de sesión local
+    }
+  };
+
+  const handleSubmitPerfil = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("No hay sesión activa.");
+
+      const perfilPayload: Record<string, string> = {};
+      (Object.keys(perfilFormData) as Array<keyof typeof perfilFormData>).forEach((key) => {
+        const valorNuevo = (perfilFormData[key] || "").trim();
+        const valorAnterior = (perfilInicial[key] || "").trim();
+        if (valorNuevo !== valorAnterior) {
+          perfilPayload[key] = valorNuevo;
+        }
+      });
+
+      const quiereCambiarPassword =
+        passwords.actual.trim() || passwords.nueva.trim() || passwords.confirmar.trim();
+
+      if (
+        quiereCambiarPassword &&
+        (!passwords.actual.trim() || !passwords.nueva.trim() || !passwords.confirmar.trim())
+      ) {
+        throw new Error("Para cambiar contraseña debes completar los 3 campos.");
+      }
+
+      if (quiereCambiarPassword && passwords.nueva !== passwords.confirmar) {
+        throw new Error("Las contraseñas nuevas no coinciden.");
+      }
+
+      if (quiereCambiarPassword && passwords.nueva.length < 8) {
+        throw new Error("La nueva contraseña debe tener al menos 8 caracteres.");
+      }
+
+      const hayPerfilParaActualizar = Object.keys(perfilPayload).length > 0;
+
+      if (!hayPerfilParaActualizar && !quiereCambiarPassword) {
+        throw new Error("No hay cambios para actualizar.");
+      }
+
+      if (hayPerfilParaActualizar) {
+        const responsePerfil = await fetch(`${API_URL}/auth/completar-perfil`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(perfilPayload),
+        });
+
+        const dataPerfil = await responsePerfil.json().catch(() => ({}));
+        if (!responsePerfil.ok) {
+          throw new Error(dataPerfil.error || dataPerfil.mensaje || "No se pudo actualizar el perfil.");
+        }
+
+        const usuarioActualizado = dataPerfil?.usuario || dataPerfil;
+        actualizarUsuarioLocal(usuarioActualizado);
+        setPerfilCompleto(!!dataPerfil?.perfilCompleto);
+        setCamposFaltantes(Array.isArray(dataPerfil?.camposFaltantes) ? dataPerfil.camposFaltantes : []);
+        setPerfilInicial({ ...perfilFormData });
+      }
+
+      if (quiereCambiarPassword) {
+        const resPassword = await fetch(`${API_URL}/auth/cambiar-password`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            passwordActual: passwords.actual,
+            passwordNueva: passwords.nueva,
+          }),
+        });
+
+        const dataPassword = await resPassword.json().catch(() => ({}));
+        if (!resPassword.ok) {
+          throw new Error(dataPassword.error || "Error al cambiar la contraseña");
+        }
       }
 
       toast({
         title: "Éxito",
-        description: "Tu contraseña ha sido actualizada correctamente.",
+        description: "Perfil actualizado correctamente.",
         variant: "success",
       });
 
-      setIsModalOpen(false);
+      setIsProfileModalOpen(false);
       setPasswords({ actual: "", nueva: "", confirmar: "" });
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "No se pudo actualizar el perfil.",
         variant: "destructive",
       });
     } finally {
@@ -310,10 +427,10 @@ export default function DashboardHeader({
                   className="text-sm rounded-md cursor-pointer hover:bg-[#50172A]"
                   onSelect={(e) => {
                     e.preventDefault();
-                    setIsModalOpen(true);
+                    cargarPerfilEditable();
                   }}
                 >
-                  Cambiar Contraseña
+                  Actualizar Perfil
                 </DropdownMenuItem>
                 {esDirectivo && (
                   <DropdownMenuItem
@@ -339,65 +456,130 @@ export default function DashboardHeader({
         </div>
       </header>
 
-      {/* Modal para cambiar contraseña movido FUERA del dropdown */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      {/* Modal para actualizar perfil + contraseña opcional */}
+      <Dialog open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen}>
+        <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#691C32] text-xl">
-              Cambiar Contraseña
+              Actualizar Perfil
             </DialogTitle>
+            <DialogDescription>
+              Completa o corrige tus datos obligatorios. También puedes cambiar la contraseña aquí.
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="actual">Contraseña Actual</Label>
-              <Input
-                id="actual"
-                name="actual"
-                type="password"
-                required
-                value={passwords.actual}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nueva">Nueva Contraseña</Label>
-              <Input
-                id="nueva"
-                name="nueva"
-                type="password"
-                required
-                value={passwords.nueva}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmar">Confirmar Nueva Contraseña</Label>
-              <Input
-                id="confirmar"
-                name="confirmar"
-                type="password"
-                required
-                value={passwords.confirmar}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="flex justify-end gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsModalOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-[#691C32] hover:bg-[#50172A] text-white"
-              >
-                {loading ? "Actualizando..." : "Guardar Cambios"}
-              </Button>
-            </div>
-          </form>
+
+          {loadingPerfil ? (
+            <div className="py-6 text-sm text-gray-600">Cargando perfil...</div>
+          ) : (
+            <form onSubmit={handleSubmitPerfil} className="space-y-5 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={perfilFormData.email}
+                    onChange={handlePerfilChange}
+                    className={camposFaltantes.includes("email") ? "border-amber-500" : ""}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="telefono">Teléfono</Label>
+                  <Input
+                    id="telefono"
+                    name="telefono"
+                    value={perfilFormData.telefono}
+                    onChange={handlePerfilChange}
+                    className={camposFaltantes.includes("telefono") ? "border-amber-500" : ""}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fechaNacimiento">Fecha de nacimiento</Label>
+                  <Input
+                    id="fechaNacimiento"
+                    name="fechaNacimiento"
+                    type="date"
+                    value={perfilFormData.fechaNacimiento}
+                    onChange={handlePerfilChange}
+                    className={camposFaltantes.includes("fechaNacimiento") ? "border-amber-500" : ""}
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="direccion">Dirección</Label>
+                  <Input
+                    id="direccion"
+                    name="direccion"
+                    value={perfilFormData.direccion}
+                    onChange={handlePerfilChange}
+                    className={camposFaltantes.includes("direccion") ? "border-amber-500" : ""}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-md bg-gray-50 p-3 text-xs text-gray-700">
+                Estado del perfil: <strong>{perfilCompleto ? "Completo" : "Incompleto"}</strong>
+                {camposFaltantes.length > 0 && (
+                  <p className="mt-1">
+                    Campos faltantes: {camposFaltantes.join(", ")}
+                  </p>
+                )}
+              </div>
+
+              <div className="border-t pt-4 space-y-3">
+                <h4 className="font-semibold text-[#691C32] text-sm">
+                  Cambiar contraseña (opcional)
+                </h4>
+                <div className="space-y-2">
+                  <Label htmlFor="actual">Contraseña actual</Label>
+                  <Input
+                    id="actual"
+                    name="actual"
+                    type="password"
+                    value={passwords.actual}
+                    onChange={handlePasswordChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nueva">Nueva contraseña</Label>
+                  <Input
+                    id="nueva"
+                    name="nueva"
+                    type="password"
+                    value={passwords.nueva}
+                    onChange={handlePasswordChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmar">Confirmar nueva contraseña</Label>
+                  <Input
+                    id="confirmar"
+                    name="confirmar"
+                    type="password"
+                    value={passwords.confirmar}
+                    onChange={handlePasswordChange}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsProfileModalOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-[#691C32] hover:bg-[#50172A] text-white"
+                >
+                  {loading ? "Actualizando..." : "Guardar cambios"}
+                </Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 
