@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          signal: AbortSignal.timeout(30000),
+          signal: AbortSignal.timeout(30000), // Aumentado a 30s
         });
 
         if (res.status === 401) {
@@ -153,24 +153,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             throw new Error("Formato de usuario inválido");
           }
 
-          const requiredFields: (keyof User)[] = [
-            "id",
-            "username",
-            "tipoUsuario",
-            "nombre",
-          ];
-
-          const missingFields = requiredFields.filter((field) => {
-            const value = parsedUser[field];
-            return value === undefined || value === null || value === "";
-          });
-
-          if (missingFields.length > 0) {
-            throw new Error(
-              `Faltan campos requeridos: ${missingFields.join(", ")}`,
-            );
-          }
-
           usuario = parsedUser as User;
 
           if (
@@ -184,7 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   Authorization: `Bearer ${token}`,
                   "Content-Type": "application/json",
                 },
-                signal: AbortSignal.timeout(30000),
+                signal: AbortSignal.timeout(30000), // Aumentado a 30s
               });
 
               if (adminRes.ok) {
@@ -241,17 +223,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
 
+          // BUSCAMOS TODOS LOS PERIODOS Y FILTRAMOS EL ACTIVO
           try {
-            const resPeriodo = await fetch(`${API_URL}/periodos/activo`, {
+            const resPeriodos = await fetch(`${API_URL}/periodos`, {
               headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
               },
-              signal: AbortSignal.timeout(30000),
+              signal: AbortSignal.timeout(30000), // Aumentado a 30s
             });
-            if (resPeriodo.ok) {
-              const dataPeriodo = await resPeriodo.json();
-              setPeriodoActivo(dataPeriodo);
+            if (resPeriodos.ok) {
+              const dataPeriodos = await resPeriodos.json();
+              const periodoActual = dataPeriodos.find(
+                (p: any) => p.activo === true,
+              );
+              setPeriodoActivo(periodoActual || null);
             } else {
               setPeriodoActivo(null);
             }
@@ -267,24 +253,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsLoading(false);
           return;
         }
-
-        try {
-          const [, payloadB64] = token.split(".");
-          if (payloadB64) {
-            const decoded = JSON.parse(atob(payloadB64));
-            if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-              toast({
-                title: "Sesión expirada",
-                description:
-                  "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
-                variant: "destructive",
-              });
-              logout();
-              setIsLoading(false);
-              return;
-            }
-          }
-        } catch {}
       } catch (error) {
         console.error("Error inesperado en checkAuth:", error);
         logout();
@@ -305,7 +273,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout();
         return;
       }
-
       try {
         const [, payloadB64] = token.split(".");
         if (payloadB64) {
@@ -313,7 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (decoded.exp && decoded.exp * 1000 < Date.now()) {
             toast({
               title: "Sesión caducada",
-              description: "Por seguridad, tu sesión de 8 horas ha terminado.",
+              description: "Por seguridad, tu sesión ha terminado.",
               variant: "destructive",
             });
             logout();
@@ -329,15 +296,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isClient, user, logout, toast]);
 
   const login = async (username: string, password: string): Promise<void> => {
-    if (!isClient) {
+    if (!isClient)
       throw new Error(
         "El inicio de sesión solo está disponible en el navegador",
       );
-    }
-
-    if (!username || !password) {
+    if (!username || !password)
       throw new Error("El usuario/correo y la contraseña son requeridos");
-    }
 
     setIsLoading(true);
 
@@ -356,7 +320,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       for (const payload of payloads) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout para el login también
 
         try {
           const intento = await fetch(`${API_URL}/auth/login`, {
@@ -374,17 +338,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const responseText = await intento.text();
 
           if (!contentType || !contentType.includes("application/json")) {
-            console.error("Expected JSON response but got:", contentType);
             throw new Error("La respuesta del servidor no es un JSON válido");
           }
 
-          let parsed: LoginResponse;
-          try {
-            parsed = JSON.parse(responseText);
-          } catch (e) {
-            console.error("Failed to parse JSON response:", e);
-            throw new Error("Error al procesar la respuesta del servidor");
-          }
+          const parsed = JSON.parse(responseText);
 
           if (intento.ok) {
             response = intento;
@@ -393,30 +350,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           ultimoError =
-            parsed.mensaje ||
-            (parsed as any).error ||
-            "Error en la autenticación";
+            parsed.mensaje || parsed.error || "Error en la autenticación";
 
-          if ([400, 401].includes(intento.status)) {
-            continue;
-          }
-
+          if ([400, 401].includes(intento.status)) continue;
           throw new Error(ultimoError);
         } finally {
           clearTimeout(timeoutId);
         }
       }
 
-      if (!response || !result) {
-        throw new Error(ultimoError);
-      }
-
-      if (!result.token || !result.usuario) {
-        console.error("Invalid response format:", result);
-        throw new Error(
-          "La respuesta del servidor no contiene los datos esperados",
-        );
-      }
+      if (!response || !result) throw new Error(ultimoError);
 
       const perfilEstudiante = Array.isArray(result.usuario.perfilEstudiante)
         ? result.usuario.perfilEstudiante[0]
@@ -446,14 +389,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           "",
         apellidoPaterno:
           result.usuario.apellidoPaterno ||
-          result.usuario.datos?.apellidoPaterno ||
           perfilEstudiante?.usuario?.apellidoPaterno ||
           perfilDocente?.usuario?.apellidoPaterno ||
           perfilAdministrativo?.usuario?.apellidoPaterno ||
           "",
         apellidoMaterno:
           result.usuario.apellidoMaterno ||
-          result.usuario.datos?.apellidoMaterno ||
           perfilEstudiante?.usuario?.apellidoMaterno ||
           perfilDocente?.usuario?.apellidoMaterno ||
           perfilAdministrativo?.usuario?.apellidoMaterno ||
@@ -484,19 +425,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               Authorization: `Bearer ${result.token}`,
               "Content-Type": "application/json",
             },
-            signal: AbortSignal.timeout(30000),
+            signal: AbortSignal.timeout(30000), // Aumentado a 30s
           });
           if (adminRes.ok) {
             const admins = await adminRes.json();
             const miPerfil = admins.find(
               (a: any) =>
                 a.email === usuarioFormateado.email ||
-                a.usuarioId === usuarioFormateado.id ||
-                a.idUsuario === usuarioFormateado.id,
+                a.usuarioId === usuarioFormateado.id,
             );
-            if (miPerfil?.cargo) {
-              usuarioFormateado.cargo = miPerfil.cargo;
-            }
+            if (miPerfil?.cargo) usuarioFormateado.cargo = miPerfil.cargo;
           }
         } catch {
           console.warn("No se pudo obtener el cargo del administrativo");
@@ -524,17 +462,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn("No se pudo sincronizar mi perfil tras login");
       }
 
+      // BUSCAMOS TODOS LOS PERIODOS Y FILTRAMOS EL ACTIVO AL LOGUEARNOS
       try {
-        const resPeriodo = await fetch(`${API_URL}/periodos/activo`, {
+        const resPeriodos = await fetch(`${API_URL}/periodos`, {
           headers: {
             Authorization: `Bearer ${result.token}`,
             "Content-Type": "application/json",
           },
-          signal: AbortSignal.timeout(30000),
+          signal: AbortSignal.timeout(30000), // Aumentado a 30s
         });
-        if (resPeriodo.ok) {
-          const dataPeriodo = await resPeriodo.json();
-          setPeriodoActivo(dataPeriodo);
+        if (resPeriodos.ok) {
+          const dataPeriodos = await resPeriodos.json();
+          const periodoActual = dataPeriodos.find(
+            (p: any) => p.activo === true,
+          );
+          setPeriodoActivo(periodoActual || null);
         }
       } catch (error) {
         console.warn("No se pudo cargar el periodo activo durante el login");
@@ -552,7 +494,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .replace(/[\u0300-\u036f]/g, "")
             .toUpperCase()
             .trim() === "PREFECTO");
-
       const redirectPath =
         usuarioFormateado.tipoUsuario === "guardia" || esPrefecto
           ? "/dashboard/scan-qr"
