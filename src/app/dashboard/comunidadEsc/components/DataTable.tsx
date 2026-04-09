@@ -133,17 +133,20 @@ export default function DataTable({
   return (
     <div className="overflow-hidden rounded-md border">
       <div className="h-full overflow-auto">
-        <Table>
+        <Table className="min-w-[860px]">
           <TableHeader className="sticky top-0 z-10">
             <TableRow className="hover:bg-[#691C32]">
               {allColumns()
                 .filter((col) => visibleColumns.includes(col))
                 .map((col) => (
-                  <TableHead key={col} className="bg-[#691C32] text-white">
+                  <TableHead
+                    key={col}
+                    className="bg-[#691C32] text-white whitespace-nowrap"
+                  >
                     {col}
                   </TableHead>
                 ))}
-              <TableHead className="bg-[#691C32] text-white text-center">
+              <TableHead className="bg-[#691C32] text-white text-center whitespace-nowrap">
                 Acciones
               </TableHead>
             </TableRow>
@@ -167,7 +170,7 @@ export default function DataTable({
                   {allColumns()
                     .filter((col) => visibleColumns.includes(col))
                     .map((col) => renderCell(col, item))}
-                  <TableCell className="text-center">
+                  <TableCell className="text-center whitespace-nowrap">
                     <ActionsDropdown
                       item={item}
                       onEdit={handleEdit}

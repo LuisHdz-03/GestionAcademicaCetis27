@@ -13,12 +13,12 @@ const tabs = [
 
 export default function TabsSelector({ activeTab, setActiveTab }: TabsSelectorProps) {
   return (
-    <div className="flex space-x-1">
+    <div className="flex gap-2 overflow-x-auto pb-1">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => setActiveTab(tab.id)}
-          className={`px-6 py-3 text-sm font-medium rounded-lg transition-colors ${
+          className={`shrink-0 px-4 sm:px-6 py-2.5 sm:py-3 text-sm font-medium rounded-lg transition-colors ${
             activeTab === tab.id
               ? "bg-[#691C32] text-white"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"

@@ -125,7 +125,7 @@ export default function TopBar({
   };
 
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       {/* OVERLAY DE CARGA: Bloquea la pantalla mientras sube */}
       {isUploading && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] backdrop-blur-sm">
@@ -145,8 +145,8 @@ export default function TopBar({
       )}
 
       {/* IZQUIERDA: Buscador y Filtros */}
-      <div className="flex items-center gap-4 flex-1">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-1 lg:flex-nowrap">
+        <div className="relative w-full sm:flex-1 sm:min-w-[220px] lg:max-w-md">
           <HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             placeholder="Buscar..."
@@ -162,7 +162,7 @@ export default function TopBar({
           onValueChange={onFilterChange}
           disabled={isUploading}
         >
-          <SelectTrigger className="w-64">
+          <SelectTrigger className="w-full sm:w-[240px] lg:w-64">
             <SelectValue placeholder="Filtrar por..." />
           </SelectTrigger>
           <SelectContent>
@@ -180,7 +180,7 @@ export default function TopBar({
             onValueChange={onStatusFilterChange}
             disabled={isUploading}
           >
-            <SelectTrigger className="w-64">
+            <SelectTrigger className="w-full sm:w-[220px] lg:w-64">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
@@ -192,10 +192,14 @@ export default function TopBar({
       </div>
 
       {/* DERECHA: Botones de Acción */}
-      <div className="flex items-center gap-3">
+      <div className="flex w-full flex-wrap items-center gap-2 sm:gap-3 lg:w-auto lg:justify-end">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2" disabled={isUploading}>
+            <Button
+              variant="outline"
+              className="gap-2 w-full sm:w-auto"
+              disabled={isUploading}
+            >
               <HiTableCells className="w-4 h-4" /> Columnas
             </Button>
           </DropdownMenuTrigger>
@@ -214,7 +218,7 @@ export default function TopBar({
 
         <Button
           variant="outline"
-          className="gap-2"
+          className="gap-2 w-full sm:w-auto"
           disabled={isUploading}
           onClick={() => {
             const input = document.createElement("input");
@@ -235,7 +239,7 @@ export default function TopBar({
         {["alumnos", "docentes", "administradores"].includes(activeTab) && (
           <Button
             variant="outline"
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto"
             disabled={isUploading}
             onClick={handleDescargarPlantilla}
           >
@@ -244,7 +248,7 @@ export default function TopBar({
         )}
 
         <Button
-          className="bg-[#691C32] hover:bg-[#5a1829] text-white gap-2"
+          className="bg-[#691C32] hover:bg-[#5a1829] text-white gap-2 w-full sm:w-auto"
           onClick={onAddClick}
           disabled={isUploading}
         >

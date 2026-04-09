@@ -346,13 +346,13 @@ export default function CommunityManagementPage() {
   return (
     <div className="min-h-screen bg-gray-50/50">
       <Card className="flex flex-col">
-        <CardHeader className="flex-shrink-0 border-b">
-          <CardTitle className="text-3xl font-bold text-gray-900">
+        <CardHeader className="flex-shrink-0 border-b p-4 sm:p-6">
+          <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
             Gestión de comunidad escolar
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="flex flex-col space-y-6 p-6">
+        <CardContent className="flex flex-col space-y-4 sm:space-y-6 p-3 sm:p-6">
           {/* Tabs */}
           <TabsSelector
             activeTab={activeTab}
@@ -410,8 +410,8 @@ export default function CommunityManagementPage() {
           />
 
           {/* Pagination */}
-          <div className="flex items-center justify-between flex-shrink-0 pt-4 border-t">
-            <div className="text-sm text-gray-600">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between flex-shrink-0 pt-4 border-t">
+            <div className="text-xs sm:text-sm text-gray-600">
               Mostrando {startIndex + 1}-
               {Math.min(endIndex, filteredData.length)} de {filteredData.length}{" "}
               {activeTab}
@@ -520,7 +520,7 @@ export default function CommunityManagementPage() {
             open={openEditAlumnoExtra}
             onOpenChange={setOpenEditAlumnoExtra}
           >
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-2xl text-[#691C32]">
                   Información Adicional del Alumno
@@ -548,7 +548,7 @@ export default function CommunityManagementPage() {
                 </div>
 
                 {/* Fechas de credencial */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="credencialEmision">
                       Fecha emisión credencial
@@ -591,7 +591,7 @@ export default function CommunityManagementPage() {
                 </div>
 
                 {/* Nombre del tutor */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <div>
                     <Label htmlFor="tutorNombre">Nombre</Label>
                     <Input
@@ -641,7 +641,7 @@ export default function CommunityManagementPage() {
                 </div>
 
                 {/* Contacto del tutor */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="tutorTelefono">Teléfono</Label>
                     <Input

@@ -12,7 +12,7 @@ export default function Pagination({ currentPage, totalPages, setCurrentPage }: 
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex w-full flex-wrap items-center justify-end gap-2">
       <Button
         variant="outline"
         size="sm"
@@ -23,7 +23,7 @@ export default function Pagination({ currentPage, totalPages, setCurrentPage }: 
         <HiChevronLeft className="w-4 h-4" /> Anterior
       </Button>
 
-      <div className="flex items-center gap-1">
+      <div className="hidden sm:flex items-center gap-1">
         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
           let pageNum;
           if (totalPages <= 5) pageNum = i + 1;
@@ -56,6 +56,10 @@ export default function Pagination({ currentPage, totalPages, setCurrentPage }: 
       >
         Siguiente <HiChevronRight className="w-4 h-4" />
       </Button>
+
+      <span className="sm:hidden text-xs text-gray-600 w-full text-right">
+        Página {currentPage} de {totalPages}
+      </span>
     </div>
   );
 }
