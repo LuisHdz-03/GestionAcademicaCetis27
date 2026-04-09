@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(30000),
         });
 
         if (res.status === 401) {
@@ -184,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   Authorization: `Bearer ${token}`,
                   "Content-Type": "application/json",
                 },
-                signal: AbortSignal.timeout(5000),
+                signal: AbortSignal.timeout(30000),
               });
 
               if (adminRes.ok) {
@@ -247,7 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
               },
-              signal: AbortSignal.timeout(5000),
+              signal: AbortSignal.timeout(30000),
             });
             if (resPeriodo.ok) {
               const dataPeriodo = await resPeriodo.json();
@@ -484,7 +484,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               Authorization: `Bearer ${result.token}`,
               "Content-Type": "application/json",
             },
-            signal: AbortSignal.timeout(5000),
+            signal: AbortSignal.timeout(30000),
           });
           if (adminRes.ok) {
             const admins = await adminRes.json();
@@ -530,7 +530,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             Authorization: `Bearer ${result.token}`,
             "Content-Type": "application/json",
           },
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(30000),
         });
         if (resPeriodo.ok) {
           const dataPeriodo = await resPeriodo.json();
