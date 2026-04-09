@@ -95,7 +95,15 @@ export default function DashboardHeader({
   };
 
   const handlePerfilChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPerfilFormData({ ...perfilFormData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    if (name === "telefono") {
+      const soloDigitos = value.replace(/\D/g, "").slice(0, 10);
+      setPerfilFormData({ ...perfilFormData, telefono: soloDigitos });
+      return;
+    }
+
+    setPerfilFormData({ ...perfilFormData, [name]: value });
   };
 
   const cargarPerfilEditable = async () => {
@@ -118,15 +126,22 @@ export default function DashboardHeader({
 
       const perfil = {
         email: usuarioEditable.email || user?.email || "",
-        telefono: usuarioEditable.telefono || "",
+        telefono: (usuarioEditable.telefono || "")
+          .toString()
+          .replace(/\D/g, "")
+          .slice(0, 10),
         direccion: usuarioEditable.direccion || "",
-        fechaNacimiento: (usuarioEditable.fechaNacimiento || "").toString().substring(0, 10),
+        fechaNacimiento: (usuarioEditable.fechaNacimiento || "")
+          .toString()
+          .substring(0, 10),
       };
 
       setPerfilInicial(perfil);
       setPerfilFormData(perfil);
       setPerfilCompleto(!!data?.perfilCompleto);
-      setCamposFaltantes(Array.isArray(data?.camposFaltantes) ? data.camposFaltantes : []);
+      setCamposFaltantes(
+        Array.isArray(data?.camposFaltantes) ? data.camposFaltantes : [],
+      );
       setIsProfileModalOpen(true);
     } catch (error: any) {
       toast({
@@ -164,7 +179,9 @@ export default function DashboardHeader({
       if (!token) throw new Error("No hay sesión activa.");
 
       const perfilPayload: Record<string, string> = {};
-      (Object.keys(perfilFormData) as Array<keyof typeof perfilFormData>).forEach((key) => {
+      (
+        Object.keys(perfilFormData) as Array<keyof typeof perfilFormData>
+      ).forEach((key) => {
         const valorNuevo = (perfilFormData[key] || "").trim();
         const valorAnterior = (perfilInicial[key] || "").trim();
         if (valorNuevo !== valorAnterior) {
@@ -173,13 +190,19 @@ export default function DashboardHeader({
       });
 
       const quiereCambiarPassword =
-        passwords.actual.trim() || passwords.nueva.trim() || passwords.confirmar.trim();
+        passwords.actual.trim() ||
+        passwords.nueva.trim() ||
+        passwords.confirmar.trim();
 
       if (
         quiereCambiarPassword &&
-        (!passwords.actual.trim() || !passwords.nueva.trim() || !passwords.confirmar.trim())
+        (!passwords.actual.trim() ||
+          !passwords.nueva.trim() ||
+          !passwords.confirmar.trim())
       ) {
-        throw new Error("Para cambiar contraseña debes completar los 3 campos.");
+        throw new Error(
+          "Para cambiar contraseña debes completar los 3 campos.",
+        );
       }
 
       if (quiereCambiarPassword && passwords.nueva !== passwords.confirmar) {
@@ -187,10 +210,19 @@ export default function DashboardHeader({
       }
 
       if (quiereCambiarPassword && passwords.nueva.length < 8) {
-        throw new Error("La nueva contraseña debe tener al menos 8 caracteres.");
+        throw new Error(
+          "La nueva contraseña debe tener al menos 8 caracteres.",
+        );
       }
 
       const hayPerfilParaActualizar = Object.keys(perfilPayload).length > 0;
+
+      if (
+        Object.prototype.hasOwnProperty.call(perfilPayload, "telefono") &&
+        perfilPayload.telefono.length !== 10
+      ) {
+        throw new Error("El teléfono debe tener exactamente 10 dígitos.");
+      }
 
       if (!hayPerfilParaActualizar && !quiereCambiarPassword) {
         throw new Error("No hay cambios para actualizar.");
@@ -208,13 +240,21 @@ export default function DashboardHeader({
 
         const dataPerfil = await responsePerfil.json().catch(() => ({}));
         if (!responsePerfil.ok) {
-          throw new Error(dataPerfil.error || dataPerfil.mensaje || "No se pudo actualizar el perfil.");
+          throw new Error(
+            dataPerfil.error ||
+              dataPerfil.mensaje ||
+              "No se pudo actualizar el perfil.",
+          );
         }
 
         const usuarioActualizado = dataPerfil?.usuario || dataPerfil;
         actualizarUsuarioLocal(usuarioActualizado);
         setPerfilCompleto(!!dataPerfil?.perfilCompleto);
-        setCamposFaltantes(Array.isArray(dataPerfil?.camposFaltantes) ? dataPerfil.camposFaltantes : []);
+        setCamposFaltantes(
+          Array.isArray(dataPerfil?.camposFaltantes)
+            ? dataPerfil.camposFaltantes
+            : [],
+        );
         setPerfilInicial({ ...perfilFormData });
       }
 
@@ -233,7 +273,9 @@ export default function DashboardHeader({
 
         const dataPassword = await resPassword.json().catch(() => ({}));
         if (!resPassword.ok) {
-          throw new Error(dataPassword.error || "Error al cambiar la contraseña");
+          throw new Error(
+            dataPassword.error || "Error al cambiar la contraseña",
+          );
         }
       }
 
@@ -464,7 +506,8 @@ export default function DashboardHeader({
               Actualizar Perfil
             </DialogTitle>
             <DialogDescription>
-              Completa o corrige tus datos obligatorios. También puedes cambiar la contraseña aquí.
+              Completa o corrige tus datos obligatorios. También puedes cambiar
+              la contraseña aquí.
             </DialogDescription>
           </DialogHeader>
 
@@ -481,7 +524,11 @@ export default function DashboardHeader({
                     type="email"
                     value={perfilFormData.email}
                     onChange={handlePerfilChange}
-                    className={camposFaltantes.includes("email") ? "border-amber-500" : ""}
+                    className={
+                      camposFaltantes.includes("email")
+                        ? "border-amber-500"
+                        : ""
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -491,7 +538,14 @@ export default function DashboardHeader({
                     name="telefono"
                     value={perfilFormData.telefono}
                     onChange={handlePerfilChange}
-                    className={camposFaltantes.includes("telefono") ? "border-amber-500" : ""}
+                    maxLength={10}
+                    inputMode="numeric"
+                    pattern="[0-9]{10}"
+                    className={
+                      camposFaltantes.includes("telefono")
+                        ? "border-amber-500"
+                        : ""
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -502,7 +556,11 @@ export default function DashboardHeader({
                     type="date"
                     value={perfilFormData.fechaNacimiento}
                     onChange={handlePerfilChange}
-                    className={camposFaltantes.includes("fechaNacimiento") ? "border-amber-500" : ""}
+                    className={
+                      camposFaltantes.includes("fechaNacimiento")
+                        ? "border-amber-500"
+                        : ""
+                    }
                   />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
@@ -512,13 +570,18 @@ export default function DashboardHeader({
                     name="direccion"
                     value={perfilFormData.direccion}
                     onChange={handlePerfilChange}
-                    className={camposFaltantes.includes("direccion") ? "border-amber-500" : ""}
+                    className={
+                      camposFaltantes.includes("direccion")
+                        ? "border-amber-500"
+                        : ""
+                    }
                   />
                 </div>
               </div>
 
               <div className="rounded-md bg-gray-50 p-3 text-xs text-gray-700">
-                Estado del perfil: <strong>{perfilCompleto ? "Completo" : "Incompleto"}</strong>
+                Estado del perfil:{" "}
+                <strong>{perfilCompleto ? "Completo" : "Incompleto"}</strong>
                 {camposFaltantes.length > 0 && (
                   <p className="mt-1">
                     Campos faltantes: {camposFaltantes.join(", ")}
