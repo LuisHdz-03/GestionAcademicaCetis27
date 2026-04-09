@@ -130,6 +130,8 @@ export default function DashboardHeader({
       const sources = [
         asObject(data),
         asObject(data?.data),
+        asObject(data?.datos),
+        asObject(data?.data?.datos),
         asObject(data?.usuario),
         asObject(data?.data?.usuario),
         asObject(data?.perfil),
