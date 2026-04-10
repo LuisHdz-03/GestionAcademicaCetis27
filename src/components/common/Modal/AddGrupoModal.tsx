@@ -102,16 +102,24 @@ export default function EditGrupoModal({
   const [formData, setFormData] = useState(initialFormState);
   const [selectMateriaKey, setSelectMateriaKey] = useState(0);
   const [aulas, setAulas] = useState<string[]>([]);
+  const [especialidadesApi, setEspecialidadesApi] = useState<Especialidad[]>(
+    [],
+  );
   const [loadingAulas, setLoadingAulas] = useState(false);
   const materiasUnicas = Array.from(
     new Map((materias || []).map((m) => [m.id, m])).values(),
   );
-  const especialidadesNormalizadas = (especialidades || [])
-    .map((esp) => ({
-      id: Number(esp.id ?? esp.idEspecialidad ?? 0),
-      nombre: esp.nombre,
-    }))
-    .filter((esp) => esp.id > 0);
+  const especialidadesNormalizadas = Array.from(
+    new Map(
+      [...(especialidades || []), ...especialidadesApi]
+        .map((esp) => ({
+          id: Number(esp.id ?? esp.idEspecialidad ?? 0),
+          nombre: esp.nombre,
+        }))
+        .filter((esp) => esp.id > 0)
+        .map((esp) => [esp.id, esp]),
+    ).values(),
+  );
 
   const periodosNormalizados = (periodos || [])
     .map((p) => ({
@@ -203,13 +211,10 @@ export default function EditGrupoModal({
     const fetchAulas = async () => {
       setLoadingAulas(true);
       try {
-        const response = await fetch(
-          `${API_URL}/espacios?incluirInactivos=true`,
-          {
-            method: "GET",
-            headers: getAuthHeaders(),
-          },
-        );
+        const response = await fetch(`${API_URL}/espacios`, {
+          method: "GET",
+          headers: getAuthHeaders(),
+        });
 
         if (!response.ok) {
           setAulas([]);
@@ -228,15 +233,8 @@ export default function EditGrupoModal({
                 : [];
 
         const aulasFromBd: string[] = arr
-          .map((e: Espacio) => ({
-            nombre: (e.nombre || "").trim(),
-            activo: e.activo,
-          }))
-          .filter(
-            (e: { nombre: string; activo?: boolean }) =>
-              e.nombre && e.activo !== false,
-          )
-          .map((e: { nombre: string; activo?: boolean }) => e.nombre);
+          .map((e: Espacio) => (e.nombre || "").trim())
+          .filter((nombre: string) => !!nombre);
 
         const uniqueAulas = Array.from(new Set<string>(aulasFromBd));
         setAulas(uniqueAulas.sort((a, b) => a.localeCompare(b)));
@@ -247,7 +245,48 @@ export default function EditGrupoModal({
       }
     };
 
+    const fetchEspecialidades = async () => {
+      try {
+        const response = await fetch(`${API_URL}/especialidades`, {
+          method: "GET",
+          headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+          setEspecialidadesApi([]);
+          return;
+        }
+
+        const data = await response.json();
+        const arr = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+            ? data.data
+            : Array.isArray(data?.datos)
+              ? data.datos
+              : Array.isArray(data?.data?.datos)
+                ? data.data.datos
+                : [];
+
+        const normalizadas: Especialidad[] = arr
+          .map((e: any) => ({
+            id: Number(e.id ?? e.idEspecialidad ?? 0),
+            idEspecialidad: Number(e.idEspecialidad ?? e.id ?? 0),
+            nombre: String(e.nombre || "").trim(),
+            codigo: String(e.codigo || ""),
+          }))
+          .filter((e: Especialidad) =>
+            Number(e.id ?? e.idEspecialidad ?? 0) > 0 && !!e.nombre,
+          );
+
+        setEspecialidadesApi(normalizadas);
+      } catch {
+        setEspecialidadesApi([]);
+      }
+    };
+
     fetchAulas();
+    fetchEspecialidades();
   }, [open]);
 
   const handleSelectChange = (name: string, value: string) => {
