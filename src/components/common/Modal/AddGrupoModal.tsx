@@ -19,14 +19,14 @@ import {
 } from "@/components/ui/select";
 
 interface Especialidad {
-  id: number;
+  id?: number;
   idEspecialidad?: number;
   nombre: string;
   codigo: string;
 }
 
 interface Periodo {
-  id: number;
+  id?: number;
   idPeriodo?: number;
   nombre: string;
   codigo: string;
@@ -106,6 +106,20 @@ export default function EditGrupoModal({
   const materiasUnicas = Array.from(
     new Map((materias || []).map((m) => [m.id, m])).values(),
   );
+  const especialidadesNormalizadas = (especialidades || [])
+    .map((esp) => ({
+      id: Number(esp.id ?? esp.idEspecialidad ?? 0),
+      nombre: esp.nombre,
+    }))
+    .filter((esp) => esp.id > 0);
+
+  const periodosNormalizados = (periodos || [])
+    .map((p) => ({
+      id: Number(p.id ?? p.idPeriodo ?? 0),
+      nombre: p.nombre,
+      activo: p.activo,
+    }))
+    .filter((p) => p.id > 0);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
@@ -189,10 +203,13 @@ export default function EditGrupoModal({
     const fetchAulas = async () => {
       setLoadingAulas(true);
       try {
-        const response = await fetch(`${API_URL}/espacios?incluirInactivos=true`, {
-          method: "GET",
-          headers: getAuthHeaders(),
-        });
+        const response = await fetch(
+          `${API_URL}/espacios?incluirInactivos=true`,
+          {
+            method: "GET",
+            headers: getAuthHeaders(),
+          },
+        );
 
         if (!response.ok) {
           setAulas([]);
@@ -204,17 +221,22 @@ export default function EditGrupoModal({
           ? data
           : Array.isArray(data?.data)
             ? data.data
-            : [];
+            : Array.isArray(data?.datos)
+              ? data.datos
+              : Array.isArray(data?.data?.datos)
+                ? data.data.datos
+                : [];
 
         const aulasFromBd: string[] = arr
           .map((e: Espacio) => ({
             nombre: (e.nombre || "").trim(),
-            tipo: (e.tipo || "").trim().toUpperCase(),
+            activo: e.activo,
           }))
-          .filter((e: { nombre: string; tipo: string }) =>
-            e.nombre && (e.tipo === "AULA" || e.tipo === "AULAS"),
+          .filter(
+            (e: { nombre: string; activo?: boolean }) =>
+              e.nombre && e.activo !== false,
           )
-          .map((e: { nombre: string }) => e.nombre);
+          .map((e: { nombre: string; activo?: boolean }) => e.nombre);
 
         const uniqueAulas = Array.from(new Set<string>(aulasFromBd));
         setAulas(uniqueAulas.sort((a, b) => a.localeCompare(b)));
@@ -232,9 +254,13 @@ export default function EditGrupoModal({
     let newValue: any = value;
     // Solo parsear a número si el campo es uno de los siguientes
     if (
-      ["periodoId", "especialidadId", "grado", "docenteId", "docenteTutorId"].includes(
-        name,
-      )
+      [
+        "periodoId",
+        "especialidadId",
+        "grado",
+        "docenteId",
+        "docenteTutorId",
+      ].includes(name)
     ) {
       newValue = parseInt(value, 10);
       if (isNaN(newValue)) newValue = 0;
@@ -289,10 +315,10 @@ export default function EditGrupoModal({
     onSubmit(formData);
   };
 
-  const periodosVisibles = periodos.filter(
+  const periodosVisibles = periodosNormalizados.filter(
     (p) => p.activo === true || p.id === formData.periodoId,
   );
-  const selectedEspecialidad = especialidades.find(
+  const selectedEspecialidad = especialidadesNormalizadas.find(
     (esp) => esp.id === formData.especialidadId,
   );
 
@@ -428,7 +454,7 @@ export default function EditGrupoModal({
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {especialidades.map((esp) => (
+                  {especialidadesNormalizadas.map((esp) => (
                     <SelectItem key={esp.id} value={esp.id.toString()}>
                       {esp.nombre}
                     </SelectItem>
@@ -456,7 +482,8 @@ export default function EditGrupoModal({
                       key={d.idDocente || d.id}
                       value={String(d.idDocente || d.id)}
                     >
-                      {d.usuario?.nombre || ""} {d.usuario?.apellidoPaterno || ""}{" "}
+                      {d.usuario?.nombre || ""}{" "}
+                      {d.usuario?.apellidoPaterno || ""}{" "}
                       {d.usuario?.apellidoMaterno || ""}
                     </SelectItem>
                   ))}
@@ -482,7 +509,8 @@ export default function EditGrupoModal({
                       key={`tutor-${d.idDocente || d.id}`}
                       value={String(d.idDocente || d.id)}
                     >
-                      {d.usuario?.nombre || ""} {d.usuario?.apellidoPaterno || ""}{" "}
+                      {d.usuario?.nombre || ""}{" "}
+                      {d.usuario?.apellidoPaterno || ""}{" "}
                       {d.usuario?.apellidoMaterno || ""}
                     </SelectItem>
                   ))}
