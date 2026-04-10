@@ -42,7 +42,7 @@ interface Materia {
   activo: boolean;
 }
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
+  "http://localhost:4000/api/web";
 
 interface UseCommunityReturn {
   docentes: Docente[];
@@ -1179,3 +1179,4 @@ export function useCommunity(): UseCommunityReturn {
     refreshData,
   };
 }
+

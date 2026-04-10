@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/contexts/AuthContext";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
+  "http://localhost:4000/api/web";
 
 interface TutorFamiliar {
   nombre: string;
@@ -1190,3 +1190,4 @@ export default function ReportesPage() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +34,7 @@ import {
 } from "react-icons/hi2";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
+  "http://localhost:4000/api/web";
 
 const OPCIONES = [
   {
@@ -1107,3 +1107,4 @@ export default function PaseDeListaPage() {
     </div>
   );
 }
+

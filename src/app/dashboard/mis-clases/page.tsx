@@ -11,7 +11,7 @@ import {
 } from "react-icons/hi2";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
+  "http://localhost:4000/api/web";
 
 const COLORES = [
   {
@@ -217,3 +217,4 @@ export default function MisClasesPage() {
     </div>
   );
 }
+

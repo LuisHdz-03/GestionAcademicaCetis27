@@ -31,7 +31,7 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
+  "http://localhost:4000/api/web";
 
 // Tipo para los registros (Adaptado al Backend)
 type Registro = {
@@ -332,3 +332,4 @@ export default function RegistrosPage() {
     </div>
   );
 }
+
