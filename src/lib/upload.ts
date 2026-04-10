@@ -8,7 +8,8 @@ export type TemplateType =
   | "grupos"
   | "materias"
   | "especialidades"
-  | "asistencias";
+  | "asistencias"
+  | "espacios";
 
 const TEMPLATE_ENDPOINTS: Record<TemplateType, string> = {
   administrativos: "administrativos/plantilla/excel",
@@ -18,6 +19,7 @@ const TEMPLATE_ENDPOINTS: Record<TemplateType, string> = {
   materias: "materias/plantilla/excel",
   especialidades: "especialidades/plantilla/excel",
   asistencias: "asistencias/plantilla/excel",
+  espacios: "espacios/plantilla/excel",
 };
 
 export async function downloadTemplate(tipo: TemplateType): Promise<void> {

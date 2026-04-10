@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/useToast";
+import { downloadTemplate, uploadCsv } from "@/lib/upload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +53,7 @@ export default function EspaciosPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [editing, setEditing] = useState<Espacio | null>(null);
   const [formData, setFormData] = useState(initialForm);
 
@@ -126,6 +128,64 @@ export default function EspaciosPage() {
     setEditing(null);
     setFormData(initialForm);
     setModalOpen(true);
+  };
+
+  const handleDescargarMachote = async () => {
+    try {
+      await downloadTemplate("espacios");
+      toast({
+        title: "Éxito",
+        description: "Descarga iniciada.",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo descargar el machote.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCargarExcel = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".xlsx,.xls";
+
+    input.onchange = async (event) => {
+      const target = event.target as HTMLInputElement;
+      const file = target.files?.[0];
+      if (!file) return;
+
+      setUploading(true);
+      try {
+        const result = await uploadCsv(file, "espacios");
+        const backendMessage =
+          result.data?.message || result.data?.mensaje || result.data?.error;
+
+        if (!result.ok) {
+          throw new Error(backendMessage || "No se pudo procesar el archivo.");
+        }
+
+        toast({
+          title: "Éxito",
+          description: backendMessage || "Archivo cargado correctamente.",
+          variant: "success",
+        });
+
+        await fetchEspacios();
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "No se pudo subir el archivo.",
+          variant: "destructive",
+        });
+      } finally {
+        setUploading(false);
+      }
+    };
+
+    input.click();
   };
 
   const openEdit = (espacio: Espacio) => {
@@ -242,12 +302,24 @@ export default function EspaciosPage() {
             <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900">
               Gestión de Espacios
             </CardTitle>
-            <Button
-              onClick={openCreate}
-              className="bg-[#691C32] hover:bg-[#4a1424] text-white"
-            >
-              Nuevo Espacio
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" onClick={handleDescargarMachote}>
+                Descargar Machote
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleCargarExcel}
+                disabled={uploading}
+              >
+                {uploading ? "Cargando..." : "Cargar Excel"}
+              </Button>
+              <Button
+                onClick={openCreate}
+                className="bg-[#691C32] hover:bg-[#4a1424] text-white"
+              >
+                Nuevo Espacio
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
