@@ -109,9 +109,11 @@ export default function EditGrupoModal({
   const materiasUnicas = Array.from(
     new Map((materias || []).map((m) => [m.id, m])).values(),
   );
+  const especialidadesFuente =
+    (especialidades || []).length > 0 ? especialidades : especialidadesApi;
   const especialidadesNormalizadas = Array.from(
     new Map(
-      [...(especialidades || []), ...especialidadesApi]
+      [...especialidadesFuente]
         .map((esp) => ({
           id: Number(esp.id ?? esp.idEspecialidad ?? 0),
           nombre: esp.nombre,
@@ -175,18 +177,19 @@ export default function EditGrupoModal({
         const idsExistentesRaw =
           idsFromClases.length > 0 ? idsFromClases : idsFromRoot;
         const idsExistentes = Array.from(new Set(idsExistentesRaw as number[]));
-        const currentEspId =
-          initialData.idEspecialidad || initialData.especialidadId || 0;
+        const currentEspId = Number(
+          initialData.idEspecialidad || initialData.especialidadId || 0,
+        );
 
         setFormData({
           nombre: initialData.nombre || initialData.codigo || "",
           grado: initialData.grado || initialData.semestre || 1,
           turno: initialData.turno || "MATUTINO",
           aula: initialData.aula || "",
-          periodoId: initialData.periodoId || initialData.idPeriodo || 0,
-          docenteId: initialData.docenteId || initialData.idDocente || 0,
+          periodoId: Number(initialData.periodoId || initialData.idPeriodo || 0),
+          docenteId: Number(initialData.docenteId || initialData.idDocente || 0),
           docenteTutorId:
-            initialData.docenteTutorId || initialData.idDocenteTutor || 0,
+            Number(initialData.docenteTutorId || initialData.idDocenteTutor || 0),
           especialidadId: currentEspId,
           materiasIds: idsExistentes,
         });
@@ -217,7 +220,6 @@ export default function EditGrupoModal({
         });
 
         if (!response.ok) {
-          setAulas([]);
           return;
         }
 
@@ -239,13 +241,15 @@ export default function EditGrupoModal({
         const uniqueAulas = Array.from(new Set<string>(aulasFromBd));
         setAulas(uniqueAulas.sort((a, b) => a.localeCompare(b)));
       } catch {
-        setAulas([]);
+        // Mantener el estado previo para no vaciar opciones por fallos temporales
       } finally {
         setLoadingAulas(false);
       }
     };
 
     const fetchEspecialidades = async () => {
+      if ((especialidades || []).length > 0) return;
+
       try {
         const response = await fetch(`${API_URL}/especialidades`, {
           method: "GET",
@@ -253,7 +257,6 @@ export default function EditGrupoModal({
         });
 
         if (!response.ok) {
-          setEspecialidadesApi([]);
           return;
         }
 
@@ -281,13 +284,13 @@ export default function EditGrupoModal({
 
         setEspecialidadesApi(normalizadas);
       } catch {
-        setEspecialidadesApi([]);
+        // Mantener respaldo previo para evitar que desaparezcan opciones
       }
     };
 
     fetchAulas();
     fetchEspecialidades();
-  }, [open]);
+  }, [open, especialidades]);
 
   const handleSelectChange = (name: string, value: string) => {
     let newValue: any = value;
