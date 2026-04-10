@@ -138,6 +138,24 @@ export default function EditGrupoModal({
     };
   };
 
+  const toArray = (payload: any): any[] => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.datos)) return payload.datos;
+    if (Array.isArray(payload?.items)) return payload.items;
+    if (Array.isArray(payload?.results)) return payload.results;
+    if (Array.isArray(payload?.espacios)) return payload.espacios;
+    if (Array.isArray(payload?.especialidades)) return payload.especialidades;
+    if (Array.isArray(payload?.data?.datos)) return payload.data.datos;
+    if (Array.isArray(payload?.data?.items)) return payload.data.items;
+    if (Array.isArray(payload?.data?.results)) return payload.data.results;
+    if (Array.isArray(payload?.data?.espacios)) return payload.data.espacios;
+    if (Array.isArray(payload?.data?.especialidades)) {
+      return payload.data.especialidades;
+    }
+    return [];
+  };
+
   useEffect(() => {
     if (open) {
       if (initialData) {
@@ -186,10 +204,15 @@ export default function EditGrupoModal({
           grado: initialData.grado || initialData.semestre || 1,
           turno: initialData.turno || "MATUTINO",
           aula: initialData.aula || "",
-          periodoId: Number(initialData.periodoId || initialData.idPeriodo || 0),
-          docenteId: Number(initialData.docenteId || initialData.idDocente || 0),
-          docenteTutorId:
-            Number(initialData.docenteTutorId || initialData.idDocenteTutor || 0),
+          periodoId: Number(
+            initialData.periodoId || initialData.idPeriodo || 0,
+          ),
+          docenteId: Number(
+            initialData.docenteId || initialData.idDocente || 0,
+          ),
+          docenteTutorId: Number(
+            initialData.docenteTutorId || initialData.idDocenteTutor || 0,
+          ),
           especialidadId: currentEspId,
           materiasIds: idsExistentes,
         });
@@ -224,15 +247,7 @@ export default function EditGrupoModal({
         }
 
         const data = await response.json();
-        const arr = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.data)
-            ? data.data
-            : Array.isArray(data?.datos)
-              ? data.datos
-              : Array.isArray(data?.data?.datos)
-                ? data.data.datos
-                : [];
+        const arr = toArray(data);
 
         const aulasFromBd: string[] = arr
           .map((e: Espacio) => (e.nombre || "").trim())
@@ -261,15 +276,7 @@ export default function EditGrupoModal({
         }
 
         const data = await response.json();
-        const arr = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.data)
-            ? data.data
-            : Array.isArray(data?.datos)
-              ? data.datos
-              : Array.isArray(data?.data?.datos)
-                ? data.data.datos
-                : [];
+        const arr = toArray(data);
 
         const normalizadas: Especialidad[] = arr
           .map((e: any) => ({
@@ -278,8 +285,9 @@ export default function EditGrupoModal({
             nombre: String(e.nombre || "").trim(),
             codigo: String(e.codigo || ""),
           }))
-          .filter((e: Especialidad) =>
-            Number(e.id ?? e.idEspecialidad ?? 0) > 0 && !!e.nombre,
+          .filter(
+            (e: Especialidad) =>
+              Number(e.id ?? e.idEspecialidad ?? 0) > 0 && !!e.nombre,
           );
 
         setEspecialidadesApi(normalizadas);
