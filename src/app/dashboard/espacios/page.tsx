@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-type EspacioTipo = "AULA" | "AREA_COMUN";
+type EspacioTipo = string;
 
 interface Espacio {
   idEspacio?: number;
@@ -38,7 +38,7 @@ const API_URL =
 
 const initialForm = {
   nombre: "",
-  tipo: "AULA" as EspacioTipo,
+  tipo: "",
   descripcion: "",
 };
 
@@ -48,7 +48,7 @@ export default function EspaciosPage() {
   const [espacios, setEspacios] = useState<Espacio[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [tipoFiltro, setTipoFiltro] = useState<"TODOS" | EspacioTipo>("TODOS");
+  const [tipoFiltro, setTipoFiltro] = useState("");
   const [incluirInactivos, setIncluirInactivos] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -78,7 +78,7 @@ export default function EspaciosPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (tipoFiltro !== "TODOS") params.set("tipo", tipoFiltro);
+      if (tipoFiltro.trim()) params.set("tipo", tipoFiltro.trim());
       if (incluirInactivos) params.set("incluirInactivos", "true");
 
       const query = params.toString();
@@ -210,6 +210,15 @@ export default function EspaciosPage() {
       return;
     }
 
+    if (!formData.tipo.trim()) {
+      toast({
+        title: "Dato requerido",
+        description: "El tipo del espacio es obligatorio.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const isEdit = !!editing;
@@ -217,7 +226,7 @@ export default function EspaciosPage() {
 
       const payload: Record<string, any> = {
         nombre: formData.nombre.trim(),
-        tipo: formData.tipo,
+        tipo: formData.tipo.trim(),
       };
 
       if (formData.descripcion.trim()) {
@@ -330,15 +339,11 @@ export default function EspaciosPage() {
               className="lg:col-span-2"
             />
 
-            <select
+            <Input
+              placeholder="Filtrar por tipo"
               value={tipoFiltro}
-              onChange={(e) => setTipoFiltro(e.target.value as any)}
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="TODOS">Todos los tipos</option>
-              <option value="AULA">Aula</option>
-              <option value="AREA_COMUN">Área común</option>
-            </select>
+              onChange={(e) => setTipoFiltro(e.target.value)}
+            />
 
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input
@@ -381,7 +386,7 @@ export default function EspaciosPage() {
                     espaciosFiltrados.map((espacio) => (
                       <TableRow key={espacio.idEspacio || espacio.id}>
                         <TableCell className="font-medium">{espacio.nombre}</TableCell>
-                        <TableCell>{espacio.tipo === "AULA" ? "Aula" : "Área común"}</TableCell>
+                        <TableCell>{espacio.tipo || "-"}</TableCell>
                         <TableCell>{espacio.descripcion || "-"}</TableCell>
                         <TableCell>
                           {espacio.activo === false ? "Inactivo" : "Activo"}
@@ -437,17 +442,13 @@ export default function EspaciosPage() {
 
             <div className="space-y-2">
               <Label htmlFor="tipo">Tipo</Label>
-              <select
+              <Input
                 id="tipo"
                 value={formData.tipo}
-                onChange={(e) =>
-                  setFormData({ ...formData, tipo: e.target.value as EspacioTipo })
-                }
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="AULA">AULA</option>
-                <option value="AREA_COMUN">AREA_COMUN</option>
-              </select>
+                onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+                placeholder="Ej. Aula, Laboratorio, Sala audiovisual"
+                required
+              />
             </div>
 
             <div className="space-y-2">
