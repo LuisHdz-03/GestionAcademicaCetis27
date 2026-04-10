@@ -50,6 +50,17 @@ interface Docente {
   };
 }
 
+interface Espacio {
+  id?: number;
+  idEspacio?: number;
+  nombre?: string;
+  tipo?: string;
+  activo?: boolean;
+}
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
+
 interface EditGrupoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -90,9 +101,18 @@ export default function EditGrupoModal({
 }: EditGrupoModalProps) {
   const [formData, setFormData] = useState(initialFormState);
   const [selectMateriaKey, setSelectMateriaKey] = useState(0);
+  const [aulas, setAulas] = useState<string[]>([]);
+  const [loadingAulas, setLoadingAulas] = useState(false);
   const materiasUnicas = Array.from(
     new Map((materias || []).map((m) => [m.id, m])).values(),
   );
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  };
 
   useEffect(() => {
     if (open) {
@@ -162,6 +182,51 @@ export default function EditGrupoModal({
       setSelectMateriaKey((prev) => prev + 1);
     }
   }, [open, initialData, activeEspecialidadId]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const fetchAulas = async () => {
+      setLoadingAulas(true);
+      try {
+        const response = await fetch(`${API_URL}/espacios?incluirInactivos=true`, {
+          method: "GET",
+          headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+          setAulas([]);
+          return;
+        }
+
+        const data = await response.json();
+        const arr = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+            ? data.data
+            : [];
+
+        const aulasFromBd: string[] = arr
+          .map((e: Espacio) => ({
+            nombre: (e.nombre || "").trim(),
+            tipo: (e.tipo || "").trim().toUpperCase(),
+          }))
+          .filter((e: { nombre: string; tipo: string }) =>
+            e.nombre && (e.tipo === "AULA" || e.tipo === "AULAS"),
+          )
+          .map((e: { nombre: string }) => e.nombre);
+
+        const uniqueAulas = Array.from(new Set<string>(aulasFromBd));
+        setAulas(uniqueAulas.sort((a, b) => a.localeCompare(b)));
+      } catch {
+        setAulas([]);
+      } finally {
+        setLoadingAulas(false);
+      }
+    };
+
+    fetchAulas();
+  }, [open]);
 
   const handleSelectChange = (name: string, value: string) => {
     let newValue: any = value;
@@ -291,13 +356,30 @@ export default function EditGrupoModal({
             </div>
             <div>
               <Label>Aula</Label>
-              <Input
-                value={formData.aula}
-                onChange={(e) =>
-                  setFormData({ ...formData, aula: e.target.value })
-                }
-                placeholder="Ej: A-10"
-              />
+              <Select
+                onValueChange={(v) => setFormData({ ...formData, aula: v })}
+                value={formData.aula || ""}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      loadingAulas ? "Cargando aulas..." : "Selecciona un aula"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {formData.aula && !aulas.includes(formData.aula) && (
+                    <SelectItem value={formData.aula}>
+                      {formData.aula} (actual)
+                    </SelectItem>
+                  )}
+                  {aulas.map((aula) => (
+                    <SelectItem key={aula} value={aula}>
+                      {aula}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
