@@ -117,6 +117,13 @@ export default function Sidebar({
       cargos: cargosAdministrativosGrales,
     },
     {
+      icon: FaCheckCircle,
+      label: "Espacios",
+      href: "/dashboard/espacios",
+      roles: ["ADMINISTRATIVO", "DIRECTIVO"],
+      cargos: cargosAdministrativosGrales,
+    },
+    {
       icon: MdQrCodeScanner,
       label: "Escanear QR",
       href: "/dashboard/scan-qr",
