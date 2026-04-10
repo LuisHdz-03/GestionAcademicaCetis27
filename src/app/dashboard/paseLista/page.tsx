@@ -23,6 +23,7 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { downloadTemplate, uploadCsv } from "@/lib/upload";
 import {
   HiMagnifyingGlass,
   HiCheckCircle,
@@ -107,6 +108,7 @@ export default function PaseDeListaPage() {
   const [historial, setHistorial] = useState<any[]>([]);
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
   const [sesionDetalle, setSesionDetalle] = useState<any | null>(null);
+  const [uploadingExcel, setUploadingExcel] = useState(false);
 
   const LIMITE_MINUTOS = 30;
 
@@ -408,6 +410,79 @@ export default function PaseDeListaPage() {
     }
   };
 
+  const handleDescargarMachote = async () => {
+    try {
+      await downloadTemplate("asistencias");
+      toast({
+        title: "Éxito",
+        description: "Descarga iniciada.",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo descargar el machote.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSubirExcel = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".xlsx,.xls";
+
+    input.onchange = async (event) => {
+      const target = event.target as HTMLInputElement;
+      const file = target.files?.[0];
+      if (!file) return;
+
+      setUploadingExcel(true);
+      try {
+        const result = await uploadCsv(file, "asistencias");
+        const backendMessage =
+          result.data?.message || result.data?.mensaje || result.data?.error;
+
+        if (!result.ok) {
+          throw new Error(backendMessage || "No se pudo procesar el archivo.");
+        }
+
+        toast({
+          title: "Éxito",
+          description: backendMessage || "Asistencias cargadas correctamente.",
+          variant: "success",
+        });
+
+        if (claseIdParam) {
+          try {
+            const resH = await fetch(
+              `${API_URL}/asistencias/historial?claseId=${claseIdParam}`,
+              { headers: getAuthHeaders() },
+            );
+            if (resH.ok) {
+              const dataH = await resH.json();
+              if (Array.isArray(dataH) && dataH.length > 0) {
+                setHistorial(agruparPorFechaExacta(dataH));
+              }
+            }
+          } catch {
+            /* silencioso */
+          }
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "No se pudo subir el Excel.",
+          variant: "destructive",
+        });
+      } finally {
+        setUploadingExcel(false);
+      }
+    };
+
+    input.click();
+  };
+
   return (
     <div className="container mx-auto px-4 py-6 space-y-6 max-w-5xl">
       {/* ─── Header ─── */}
@@ -427,6 +502,18 @@ export default function PaseDeListaPage() {
               ? `${materiaNombre} — ${grupoNombre}`
               : "Registra la asistencia de tus alumnos"}
           </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" onClick={handleDescargarMachote}>
+            Descargar Machote
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleSubirExcel}
+            disabled={uploadingExcel}
+          >
+            {uploadingExcel ? "Cargando..." : "Subir Excel"}
+          </Button>
         </div>
         {asistenciaBloqueada && (
           <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-full text-gray-600 text-sm font-semibold flex-shrink-0">
