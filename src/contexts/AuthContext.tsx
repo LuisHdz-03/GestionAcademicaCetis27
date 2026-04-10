@@ -88,14 +88,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isClient]);
 
   const obtenerMiPerfil = useCallback(async (token: string) => {
-    const endpoints = ["/auth/mi-perfil", "/auth/perfil"];
+    const endpoints = ["/auth/mi-perfil", "/auth/perfil-editable"];
 
     for (const endpoint of endpoints) {
       try {
         const res = await fetch(`${API_URL}${endpoint}`, {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
           },
           signal: AbortSignal.timeout(30000), // Aumentado a 30s
         });
@@ -225,19 +224,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           // BUSCAMOS TODOS LOS PERIODOS Y FILTRAMOS EL ACTIVO
           try {
-            const resPeriodos = await fetch(`${API_URL}/periodos`, {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-              signal: AbortSignal.timeout(30000), // Aumentado a 30s
+            const resPeriodoActivo = await fetch(`${API_URL}/periodos/activo`, {
+              method: "GET",
+              signal: AbortSignal.timeout(30000),
             });
-            if (resPeriodos.ok) {
-              const dataPeriodos = await resPeriodos.json();
-              const periodoActual = dataPeriodos.find(
-                (p: any) => p.activo === true,
-              );
-              setPeriodoActivo(periodoActual || null);
+
+            if (resPeriodoActivo.ok) {
+              const dataPeriodoActivo = await resPeriodoActivo.json();
+              const periodo =
+                dataPeriodoActivo?.data ?? dataPeriodoActivo?.datos ?? dataPeriodoActivo;
+              setPeriodoActivo(periodo || null);
             } else {
               setPeriodoActivo(null);
             }
@@ -464,19 +460,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // BUSCAMOS TODOS LOS PERIODOS Y FILTRAMOS EL ACTIVO AL LOGUEARNOS
       try {
-        const resPeriodos = await fetch(`${API_URL}/periodos`, {
-          headers: {
-            Authorization: `Bearer ${result.token}`,
-            "Content-Type": "application/json",
-          },
-          signal: AbortSignal.timeout(30000), // Aumentado a 30s
+        const resPeriodoActivo = await fetch(`${API_URL}/periodos/activo`, {
+          method: "GET",
+          signal: AbortSignal.timeout(30000),
         });
-        if (resPeriodos.ok) {
-          const dataPeriodos = await resPeriodos.json();
-          const periodoActual = dataPeriodos.find(
-            (p: any) => p.activo === true,
-          );
-          setPeriodoActivo(periodoActual || null);
+        if (resPeriodoActivo.ok) {
+          const dataPeriodoActivo = await resPeriodoActivo.json();
+          const periodo =
+            dataPeriodoActivo?.data ?? dataPeriodoActivo?.datos ?? dataPeriodoActivo;
+          setPeriodoActivo(periodo || null);
         }
       } catch (error) {
         console.warn("No se pudo cargar el periodo activo durante el login");

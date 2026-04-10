@@ -30,6 +30,12 @@ import {
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/web";
+const API_DEBUG = process.env.NEXT_PUBLIC_DEBUG_API === "true";
+
+const logApi = (label: string, payload: unknown) => {
+  if (!API_DEBUG) return;
+  console.log(`[API_DEBUG] ${label}`, payload);
+};
 
 export default function DashboardPage() {
   const { toast } = useToast();
@@ -84,8 +90,11 @@ export default function DashboardPage() {
   // Función para traer período activo del backend
   const fetchActivePeriod = async () => {
     try {
-      const res = await fetch(`${API_URL}/periodos`, {
-        headers: getAuthHeaders(),
+      logApi("request GET /periodos/activo", { url: `${API_URL}/periodos/activo` });
+      const res = await fetch(`${API_URL}/periodos/activo`);
+      logApi("response GET /periodos/activo", {
+        status: res.status,
+        ok: res.ok,
       });
       if (!res.ok) {
         setHasActivePeriod(false);
@@ -93,10 +102,9 @@ export default function DashboardPage() {
         return;
       }
       const data = await res.json();
+      logApi("payload GET /periodos/activo", data);
 
-      // Buscamos cuál es el activo de la lista que nos manda Prisma
-      const periodos = Array.isArray(data) ? data : data.data || [];
-      const periodoActivo = periodos.find((p: any) => p.activo === true);
+      const periodoActivo = data?.data ?? data?.datos ?? data;
 
       if (periodoActivo) {
         setHasActivePeriod(true);
@@ -106,6 +114,7 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.warn("No se pudo obtener el periodo activo", err);
+      logApi("error GET /periodos/activo", err);
       setHasActivePeriod(false);
     }
   };
@@ -209,6 +218,7 @@ export default function DashboardPage() {
       setIsModalOpen(false);
 
       const payload = { ...data, activo: true };
+      logApi("request POST /periodos", payload);
 
       const res = await fetch(`${API_URL}/periodos`, {
         method: "POST",
@@ -216,7 +226,13 @@ export default function DashboardPage() {
         body: JSON.stringify(payload),
       });
 
+      logApi("response POST /periodos", {
+        status: res.status,
+        ok: res.ok,
+      });
+
       const result = await res.json();
+      logApi("payload POST /periodos", result);
 
       if (!res.ok) {
         console.error("Error al crear período:", result);
@@ -244,6 +260,7 @@ export default function DashboardPage() {
       });
     } catch (err) {
       console.error("Error en fetch:", err);
+      logApi("error POST /periodos", err);
       toast({
         title: "Error de conexión",
         description:
@@ -263,12 +280,19 @@ export default function DashboardPage() {
   }) => {
     if (!activePeriod) return;
     try {
+      const editPayload = { ...data, activo: true };
+      logApi(`request PUT /periodos/${activePeriod.idPeriodo}`, editPayload);
       const res = await fetch(`${API_URL}/periodos/${activePeriod.idPeriodo}`, {
         method: "PUT",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ ...data, activo: true }),
+        body: JSON.stringify(editPayload),
+      });
+      logApi(`response PUT /periodos/${activePeriod.idPeriodo}`, {
+        status: res.status,
+        ok: res.ok,
       });
       const result = await res.json();
+      logApi(`payload PUT /periodos/${activePeriod.idPeriodo}`, result);
       if (!res.ok) {
         toast({
           title: "Error al actualizar período",
@@ -286,6 +310,7 @@ export default function DashboardPage() {
       });
     } catch (err) {
       console.error(err);
+      logApi(`error PUT /periodos/${activePeriod.idPeriodo}`, err);
       toast({
         title: "Error de conexión",
         description: "No se pudo actualizar el período",
@@ -296,11 +321,17 @@ export default function DashboardPage() {
 
   const handleDeletePeriod = async (id: number) => {
     try {
+      logApi(`request DELETE /periodos/${id}`, null);
       const res = await fetch(`${API_URL}/periodos/${id}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
+      logApi(`response DELETE /periodos/${id}`, {
+        status: res.status,
+        ok: res.ok,
+      });
       const result = await res.json();
+      logApi(`payload DELETE /periodos/${id}`, result);
       if (!res.ok) {
         toast({
           title: "Error al eliminar período",
@@ -320,6 +351,7 @@ export default function DashboardPage() {
       });
     } catch (err) {
       console.error(err);
+      logApi(`error DELETE /periodos/${id}`, err);
       toast({
         title: "Error de conexión",
         description: "No se pudo eliminar el período",

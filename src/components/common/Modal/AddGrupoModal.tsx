@@ -239,7 +239,6 @@ export default function EditGrupoModal({
       try {
         const response = await fetch(`${API_URL}/espacios`, {
           method: "GET",
-          headers: getAuthHeaders(),
         });
 
         if (!response.ok) {
@@ -268,7 +267,6 @@ export default function EditGrupoModal({
       try {
         const response = await fetch(`${API_URL}/especialidades`, {
           method: "GET",
-          headers: getAuthHeaders(),
         });
 
         if (!response.ok) {
