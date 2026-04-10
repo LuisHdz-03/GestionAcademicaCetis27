@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isClient]);
 
   const obtenerMiPerfil = useCallback(async (token: string) => {
-    const endpoints = ["/auth/mi-perfil", "/auth/perfil-editable"];
+    const endpoints = ["/auth/mi-perfil"];
 
     for (const endpoint of endpoints) {
       try {
@@ -224,16 +224,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           // BUSCAMOS TODOS LOS PERIODOS Y FILTRAMOS EL ACTIVO
           try {
-            const resPeriodoActivo = await fetch(`${API_URL}/periodos/activo`, {
-              method: "GET",
+            const resPeriodos = await fetch(`${API_URL}/periodos`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
               signal: AbortSignal.timeout(30000),
             });
-
-            if (resPeriodoActivo.ok) {
-              const dataPeriodoActivo = await resPeriodoActivo.json();
-              const periodo =
-                dataPeriodoActivo?.data ?? dataPeriodoActivo?.datos ?? dataPeriodoActivo;
-              setPeriodoActivo(periodo || null);
+            if (resPeriodos.ok) {
+              const dataPeriodos = await resPeriodos.json();
+              const periodos = Array.isArray(dataPeriodos)
+                ? dataPeriodos
+                : Array.isArray(dataPeriodos?.data)
+                  ? dataPeriodos.data
+                  : [];
+              const periodoActual = periodos.find((p: any) => p.activo === true);
+              setPeriodoActivo(periodoActual || null);
             } else {
               setPeriodoActivo(null);
             }
@@ -460,15 +465,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // BUSCAMOS TODOS LOS PERIODOS Y FILTRAMOS EL ACTIVO AL LOGUEARNOS
       try {
-        const resPeriodoActivo = await fetch(`${API_URL}/periodos/activo`, {
-          method: "GET",
+        const resPeriodos = await fetch(`${API_URL}/periodos`, {
+          headers: {
+            Authorization: `Bearer ${result.token}`,
+          },
           signal: AbortSignal.timeout(30000),
         });
-        if (resPeriodoActivo.ok) {
-          const dataPeriodoActivo = await resPeriodoActivo.json();
-          const periodo =
-            dataPeriodoActivo?.data ?? dataPeriodoActivo?.datos ?? dataPeriodoActivo;
-          setPeriodoActivo(periodo || null);
+        if (resPeriodos.ok) {
+          const dataPeriodos = await resPeriodos.json();
+          const periodos = Array.isArray(dataPeriodos)
+            ? dataPeriodos
+            : Array.isArray(dataPeriodos?.data)
+              ? dataPeriodos.data
+              : [];
+          const periodoActual = periodos.find((p: any) => p.activo === true);
+          setPeriodoActivo(periodoActual || null);
         }
       } catch (error) {
         console.warn("No se pudo cargar el periodo activo durante el login");

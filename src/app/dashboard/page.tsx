@@ -90,9 +90,11 @@ export default function DashboardPage() {
   // Función para traer período activo del backend
   const fetchActivePeriod = async () => {
     try {
-      logApi("request GET /periodos/activo", { url: `${API_URL}/periodos/activo` });
-      const res = await fetch(`${API_URL}/periodos/activo`);
-      logApi("response GET /periodos/activo", {
+      logApi("request GET /periodos", { url: `${API_URL}/periodos` });
+      const res = await fetch(`${API_URL}/periodos`, {
+        headers: getAuthHeaders(),
+      });
+      logApi("response GET /periodos", {
         status: res.status,
         ok: res.ok,
       });
@@ -102,9 +104,14 @@ export default function DashboardPage() {
         return;
       }
       const data = await res.json();
-      logApi("payload GET /periodos/activo", data);
+      logApi("payload GET /periodos", data);
 
-      const periodoActivo = data?.data ?? data?.datos ?? data;
+      const periodos = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+          ? data.data
+          : [];
+      const periodoActivo = periodos.find((p: any) => p.activo === true);
 
       if (periodoActivo) {
         setHasActivePeriod(true);
@@ -114,7 +121,7 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.warn("No se pudo obtener el periodo activo", err);
-      logApi("error GET /periodos/activo", err);
+      logApi("error GET /periodos", err);
       setHasActivePeriod(false);
     }
   };
