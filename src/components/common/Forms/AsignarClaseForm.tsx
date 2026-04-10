@@ -211,8 +211,8 @@ export default function AsignarClaseForm({
   }));
 
   const docenteOpts: Option[] = docentes.map((d) => ({
-    value: String(d.id),
-    label: `${d.nombre || ""} ${d.apellidoPaterno || ""}`.trim(),
+    value: String(d.idDocente || d.id),
+    label: `${d.usuario?.nombre || d.nombre || ""} ${d.usuario?.apellidoPaterno || d.apellidoPaterno || ""}`.trim(),
     sublabel: d.especialidad || d.cargo || "",
   }));
 
@@ -254,7 +254,9 @@ export default function AsignarClaseForm({
     const materia = materias.find(
       (m) => String(m.idMateria || m.id) === formData.materiaId,
     );
-    const docente = docentes.find((d) => String(d.id) === formData.docenteId);
+    const docente = docentes.find(
+      (d) => String(d.idDocente || d.id) === formData.docenteId,
+    );
     return { grupo, materia, docente };
   }, [formData, grupos, materias, docentes]);
 
@@ -356,7 +358,9 @@ export default function AsignarClaseForm({
           {resumen.docente && (
             <p className="text-sm text-gray-700">
               <span className="font-medium">Docente:</span>{" "}
-              {resumen.docente.nombre} {resumen.docente.apellidoPaterno}
+              {resumen.docente.usuario?.nombre || resumen.docente.nombre} {" "}
+              {resumen.docente.usuario?.apellidoPaterno ||
+                resumen.docente.apellidoPaterno}
             </p>
           )}
         </div>

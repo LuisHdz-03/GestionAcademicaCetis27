@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useCommunity } from "@/hooks/useCommunity";
+import { useToast } from "@/hooks/useToast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,8 +16,10 @@ import {
 } from "@/components/ui/table";
 import AddClaseModal from "@/components/common/Modal/AddClaseModal";
 import { Search, Plus, Pencil } from "lucide-react";
+import { downloadTemplate, uploadCsv } from "@/lib/upload";
 
 export default function HorariosPage() {
+  const { toast } = useToast();
   const {
     grupos,
     materias,
@@ -36,6 +39,7 @@ export default function HorariosPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [claseEditar, setClaseEditar] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [uploadingExcel, setUploadingExcel] = useState(false);
 
   useEffect(() => {
     fetchGrupos();
@@ -68,6 +72,67 @@ export default function HorariosPage() {
     setIsEditModalOpen(true);
   };
 
+  const handleDescargarMachote = async () => {
+    try {
+      await downloadTemplate("clases");
+      toast({
+        title: "Machote descargado",
+        description:
+          "Usa el formato sin IDs (grupo, materia y docente por nombre/código).",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo descargar el machote.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCargaMasiva = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".xlsx,.xls,.csv";
+
+    input.onchange = async (event) => {
+      const target = event.target as HTMLInputElement;
+      const file = target.files?.[0];
+      if (!file) return;
+
+      setUploadingExcel(true);
+      try {
+        const result = await uploadCsv(file, "clases");
+        const backendMessage =
+          result.data?.message || result.data?.mensaje || result.data?.error;
+
+        if (!result.ok) {
+          throw new Error(backendMessage || "No se pudo procesar el archivo.");
+        }
+
+        toast({
+          title: "Carga masiva completada",
+          description:
+            backendMessage ||
+            "Las clases se cargaron correctamente con formato sin IDs.",
+          variant: "success",
+        });
+
+        await fetchClases();
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "No se pudo subir el archivo.",
+          variant: "destructive",
+        });
+      } finally {
+        setUploadingExcel(false);
+      }
+    };
+
+    input.click();
+  };
+
   const clasesFiltradas = clases?.filter((c: any) => {
     if (!c.periodo || c.periodo.activo === false) {
       return false;
@@ -92,12 +157,24 @@ export default function HorariosPage() {
           <CardTitle className="text-3xl font-bold text-gray-900">
             Gestión de Clases y Horarios
           </CardTitle>
-          <Button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-[#691C32] hover:bg-[#4a1424] text-white flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" /> Nueva Asignación
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={handleDescargarMachote}>
+              Descargar Machote
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleCargaMasiva}
+              disabled={uploadingExcel}
+            >
+              {uploadingExcel ? "Cargando..." : "Carga Masiva"}
+            </Button>
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-[#691C32] hover:bg-[#4a1424] text-white flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" /> Nueva Asignación
+            </Button>
+          </div>
         </CardHeader>
 
         <CardContent className="p-6 flex flex-col gap-6 overflow-hidden h-full">

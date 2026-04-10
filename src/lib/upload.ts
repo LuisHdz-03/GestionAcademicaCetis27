@@ -6,6 +6,7 @@ export type TemplateType =
   | "estudiantes"
   | "docentes"
   | "grupos"
+  | "clases"
   | "materias"
   | "especialidades"
   | "asistencias"
@@ -16,6 +17,7 @@ const TEMPLATE_ENDPOINTS: Record<TemplateType, string> = {
   estudiantes: "estudiantes/plantilla/excel",
   docentes: "docentes/plantilla/excel",
   grupos: "grupos/plantilla/excel",
+  clases: "clases/horarios/plantilla/excel",
   materias: "materias/plantilla/excel",
   especialidades: "especialidades/plantilla/excel",
   asistencias: "asistencias/plantilla/excel",

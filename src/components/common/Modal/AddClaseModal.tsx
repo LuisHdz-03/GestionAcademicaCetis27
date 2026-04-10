@@ -54,7 +54,10 @@ export default function AddClaseModal({
                   grupoId: claseEditar.grupoId || claseEditar.grupo?.idGrupo,
                   materiaId:
                     claseEditar.materiaId || claseEditar.materias?.idMateria,
-                  docenteId: claseEditar.docenteId || claseEditar.docente?.id,
+                  docenteId:
+                    claseEditar.docenteId ||
+                    claseEditar.docente?.idDocente ||
+                    claseEditar.docente?.id,
                   horario: claseEditar.horario || "",
                 }
               : undefined
