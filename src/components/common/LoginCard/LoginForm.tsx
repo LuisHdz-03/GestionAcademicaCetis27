@@ -1,103 +1,147 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { HiEye, HiEyeSlash } from "react-icons/hi2";
+import { useToast } from "@/hooks/useToast";
+import { Loader2, Users } from "lucide-react";
 
-interface LoginFormProps {
-  onSubmit: (data: { username: string; password: string }) => void;
-  isLoading?: boolean;
-}
+export default function LoginForm() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
-export default function LoginForm({
-  onSubmit,
-  isLoading = false,
-}: LoginFormProps) {
-  const [formData, setFormData] = useState({
-    username: "",
-    password: "",
-  });
-  const [showPassword, setShowPassword] = useState(false);
+  // Nuevos estados para los papás
+  const [matricula, setMatricula] = useState("");
+  const [curp, setCurp] = useState("");
+  const [isTutorMode, setIsTutorMode] = useState(false); // <--- El interruptor mágico
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { login, loginPadre, isLoading } = useAuth();
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
-  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    try {
+      if (isTutorMode) {
+        // Ejecutamos el login de padres
+        if (!matricula || !curp) {
+          toast({
+            title: "Error",
+            description: "Llena ambos campos",
+            variant: "destructive",
+          });
+          return;
+        }
+        await loginPadre(matricula, curp);
+      } else {
+        // Ejecutamos el login normal
+        if (!username || !password) {
+          toast({
+            title: "Error",
+            description: "Llena ambos campos",
+            variant: "destructive",
+          });
+          return;
+        }
+        await login(username, password);
+      }
+
+      toast({
+        title: "¡Bienvenido!",
+        description: "Iniciando sesión correctamente.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error de autenticación",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Campo Usuario o Correo */}
-      <div className="space-y-2">
-        <Label htmlFor="username">Usuario o correo</Label>
-        <Input
-          id="username"
-          name="username"
-          type="text"
-          placeholder="Ingresa tu usuario o correo"
-          value={formData.username}
-          onChange={handleChange}
-          disabled={isLoading}
-          required
-          className="w-full"
-        />
-      </div>
-
-      {/* Campo Password */}
-      <div className="space-y-2">
-        <Label htmlFor="password">Contraseña</Label>
-        <div className="relative">
-          <Input
-            id="password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            placeholder="••••••••"
-            value={formData.password}
-            onChange={handleChange}
-            disabled={isLoading}
-            required
-            className="w-full pr-10 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="absolute right-0 top-0 h-full px-3"
-            onClick={() => setShowPassword(!showPassword)}
-            disabled={isLoading}
-          >
-            {showPassword ? (
-              <HiEyeSlash className="h-4 w-4 text-gray-500" />
-            ) : (
-              <HiEye className="h-4 w-4 text-gray-500" />
-            )}
-          </Button>
-        </div>
-      </div>
-
-      {/* Botón Submit */}
-      <Button
-        type="submit"
-        className="w-full bg-[#691C32] hover:bg-[#8E2B4B]"
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span>Iniciando sesión...</span>
-          </div>
+    <div className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* === MODO TUTOR === */}
+        {isTutorMode ? (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="matricula">Matrícula del Alumno</Label>
+              <Input
+                id="matricula"
+                placeholder="Ej. 21040497"
+                value={matricula}
+                onChange={(e) => setMatricula(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="curp">CURP del Alumno</Label>
+              <Input
+                id="curp"
+                type="text"
+                placeholder="Ingresa la CURP"
+                value={curp}
+                onChange={(e) => setCurp(e.target.value.toUpperCase())}
+                required
+              />
+            </div>
+          </>
         ) : (
-          "Iniciar Sesión"
+          /* === MODO PERSONAL (Normal) === */
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="username">Usuario</Label>
+              <Input
+                id="username"
+                placeholder="Ingresa tu usuario"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Contraseña</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+          </>
         )}
+
+        <Button
+          type="submit"
+          className="w-full bg-[#800000] hover:bg-[#600000] text-white"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isTutorMode ? (
+            "Consultar Estatus"
+          ) : (
+            "Iniciar Sesión"
+          )}
+        </Button>
+      </form>
+
+      {/* === BOTÓN PARA CAMBIAR DE MODO === */}
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full flex gap-2"
+        onClick={() => setIsTutorMode(!isTutorMode)}
+      >
+        <Users size={16} />
+        {isTutorMode ? "Soy Personal del CETIS" : "Soy Padre / Tutor"}
       </Button>
-    </form>
+    </div>
   );
 }

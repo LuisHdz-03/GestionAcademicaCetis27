@@ -526,15 +526,17 @@ export default function DashboardHeader({
                 {/* Usamos onSelect en lugar de onClick. 
                   e.preventDefault() evita que Radix cierre el dropdown antes de que React abra el modal.
                 */}
-                <DropdownMenuItem
-                  className="text-sm rounded-md cursor-pointer hover:bg-[#50172A]"
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    cargarPerfilEditable();
-                  }}
-                >
-                  Actualizar Perfil
-                </DropdownMenuItem>
+                {user?.tipoUsuario !== "padre" && (
+                  <DropdownMenuItem
+                    className="text-sm rounded-md cursor-pointer hover:bg-[#50172A]"
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      cargarPerfilEditable();
+                    }}
+                  >
+                    Actualizar Perfil
+                  </DropdownMenuItem>
+                )}
                 {esDirectivo && (
                   <DropdownMenuItem
                     className="text-sm rounded-md cursor-pointer hover:bg-[#50172A]"

@@ -48,15 +48,11 @@ export default function Sidebar({
       .trim();
   };
 
-
   // 2. Extraer rol y cargo real de la base de datos
   const tipoUsuario = normalizarTexto(
     user?.tipoUsuario || (user as any)?.rol || "",
   );
   const cargoUsuario = normalizarTexto(user?.cargo || "");
-
-  // Mostrar menú de Padres solo si el usuario es padre
-  const esPadre = tipoUsuario === "PADRE";
 
   // 3. Agrupamos los cargos para no repetir código
   const cargosDirectivos = [
@@ -138,7 +134,6 @@ export default function Sidebar({
       icon: HiClock,
       label: "Registros de Entrada",
       href: "/dashboard/registros",
-      // AQUÍ TAMBIÉN AGREGAMOS AL PREFECTO
       roles: ["ADMINISTRATIVO", "DIRECTIVO", "PREFECTO"],
       cargos: cargosAdministrativosGrales,
     },
@@ -165,20 +160,9 @@ export default function Sidebar({
     },
   ];
 
-  let itemsPermitidos = menuItems.filter((item) =>
+  const itemsPermitidos = menuItems.filter((item) =>
     tienePermiso(item.roles, item.cargos),
   );
-  if (esPadre) {
-    itemsPermitidos = [
-      {
-        icon: HiUsers,
-        label: "Padres",
-        href: "/dashboard/padres",
-        roles: ["PADRE"],
-        cargos: [],
-      },
-    ];
-  }
 
   const sidebarBgClass = "bg-[#691C32]";
   const hoverBgClass = "hover:bg-[#50172A]";

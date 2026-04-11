@@ -56,7 +56,7 @@ export default function LoginCard() {
         Gestión Académica
       </h2>
 
-      <LoginForm onSubmit={handleLogin} isLoading={isLoading} />
+      <LoginForm />
 
       <div className="mt-3 text-center">
         <Link
