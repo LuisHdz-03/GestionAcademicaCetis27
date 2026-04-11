@@ -160,6 +160,9 @@ export default function CommunityManagementPage() {
   const [extraFormData, setExtraFormData] = useState({
     credencialFechaEmision: "",
     credencialFechaExpiracion: "",
+    alumnoTelefono: "",
+    alumnoDireccion: "",
+    alumnoEmail: "",
     tutorNombre: "",
     tutorApellidoPaterno: "",
     tutorApellidoMaterno: "",
@@ -171,11 +174,9 @@ export default function CommunityManagementPage() {
 
   const formatDate = (value?: string) => {
     if (!value) return "";
-    // Asegurar formato YYYY-MM-DD para inputs type=date
     return value.substring(0, 10);
   };
 
-  // --- Cargar datos al montar el componente ---
   useEffect(() => {
     if (!user) return;
     if (!tieneAccesoComunidad()) {
@@ -194,7 +195,6 @@ export default function CommunityManagementPage() {
     fetchGrupos();
   }, [user]);
 
-  // --- Filters (dinámicos con base en BD) ---
   const docentesFilters = [
     "Todas las especialidades",
     ...Array.from(new Set((especialidades || []).map((e) => e.nombre))).filter(
@@ -320,10 +320,12 @@ export default function CommunityManagementPage() {
 
     // Cargar datos existentes del alumno
     const alumno = item as any;
-
     setExtraFormData({
       credencialFechaEmision: formatDate(alumno.credencialFechaEmision),
       credencialFechaExpiracion: formatDate(alumno.credencialFechaExpiracion),
+      alumnoTelefono: alumno.telefono || alumno.usuario?.telefono || "",
+      alumnoDireccion: alumno.direccion || "",
+      alumnoEmail: alumno.email || alumno.usuario?.email || "",
       tutorNombre: alumno.tutor?.nombre || "",
       tutorApellidoPaterno: alumno.tutor?.apellidoPaterno || "",
       tutorApellidoMaterno: alumno.tutor?.apellidoMaterno || "",
@@ -629,6 +631,58 @@ export default function CommunityManagementPage() {
                   </div>
                 </div>
 
+                {/* Datos de contacto del alumno */}
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="font-semibold text-gray-900 mb-4">
+                    Información de Contacto del Alumno
+                  </h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="alumnoTelefono">Teléfono</Label>
+                    <Input
+                      id="alumnoTelefono"
+                      value={extraFormData.alumnoTelefono}
+                      onChange={(e) =>
+                        setExtraFormData({
+                          ...extraFormData,
+                          alumnoTelefono: e.target.value,
+                        })
+                      }
+                      placeholder="Teléfono del alumno"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="alumnoDireccion">Dirección</Label>
+                    <Input
+                      id="alumnoDireccion"
+                      value={extraFormData.alumnoDireccion}
+                      onChange={(e) =>
+                        setExtraFormData({
+                          ...extraFormData,
+                          alumnoDireccion: e.target.value,
+                        })
+                      }
+                      placeholder="Dirección del alumno"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="alumnoEmail">Correo electrónico</Label>
+                    <Input
+                      id="alumnoEmail"
+                      type="email"
+                      value={extraFormData.alumnoEmail}
+                      onChange={(e) =>
+                        setExtraFormData({
+                          ...extraFormData,
+                          alumnoEmail: e.target.value,
+                        })
+                      }
+                      placeholder="correo@ejemplo.com"
+                    />
+                  </div>
+                </div>
+
                 {/* Separador */}
                 <div className="border-t pt-4 mt-4">
                   <h3 className="font-semibold text-gray-900 mb-4">
@@ -764,7 +818,6 @@ export default function CommunityManagementPage() {
 
                     const alumnoId = (selectedItem as any).id;
 
-                    // Preparar datos del tutor solo si hay al menos un campo
                     const hasTutorData =
                       extraFormData.tutorNombre ||
                       extraFormData.tutorApellidoPaterno ||

@@ -41,8 +41,7 @@ interface Materia {
   especialidadNombre?: string;
   activo: boolean;
 }
-const API_URL =
-  "http://localhost:4000/api/web";
+const API_URL = "http://localhost:4000/api/web";
 
 interface UseCommunityReturn {
   docentes: Docente[];
@@ -173,7 +172,9 @@ export function useCommunity(): UseCommunityReturn {
         const espNombre =
           typeof rawEsp === "string" ? rawEsp : (rawEsp?.nombre ?? "");
         const idDocente = Number(d.idDocente ?? d.id ?? 0);
-        const idUsuario = Number(d.idUsuario ?? d.usuarioId ?? d.usuario?.id ?? 0);
+        const idUsuario = Number(
+          d.idUsuario ?? d.usuarioId ?? d.usuario?.id ?? 0,
+        );
 
         return {
           id: idDocente,
@@ -182,11 +183,14 @@ export function useCommunity(): UseCommunityReturn {
           usuario: {
             idUsuario: idUsuario || 0,
             nombre: d.usuario?.nombre || d.nombre || "",
-            apellidoPaterno: d.usuario?.apellidoPaterno || d.apellidoPaterno || "",
-            apellidoMaterno: d.usuario?.apellidoMaterno || d.apellidoMaterno || "",
+            apellidoPaterno:
+              d.usuario?.apellidoPaterno || d.apellidoPaterno || "",
+            apellidoMaterno:
+              d.usuario?.apellidoMaterno || d.apellidoMaterno || "",
             email: d.usuario?.email || d.email || "",
             telefono: d.usuario?.telefono || d.telefono || "",
-            fechaNacimiento: d.usuario?.fechaNacimiento || d.fechaNacimiento || "",
+            fechaNacimiento:
+              d.usuario?.fechaNacimiento || d.fechaNacimiento || "",
             curp: d.usuario?.curp || d.curp || "",
             activo: d.usuario?.activo ?? d.activo ?? true,
           },
@@ -220,7 +224,11 @@ export function useCommunity(): UseCommunityReturn {
       const alumnosMapeados = result.map((a: any) => {
         const idEstudiante = Number(a.idEstudiante ?? a.id ?? 0);
         const idUsuario = Number(
-          a.idUsuario ?? a.usuarioId ?? a.usuario?.idUsuario ?? a.usuario?.id ?? 0,
+          a.idUsuario ??
+            a.usuarioId ??
+            a.usuario?.idUsuario ??
+            a.usuario?.id ??
+            0,
         );
         const idGrupo = Number(a.grupoId ?? a.idGrupo ?? a.grupo?.idGrupo ?? 0);
 
@@ -231,11 +239,14 @@ export function useCommunity(): UseCommunityReturn {
           usuario: {
             idUsuario: idUsuario || 0,
             nombre: a.usuario?.nombre || a.nombre || "",
-            apellidoPaterno: a.usuario?.apellidoPaterno || a.apellidoPaterno || "",
-            apellidoMaterno: a.usuario?.apellidoMaterno || a.apellidoMaterno || "",
+            apellidoPaterno:
+              a.usuario?.apellidoPaterno || a.apellidoPaterno || "",
+            apellidoMaterno:
+              a.usuario?.apellidoMaterno || a.apellidoMaterno || "",
             email: a.usuario?.email || a.email || "",
             telefono: a.usuario?.telefono || a.telefono || "",
-            fechaNacimiento: a.usuario?.fechaNacimiento || a.fechaNacimiento || "",
+            fechaNacimiento:
+              a.usuario?.fechaNacimiento || a.fechaNacimiento || "",
             curp: a.usuario?.curp || a.curp || "",
             activo: a.usuario?.activo ?? a.activo ?? true,
           },
@@ -287,15 +298,20 @@ export function useCommunity(): UseCommunityReturn {
       const adminMapeados = result.map((a: any) => ({
         id: Number(a.idAdministrativo ?? a.id ?? 0),
         idAdministrativo: Number(a.idAdministrativo ?? a.id ?? 0),
-        idUsuario: Number(a.idUsuario ?? a.usuarioId ?? a.usuario?.id ?? 0) || undefined,
+        idUsuario:
+          Number(a.idUsuario ?? a.usuarioId ?? a.usuario?.id ?? 0) || undefined,
         usuario: {
-          idUsuario: Number(a.idUsuario ?? a.usuarioId ?? a.usuario?.id ?? 0) || 0,
+          idUsuario:
+            Number(a.idUsuario ?? a.usuarioId ?? a.usuario?.id ?? 0) || 0,
           nombre: a.usuario?.nombre || a.nombre || "",
-          apellidoPaterno: a.usuario?.apellidoPaterno || a.apellidoPaterno || "",
-          apellidoMaterno: a.usuario?.apellidoMaterno || a.apellidoMaterno || "",
+          apellidoPaterno:
+            a.usuario?.apellidoPaterno || a.apellidoPaterno || "",
+          apellidoMaterno:
+            a.usuario?.apellidoMaterno || a.apellidoMaterno || "",
           email: a.usuario?.email || a.email || "",
           telefono: a.usuario?.telefono || a.telefono || "N/A",
-          fechaNacimiento: a.usuario?.fechaNacimiento || a.fechaNacimiento || "N/A",
+          fechaNacimiento:
+            a.usuario?.fechaNacimiento || a.fechaNacimiento || "N/A",
           curp: a.usuario?.curp || a.curp || "N/A",
           activo: a.usuario?.activo ?? a.activo ?? true,
         },
@@ -367,7 +383,8 @@ export function useCommunity(): UseCommunityReturn {
         idEspecialidad: g.especialidadId,
         especialidad: g.especialidad
           ? {
-              idEspecialidad: g.especialidad.idEspecialidad ?? g.especialidad.id,
+              idEspecialidad:
+                g.especialidad.idEspecialidad ?? g.especialidad.id,
               nombre: g.especialidad.nombre,
               codigo: g.especialidad.codigo,
             }
@@ -375,12 +392,18 @@ export function useCommunity(): UseCommunityReturn {
         especialidadNombre: g.especialidad?.nombre || "N/A",
         idPeriodo: Number(g.periodoId ?? g.periodo?.idPeriodo ?? 0),
         idDocente: Number(g.docenteId ?? g.docente?.idDocente ?? 0),
-        docenteTutorId: Number(
-          g.docenteTutorId ?? g.tutorDocenteId ?? g.docenteTutor?.idDocente ?? 0,
-        ) || undefined,
+        docenteTutorId:
+          Number(
+            g.docenteTutorId ??
+              g.tutorDocenteId ??
+              g.docenteTutor?.idDocente ??
+              0,
+          ) || undefined,
         idMaterias: Array.isArray(g.clases)
           ? g.clases
-              .map((c: any) => Number(c.materiasId ?? c.materiaId ?? c.idMateria ?? 0))
+              .map((c: any) =>
+                Number(c.materiasId ?? c.materiaId ?? c.idMateria ?? 0),
+              )
               .filter((id: number) => id > 0)
           : [],
         activo: true,
@@ -615,8 +638,6 @@ export function useCommunity(): UseCommunityReturn {
         apellidoPaterno: data.apellidoPaterno,
         apellidoMaterno: data.apellidoMaterno,
         curp: data.curp,
-        telefono: data.telefono,
-        direccion: data.direccion,
         matricula: data.numeroControl,
         semestre: data.semestreActual,
         grupoId: data.idGrupo,
@@ -660,8 +681,6 @@ export function useCommunity(): UseCommunityReturn {
       };
 
       const payload = {
-        telefono: data.telefono,
-        direccion: data.direccion,
         semestre: data.semestreActual,
         grupoId: data.idGrupo,
         credencialFechaEmision: dataExt.credencialFechaEmision,
@@ -900,9 +919,9 @@ export function useCommunity(): UseCommunityReturn {
         docenteTutorId: data.docenteTutorId
           ? Number(data.docenteTutorId)
           : undefined,
-        materiasIds: Array.from(new Set((data.idMaterias || []).map(Number))).filter(
-          (id) => Number.isFinite(id) && id > 0,
-        ),
+        materiasIds: Array.from(
+          new Set((data.idMaterias || []).map(Number)),
+        ).filter((id) => Number.isFinite(id) && id > 0),
       };
 
       const response = await fetch(`${API_URL}/grupos`, {
@@ -1179,4 +1198,3 @@ export function useCommunity(): UseCommunityReturn {
     refreshData,
   };
 }
-

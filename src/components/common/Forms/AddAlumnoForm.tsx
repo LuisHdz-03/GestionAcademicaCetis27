@@ -42,14 +42,12 @@ export default function AddAlumnoForm({
     nombre: initialData?.nombre || "",
     apellidoPaterno: initialData?.apellidoPaterno || "",
     apellidoMaterno: initialData?.apellidoMaterno || "",
-    telefono: initialData?.telefono || "",
     curp: initialData?.curp || "",
     numeroControl: initialData?.numeroControl || "",
     idEspecialidad: initialData?.idEspecialidad ?? 0,
     idGrupo: initialData?.idGrupo
       ? Number(initialData.idGrupo as any)
       : undefined,
-    direccion: initialData?.direccion || "",
     semestreActual: initialData?.semestreActual ?? 1,
     fechaIngreso: initialData?.fechaIngreso || "",
     activo: initialData?.activo ?? true,
@@ -101,14 +99,6 @@ export default function AddAlumnoForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.telefono && formData.telefono.length !== 10) {
-      toast({
-        title: "Teléfono inválido",
-        description: "El número de teléfono debe tener exactamente 10 dígitos.",
-        variant: "destructive",
-      });
-      return;
-    }
     if (formData.curp && formData.curp.length !== 18) {
       toast({
         title: "CURP inválida",
@@ -186,37 +176,21 @@ export default function AddAlumnoForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-gray-700 mb-1">Teléfono</Label>
-          <Input
-            name="telefono"
-            value={formData.telefono}
-            onChange={(e) => {
-              const valorLimpio = e.target.value
-                .replace(/\D/g, "")
-                .slice(0, 10);
-              setFormData({ ...formData, telefono: valorLimpio });
-            }}
-            maxLength={10}
-          />
-        </div>
-        <div>
-          <Label className="text-gray-700 mb-1">CURP *</Label>
-          <Input
-            name="curp"
-            value={formData.curp}
-            onChange={(e) => {
-              const valorLimpio = e.target.value
-                .toUpperCase()
-                .replace(/[^A-Z0-9]/g, "")
-                .slice(0, 18);
-              setFormData({ ...formData, curp: valorLimpio });
-            }}
-            required
-            maxLength={18}
-          />
-        </div>
+      <div>
+        <Label className="text-gray-700 mb-1">CURP *</Label>
+        <Input
+          name="curp"
+          value={formData.curp}
+          onChange={(e) => {
+            const valorLimpio = e.target.value
+              .toUpperCase()
+              .replace(/[^A-Z0-9]/g, "")
+              .slice(0, 18);
+            setFormData({ ...formData, curp: valorLimpio });
+          }}
+          required
+          maxLength={18}
+        />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -311,14 +285,7 @@ export default function AddAlumnoForm({
         )}
       </div>
 
-      <div>
-        <Label className="text-gray-700 mb-1">Dirección</Label>
-        <Input
-          name="direccion"
-          value={formData.direccion}
-          onChange={handleChange}
-        />
-      </div>
+      {/* Dirección eliminada */}
 
       <div>
         <Label className="text-gray-700 mb-1">Fecha de Ingreso</Label>

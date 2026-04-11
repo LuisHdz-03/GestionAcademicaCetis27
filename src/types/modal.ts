@@ -3,13 +3,11 @@ export interface AlumnoFormData {
   apellidoPaterno: string;
   apellidoMaterno: string;
   email?: string;
-  telefono: string;
   fechaNacimiento?: string;
   curp: string;
   numeroControl: string;
   idEspecialidad: number;
   idGrupo?: number;
-  direccion?: string;
   semestreActual: number;
   fechaIngreso?: string;
   credencialFechaEmision?: string;
@@ -66,7 +64,7 @@ export interface GrupoFormData {
   idPeriodo: number;
   idDocente: number;
   docenteTutorId?: number;
-  idMaterias: number[]; // Cambiado para soportar varias materias
+  idMaterias: number[];
   activo: boolean;
 }
 

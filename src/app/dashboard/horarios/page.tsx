@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import AddClaseModal from "@/components/common/Modal/AddClaseModal";
 import { Search, Plus, Pencil } from "lucide-react";
+import { Download, Upload } from "lucide-react";
 import { downloadTemplate, uploadCsv } from "@/lib/upload";
 
 export default function HorariosPage() {
@@ -159,13 +160,15 @@ export default function HorariosPage() {
           </CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={handleDescargarMachote}>
-              Descargar Machote
+              <Download className="w-4 h-4 mr-2" /> Descargar Machote
             </Button>
             <Button
               variant="outline"
               onClick={handleCargaMasiva}
               disabled={uploadingExcel}
+              className="flex items-center"
             >
+              <Upload className="w-4 h-4 mr-2" />
               {uploadingExcel ? "Cargando..." : "Carga Masiva"}
             </Button>
             <Button
