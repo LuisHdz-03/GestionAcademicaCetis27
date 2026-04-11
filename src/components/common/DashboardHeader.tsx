@@ -476,7 +476,7 @@ export default function DashboardHeader({
       );
       console.log("[FIRMA] formData firma:", formData.get("firma"));
 
-      const response = await fetch(`${API_URL}/admins/firma/subir`, {
+      const response = await fetch(`${API_URL}/administrativos/firma/subir`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -789,6 +789,10 @@ export default function DashboardHeader({
             <DialogTitle className="text-[#691C32] text-xl">
               Subir Firma de Dirección
             </DialogTitle>
+            <DialogDescription>
+              Sube la imagen de la firma del director para las credenciales
+              oficiales.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="space-y-2">

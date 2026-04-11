@@ -8,7 +8,7 @@ import {
   HiClock,
   HiDocumentText,
   HiClipboardDocumentCheck,
-  HiQueueList, // 1. IMPORTAMOS EL ÍCONO PARA LA BITÁCORA
+  HiQueueList,
 } from "react-icons/hi2";
 import { FaGraduationCap, FaCheckCircle } from "react-icons/fa";
 import { MdQrCodeScanner } from "react-icons/md";
@@ -38,7 +38,7 @@ export default function Sidebar({
   const { user } = useAuth();
   const expanded = isMobile ? true : isExpanded;
 
-  // 1. Función para normalizar texto (limpiar acentos)
+  // Normalización de texto para roles y cargos
   const normalizarTexto = (texto: string) => {
     if (!texto) return "";
     return texto
@@ -48,45 +48,35 @@ export default function Sidebar({
       .trim();
   };
 
-  // 2. Extraer rol y cargo real de la base de datos
   const tipoUsuario = normalizarTexto(
     user?.tipoUsuario || (user as any)?.rol || "",
   );
   const cargoUsuario = normalizarTexto(user?.cargo || "");
 
-  // 3. Agrupamos los cargos para no repetir código
   const cargosDirectivos = [
     "DIRECTOR",
     "SUBDIRECTORA ACADEMICA",
     "COORDINADOR",
     "COORDINADOR ACADEMICO",
   ];
-
   const cargosAdministrativosGrales = [
     ...cargosDirectivos,
     "JEFE DE DEPARTAMENTO",
     "SECRETARIO",
   ];
 
-  // 4. Validador de permisos
   const tienePermiso = (itemRoles: string[], itemCargos: string[] = []) => {
-    // PREFECTO: el backend lo guarda como rol ADMINISTRATIVO con cargo PREFECTO.
-    // Lo tratamos como un rol propio: solo ve ítems que declaren "PREFECTO" en roles.
     if (tipoUsuario === "ADMINISTRATIVO" && cargoUsuario === "PREFECTO") {
       return itemRoles.includes("PREFECTO");
     }
-
-    // ADMINISTRATIVO con otro cargo: necesita rol ADMINISTRATIVO + cargo en la lista
     if (tipoUsuario === "ADMINISTRATIVO") {
       if (!itemRoles.includes("ADMINISTRATIVO")) return false;
       if (itemCargos.length === 0) return true;
       return itemCargos.includes(cargoUsuario);
     }
-
-    // DOCENTE u otros roles: solo necesita que su rol esté en la lista
     return itemRoles.includes(tipoUsuario);
   };
-  // 5. Configuración exacta de Módulos (Ajustada para que el Prefecto encaje como un ROL)
+
   const menuItems = [
     {
       icon: HiHome,
@@ -164,35 +154,32 @@ export default function Sidebar({
     tienePermiso(item.roles, item.cargos),
   );
 
-  const sidebarBgClass = "bg-[#691C32]";
-  const hoverBgClass = "hover:bg-[#50172A]";
-  const textClass = "text-white";
-  const mutedTextClass = "text-[#F2D7D5]";
-
   return (
     <TooltipProvider>
       <div
         className={cn(
-          sidebarBgClass,
-          "border-r h-screen flex flex-col transition-all duration-300 ease-in-out",
+          "bg-[#691C32] border-r transition-all duration-300 ease-in-out z-40 flex flex-col",
+          // CLASES CLAVE: sticky, top-0 y h-screen para que no se mueva al dar scroll
+          "sticky top-0 h-screen",
           isMobile ? "w-72 max-w-[85vw]" : expanded ? "w-64" : "w-16",
         )}
       >
-        <div className="flex items-center justify-between p-4">
+        {/* Cabecera del Sidebar */}
+        <div className="flex items-center justify-between p-4 flex-shrink-0">
           {expanded && (
-            <div className="flex items-center space-x-3">
-              <div className="bg-white rounded-full w-10 h-10 flex items-center justify-center">
+            <div className="flex items-center space-x-3 overflow-hidden">
+              <div className="bg-white rounded-full min-w-[40px] h-10 flex items-center justify-center">
                 <img
                   src="/images/logoCetis.png"
                   alt="Logo"
                   className="w-8 h-8 object-contain"
                 />
               </div>
-              <div>
-                <h2 className={cn("font-semibold text-sm", textClass)}>
+              <div className="min-w-0">
+                <h2 className="font-semibold text-sm text-white truncate">
                   CETIS
                 </h2>
-                <p className={cn("text-xs", mutedTextClass)}>
+                <p className="text-xs text-[#F2D7D5] truncate">
                   Gestión Académica
                 </p>
               </div>
@@ -203,11 +190,8 @@ export default function Sidebar({
             variant="ghost"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
-            aria-label={expanded ? "Colapsar menú" : "Expandir menú"}
             className={cn(
-              "h-8 w-8 p-0 rounded-md transition-colors duration-150 flex items-center justify-center",
-              textClass,
-              hoverBgClass,
+              "h-8 w-8 p-0 text-white hover:bg-[#50172A]",
               isMobile && "hidden",
             )}
           >
@@ -219,9 +203,10 @@ export default function Sidebar({
           </Button>
         </div>
 
-        <Separator className="border-[#F2D7D5]" />
+        <Separator className="bg-[#F2D7D5]/20 flex-shrink-0" />
 
-        <nav className="flex-1 p-3 space-y-1">
+        {/* Navegación con scroll interno */}
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
           {itemsPermitidos.map((item, index) => {
             const Icon = item.icon;
             const menuButton = (
@@ -230,26 +215,20 @@ export default function Sidebar({
                 variant="ghost"
                 asChild
                 className={cn(
-                  "w-full h-10 rounded-md transition-colors duration-150",
+                  "w-full h-10 rounded-md transition-colors duration-150 text-white hover:bg-[#50172A]",
                   expanded ? "justify-start px-3" : "justify-center px-0",
-                  textClass,
-                  hoverBgClass,
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
                 )}
               >
                 <Link
                   href={item.href}
                   onClick={onNavigate}
-                  className={cn(
-                    "flex items-center w-full",
-                    !expanded && "justify-center",
-                  )}
+                  className="flex items-center w-full"
                 >
                   <span className="h-5 w-5 flex items-center justify-center flex-shrink-0">
                     <Icon size={20} />
                   </span>
                   {expanded && (
-                    <span className="ml-3 text-sm font-medium transition-all duration-150">
+                    <span className="ml-3 text-sm font-medium">
                       {item.label}
                     </span>
                   )}
@@ -257,46 +236,42 @@ export default function Sidebar({
               </Button>
             );
 
-            if (!expanded) {
-              return (
-                <Tooltip key={index} delayDuration={0}>
-                  <TooltipTrigger asChild>{menuButton}</TooltipTrigger>
-                  <TooltipContent
-                    side="right"
-                    className="bg-[#691C32] text-white rounded-md shadow-lg px-2 py-1"
-                  >
-                    <p className="text-sm">{item.label}</p>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            }
-            return menuButton;
+            return !expanded ? (
+              <Tooltip key={index} delayDuration={0}>
+                <TooltipTrigger asChild>{menuButton}</TooltipTrigger>
+                <TooltipContent
+                  side="right"
+                  className="bg-[#691C32] text-white"
+                >
+                  {item.label}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              menuButton
+            );
           })}
         </nav>
 
-        <Separator className="border-[#F2D7D5]" />
+        <Separator className="bg-[#F2D7D5]/20 flex-shrink-0" />
 
-        <div className="p-4">
-          <div
-            className={cn(
-              "flex items-center space-x-3 rounded-md transition-colors duration-150",
-            )}
-          >
-            <Avatar className="h-8 w-8">
+        {/* Perfil de Usuario al final */}
+        <div className="p-4 flex-shrink-0">
+          <div className="flex items-center space-x-3 rounded-md">
+            <Avatar className="h-8 w-8 flex-shrink-0">
               <AvatarImage src={"/images/image.png"} />
               <AvatarFallback className="bg-[#F2D7D5] text-[#691C32]">
-                {user?.nombre?.[0] || "U"}
-                {user?.apellidoPaterno?.[0] || "A"}
+                {user?.nombre?.[0]}
+                {user?.apellidoPaterno?.[0]}
               </AvatarFallback>
             </Avatar>
 
             {expanded && (
               <div className="flex-1 min-w-0">
-                <p className={cn("text-sm font-medium truncate", textClass)}>
-                  {user?.nombre || "Usuario"} {user?.apellidoPaterno || ""}
+                <p className="text-sm font-medium text-white truncate">
+                  {user?.nombre} {user?.apellidoPaterno}
                 </p>
-                <p className={cn("text-xs truncate", mutedTextClass)}>
-                  {cargoUsuario || tipoUsuario || "Rol no definido"}
+                <p className="text-xs text-[#F2D7D5] truncate lowercase first-letter:uppercase">
+                  {cargoUsuario || tipoUsuario}
                 </p>
               </div>
             )}
