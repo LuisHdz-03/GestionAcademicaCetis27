@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import html2canvas from "html2canvas";
+import * as htmlToImage from "html-to-image";
 import jsPDF from "jspdf";
 import QRCode from "react-qr-code";
 import { Button } from "@/components/ui/button";
@@ -42,198 +42,291 @@ export default function CredencialPrint({
     setGenerando(true);
 
     try {
-      toast({ title: "Generando credencial..." });
-
-      const canvas = await html2canvas(credencialRef.current, {
-        scale: 4,
-        useCORS: true,
-        backgroundColor: null,
+      const imgData = await htmlToImage.toPng(credencialRef.current, {
+        cacheBust: true,
+        backgroundColor: "#ffffff",
+        pixelRatio: 5,
       });
-
-      const imgData = canvas.toDataURL("image/png");
 
       const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "cm",
-        format: "a4",
+        orientation: "landscape",
+        unit: "mm",
+        format: "letter",
       });
 
-      pdf.addImage(imgData, "PNG", 2, 2, 10.8, 8.6);
+      const ancho = 85.6;
+      const alto = 54;
 
-      pdf.save(`Credencial_${estudiante.noControl}_${estudiante.nombre}.pdf`);
+      const x = (pdf.internal.pageSize.getWidth() - ancho * 2) / 2;
+      const y = 20;
 
-      toast({ title: "¡Credencial generada con éxito!" });
+      pdf.addImage(imgData, "PNG", x, y, ancho * 2, alto);
+      pdf.save(`Credencial_${estudiante.noControl}.pdf`);
     } catch (error) {
-      console.error("Error al generar PDF", error);
-      toast({
-        title: "Error al generar la credencial",
-        variant: "destructive",
-      });
+      console.error(error);
+      toast({ title: "Error al generar PDF", variant: "destructive" });
     } finally {
       setGenerando(false);
     }
   };
-  const qrStringSeguro = estudiante.noControl
-    ? `${estudiante.noControl}|${Date.now()}`
-    : "Sin QR";
+  const formatearFecha = (fecha?: string) => {
+    if (!fecha) return "N/A";
+    return fecha.substring(0, 10); // yyyy-mm-dd
+  };
+  const primary = "#691C32";
+  const gold = "#B38E5D";
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleDescargarPDF}
-        disabled={generando}
-        className="flex gap-2"
-      >
-        <Printer size={16} />
+      <Button onClick={handleDescargarPDF} disabled={generando}>
+        <Printer size={16} className="mr-2" />
         {generando ? "Procesando..." : "Imprimir Credencial"}
       </Button>
 
-      <div className="overflow-hidden h-0 w-0 absolute -left-[9999px] top-0">
-        <div ref={credencialRef} className="flex flex-row bg-white">
-          {/* Cara frontal de la credencial */}
+      {/* CAPTURA */}
+      <div style={{ position: "absolute", left: "-9999px" }}>
+        <div
+          ref={credencialRef}
+          style={{
+            display: "flex",
+            gap: "40px",
+            background: "#fff",
+            padding: "20px",
+          }}
+        >
+          {/* ================= FRONT ================= */}
           <div
-            className="w-[204px] h-[325px] flex flex-col bg-white overflow-hidden relative border border-gray-200"
-            style={{ boxSizing: "border-box" }}
+            style={{
+              width: "340px",
+              height: "220px",
+              border: `2px solid ${primary}`,
+              borderRadius: "16px",
+              display: "flex",
+              overflow: "hidden",
+            }}
           >
-            {/* Logos Superiores */}
-            <div className="flex justify-between items-center px-2 py-1 mt-1">
-              <img
-                src="/images/SEP.png"
-                alt="SEP"
-                className="w-12 object-contain"
-              />
-              <img
-                src="/images/DGETI.png"
-                alt="DGETI"
-                className="w-12 object-contain"
-              />
-            </div>
-
-            <div className="flex flex-row px-2 mt-2 gap-2">
-              {/* Columna Izquierda: Foto y No. Control */}
-              <div className="flex flex-col items-center w-[80px]">
-                <div className="w-[70px] h-[85px] border border-gray-400 rounded bg-gray-100 overflow-hidden flex items-center justify-center">
-                  {estudiante.fotoUrl ? (
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              {/* LOGOS */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "8px 14px",
+                }}
+              >
+                {["/images/SEP.png", "/images/DGETI.png"].map((src, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: "100px",
+                      height: "50px",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
                     <img
-                      src={estudiante.fotoUrl}
-                      crossOrigin="anonymous"
-                      className="w-full h-full object-cover"
+                      src={src}
+                      style={{
+                        maxWidth: "100%",
+                        maxHeight: "100%",
+                        objectFit: "contain",
+                      }}
                     />
-                  ) : (
-                    <div className="text-gray-400 text-xs">Sin Foto</div>
-                  )}
-                </div>
-                <p className="text-[7px] font-bold mt-1 text-center leading-none">
-                  NO. DE CONTROL
-                </p>
-                <p className="text-[9px] font-bold text-[#800000]">
-                  {estudiante.noControl}
-                </p>
+                  </div>
+                ))}
               </div>
 
-              {/* Columna Derecha: Datos */}
-              <div className="flex flex-col w-[100px]">
-                <p className="text-[6.5px] font-bold text-center leading-tight mb-2">
-                  CENTRO DE ESTUDIOS TECNOLÓGICOS INDUSTRIAL Y DE SERVICIOS No.
-                  27
-                </p>
+              {/* CONTENIDO */}
+              <div style={{ display: "flex", padding: "10px 14px" }}>
+                {/* FOTO */}
+                <div style={{ width: "120px", textAlign: "center" }}>
+                  <div
+                    style={{
+                      width: "110px",
+                      height: "110px",
+                      border: `2px solid ${primary}`,
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                      margin: "auto",
+                    }}
+                  >
+                    {estudiante.fotoUrl ? (
+                      <img
+                        src={estudiante.fotoUrl}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : null}
+                  </div>
 
-                <p className="text-[7px] font-bold text-[#800000]">ALUMNO(A)</p>
-                <p className="text-[9px] font-bold leading-tight mb-1 uppercase">
-                  {estudiante.nombre} {estudiante.apellidoPaterno}{" "}
-                  {estudiante.apellidoMaterno}
-                </p>
+                  <p style={{ fontSize: "8px", margin: 0 }}>NO. DE CONTROL</p>
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      color: primary,
+                    }}
+                  >
+                    {estudiante.noControl}
+                  </p>
+                </div>
 
-                <p className="text-[7px] font-bold text-[#800000]">CURP</p>
-                <p className="text-[8px] font-bold mb-1 uppercase">
-                  {estudiante.curp || "N/A"}
-                </p>
+                {/* DATOS */}
+                <div style={{ flex: 1 }}>
+                  <p
+                    style={{ fontSize: "8px", color: primary, fontWeight: 700 }}
+                  >
+                    CENTRO DE ESTUDIOS TECNOLÓGICOS INDUSTRIAL Y DE SERVICIOS
+                    No. 27
+                  </p>
 
-                <p className="text-[7px] font-bold text-[#800000]">GRUPO</p>
-                <p className="text-[8px] font-bold uppercase">
-                  {estudiante.grupo || "N/A"}
-                </p>
+                  <p style={{ fontSize: "10px", color: primary }}>ALUMNO(A)</p>
+
+                  <p style={{ fontSize: "12px", fontWeight: 700 }}>
+                    {estudiante.nombre} {estudiante.apellidoPaterno}{" "}
+                    {estudiante.apellidoMaterno}
+                  </p>
+
+                  <p style={{ fontSize: "8px", color: primary }}>CURP</p>
+                  <p style={{ fontSize: "9px" }}>{estudiante.curp}</p>
+
+                  <p style={{ fontSize: "8px", color: primary }}>GRUPO</p>
+                  <p style={{ fontSize: "9px" }}>{estudiante.grupo}</p>
+                </div>
               </div>
             </div>
 
-            {/* Franja de Especialidad Inferior */}
-            <div className="absolute bottom-0 w-full h-[25px] bg-[#800000] flex justify-end items-center px-2">
-              <p className="text-[9px] text-white font-bold italic uppercase truncate max-w-[80%] text-right">
+            {/* BARRA */}
+            <div
+              style={{
+                width: "38px",
+                background: primary,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <span
+                style={{
+                  transform: "rotate(90deg)",
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: "11px",
+                }}
+              >
                 ESPECIALIDAD {estudiante.especialidad}
-              </p>
+              </span>
             </div>
           </div>
 
-          {/* Cara trasera de la credencial */}
+          {/* ================= BACK ================= */}
           <div
-            className="w-[204px] h-[325px] flex flex-col bg-white overflow-hidden relative border-y border-r border-gray-200 px-2 pt-2"
-            style={{ boxSizing: "border-box" }}
+            style={{
+              width: "340px",
+              height: "220px",
+              border: `2px solid ${primary}`,
+              borderRadius: "16px",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "visible",
+            }}
           >
-            {/* Turnos y Fechas */}
-            <div className="flex flex-row justify-between mb-2">
-              <div className="flex flex-col">
-                <p className="text-[8px] font-bold">SISTEMA ESCOLARIZADO</p>
-                <p className="text-[8px] font-bold">
+            {/* HEADER */}
+            <div
+              style={{
+                background: primary,
+                color: "#fff",
+                padding: "6px 10px",
+                display: "flex",
+                justifyContent: "space-between",
+                borderTopLeftRadius: "14px",
+                borderTopRightRadius: "14px",
+              }}
+            >
+              {/* IZQUIERDA */}
+              <div style={{ lineHeight: "1.2" }}>
+                <p style={{ fontSize: "8px", fontWeight: 600 }}>
+                  SISTEMA ESCOLARIZADO
+                </p>
+                <p style={{ fontSize: "7px" }}>
                   TURNO {estudiante.turno || "MATUTINO"}
                 </p>
+                <p style={{ fontSize: "7px" }}>
+                  GRUPO {estudiante.grupo || "N/A"}
+                </p>
               </div>
-              <div className="flex flex-col text-right">
-                <p className="text-[6px] font-bold text-gray-500">
-                  FECHA DE EMISIÓN:
+
+              {/* DERECHA */}
+              <div style={{ textAlign: "right", lineHeight: "1.2" }}>
+                <p style={{ fontSize: "7px" }}>EMISIÓN</p>
+                <p style={{ fontSize: "8px", fontWeight: 700 }}>
+                  {formatearFecha(estudiante.emision)}
                 </p>
-                <p className="text-[7px] font-bold mb-1">
-                  {estudiante.emision || "AGOSTO 2025"}
-                </p>
-                <p className="text-[6px] font-bold text-gray-500">VIGENCIA:</p>
-                <p className="text-[7px] font-bold">
-                  {estudiante.vigencia || "AGOSTO 2026"}
+
+                <p style={{ fontSize: "7px", marginTop: "2px" }}>VIGENCIA</p>
+                <p style={{ fontSize: "8px", fontWeight: 700 }}>
+                  {formatearFecha(estudiante.vigencia)}
                 </p>
               </div>
             </div>
 
-            {/* QR y Logo */}
-            <div className="flex flex-row justify-between items-center mb-3 px-2">
-              <div className="bg-white p-1 border border-gray-200 rounded flex items-center justify-center">
-                <QRCode value={qrStringSeguro} size={50} />
-              </div>
-              <div className="w-[1px] h-[50px] bg-gray-300 mx-2"></div>
+            {/* QR */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                padding: "10px 20px",
+                gap: "20px",
+              }}
+            >
+              <QRCode value={estudiante.noControl} size={60} />
+              <div
+                style={{ width: "1px", height: "40px", background: primary }}
+              />
               <img
                 src="/images/DGETI.png"
-                alt="DGETI"
-                className="w-[50px] object-contain opacity-50"
+                style={{ height: "60px", opacity: 0.3 }}
               />
             </div>
 
-            {/* ZONA DE FIRMA DINÁMICA */}
-            <div className="flex flex-col items-center mt-2">
-              {/* Renderiza la imagen de la firma si existe */}
-              <div className="h-[35px] flex items-end justify-center mb-1">
-                {firmante.firmaImagenUrl ? (
-                  <img
-                    src={firmante.firmaImagenUrl}
-                    crossOrigin="anonymous"
-                    alt="Firma"
-                    className="max-h-full max-w-[120px] object-contain"
-                  />
-                ) : (
-                  <div className="h-[20px] w-[100px] border-b border-gray-400"></div>
-                )}
-              </div>
-              <p className="text-[7px] font-bold text-center uppercase">
-                {firmante.cargo || "DIRECTOR DEL PLANTEL"}
+            {/* DIRECTOR */}
+            <div
+              style={{
+                border: `2px solid ${gold}`,
+                width: "220px",
+                alignSelf: "center",
+                textAlign: "center",
+                padding: "5px",
+              }}
+            >
+              <p style={{ fontSize: "9px", color: gold, fontWeight: 800 }}>
+                {firmante.cargo}
               </p>
-              <p className="text-[9px] font-bold text-center uppercase">
-                {firmante.nombre || "NOMBRE NO ASIGNADO"}
+              <p style={{ fontSize: "9px", color: primary }}>
+                {firmante.nombre}
               </p>
             </div>
 
-            {/* Dirección */}
-            <div className="absolute bottom-2 left-0 w-full px-3 text-center">
-              <div className="w-full h-[1px] bg-gray-300 mb-1"></div>
-              <p className="text-[6px] font-bold">DIRECCIÓN DEL PLANTEL</p>
-              <p className="text-[5.5px] text-gray-600 leading-tight">
+            <div
+              style={{
+                width: "95%",
+                height: "1.5px",
+                background: primary,
+                alignSelf: "center",
+                marginTop: "5px",
+              }}
+            />
+
+            {/* DIRECCIÓN */}
+            <div style={{ textAlign: "center", padding: "5px" }}>
+              <p style={{ fontSize: "9px", color: primary, fontWeight: 800 }}>
+                DIRECCIÓN DEL PLANTEL
+              </p>
+              <p style={{ fontSize: "6px" }}>
                 CARRETERA CARAPAN-URUAPAN KM 66.8 URUAPAN, MICHOACAN, CP.60000,
                 TEL. 5231509
               </p>
