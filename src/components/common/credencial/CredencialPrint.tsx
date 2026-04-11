@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import * as htmlToImage from "html-to-image";
 import jsPDF from "jspdf";
 import QRCode from "react-qr-code";
@@ -31,11 +31,35 @@ interface CredencialPrintProps {
 
 export default function CredencialPrint({
   estudiante,
-  firmante,
+  firmante: firmanteProp,
 }: CredencialPrintProps) {
   const credencialRef = useRef<HTMLDivElement>(null);
   const [generando, setGenerando] = useState(false);
   const { toast } = useToast();
+  const [firmante, setFirmante] = useState(firmanteProp);
+
+  useEffect(() => {
+    if (!firmanteProp) {
+      fetch("/api/web/admins/director")
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("[Credencial] Datos director recibidos:", data);
+          setFirmante({
+            cargo: data.cargo || "DIRECTOR DEL PLANTEL",
+            nombre: data.nombre || "NOMBRE NO ASIGNADO",
+            firmaImagenUrl: data.firmaImagenUrl || undefined,
+          });
+        })
+        .catch((err) => {
+          console.error("[Credencial] Error obteniendo director:", err);
+          setFirmante({
+            cargo: "DIRECTOR DEL PLANTEL",
+            nombre: "NOMBRE NO ASIGNADO",
+            firmaImagenUrl: undefined,
+          });
+        });
+    }
+  }, [firmanteProp]);
 
   const handleDescargarPDF = async () => {
     if (!credencialRef.current) return;
