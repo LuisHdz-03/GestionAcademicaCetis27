@@ -1,4 +1,5 @@
 "use client";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +15,6 @@ import {
   HiUserGroup,
 } from "react-icons/hi2";
 import { Docente, Alumno, Admin } from "@/types/community";
-import { useAuth } from "@/contexts/AuthContext";
 import DescargarCredencialButton from "@/components/common/credencial/DescargarCredencialButton";
 
 interface ActionsDropdownProps {
@@ -32,15 +32,15 @@ export default function ActionsDropdown({
   onEditExtra,
   showEditExtra = false,
 }: ActionsDropdownProps) {
-  const { user } = useAuth();
-
-  // Detectamos si la fila es un alumno por la existencia de la matrícula
+  // Detectamos si es alumno
   const esAlumno = (item as any)?.matricula !== undefined;
 
-  // Preparamos los datos del alumno si corresponde
+  // Preparamos datos del alumno
   const getAlumnoData = () => {
     if (!esAlumno) return null;
+
     const alumno = item as Alumno;
+
     return {
       nombre: alumno.usuario?.nombre || "",
       apellidoPaterno: alumno.usuario?.apellidoPaterno || "",
@@ -48,19 +48,18 @@ export default function ActionsDropdown({
       curp: alumno.usuario?.curp || "",
       noControl: alumno.matricula,
       fotoUrl: alumno.fotoUrl,
-      grupo: typeof alumno.grupo === "object" ? alumno.grupo?.nombre || "" : alumno.grupo || "",
+
+      grupo:
+        typeof alumno.grupo === "object"
+          ? alumno.grupo?.nombre || ""
+          : alumno.grupo || "",
+
       especialidad: alumno.especialidad || "",
       turno: (alumno as any).turno || "MATUTINO",
+
       emision: alumno.credencialFechaEmision || undefined,
       vigencia: alumno.credencialFechaExpiracion || undefined,
     };
-  };
-
-  // Preparamos los datos del firmante (El Admin logueado)
-  const firmanteData = {
-    cargo: user?.cargo || "DIRECTOR DEL PLANTEL",
-    nombre: `${user?.nombre || ""} ${user?.apellidoPaterno || ""}`.trim() || "NOMBRE NO ASIGNADO",
-    firmaImagenUrl: (user as any)?.firmaImagenUrl || undefined,
   };
 
   return (
@@ -70,8 +69,9 @@ export default function ActionsDropdown({
           <HiEllipsisHorizontal className="w-4 h-4" />
         </Button>
       </DropdownMenuTrigger>
+
       <DropdownMenuContent align="end" className="w-56">
-        {/* EDITAR NORMAL */}
+        {/* EDITAR */}
         <DropdownMenuItem
           onClick={() => onEdit(item)}
           className="flex items-center gap-2 cursor-pointer"
@@ -79,7 +79,7 @@ export default function ActionsDropdown({
           <HiPencil className="w-4 h-4" /> Editar
         </DropdownMenuItem>
 
-        {/* EDITAR INFO ADICIONAL (Solo para alumnos) */}
+        {/* EDIT EXTRA */}
         {showEditExtra && onEditExtra && esAlumno && (
           <DropdownMenuItem
             onClick={() => onEditExtra(item)}
@@ -89,15 +89,12 @@ export default function ActionsDropdown({
           </DropdownMenuItem>
         )}
 
-        {/* DESCARGAR CREDENCIAL - SIN FILTRO DE ROL (Ya estamos en vista Admin) */}
+        {/* CREDENCIAL */}
         {esAlumno && (
           <>
             <DropdownMenuSeparator />
-            <div className="flex flex-col space-y-1">
-               <DescargarCredencialButton 
-                 alumno={getAlumnoData()} 
-                 firmante={firmanteData} 
-               />
+            <div className="px-2 py-1">
+              <DescargarCredencialButton alumno={getAlumnoData() as any} />
             </div>
           </>
         )}

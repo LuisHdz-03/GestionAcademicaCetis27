@@ -2,12 +2,10 @@ import React from "react";
 import CredencialPrint from "@/components/common/credencial/CredencialPrint";
 import { Button } from "@/components/ui/button";
 
-export function DescargarCredencialButton({ alumno, firmante }: { alumno: any; firmante: any }) {
+export default function DescargarCredencialButton({ alumno }: { alumno: any }) {
   return (
     <div>
-      <CredencialPrint estudiante={alumno} firmante={firmante} />
+      <CredencialPrint estudiante={alumno} />
     </div>
   );
 }
-
-export default DescargarCredencialButton;

@@ -22,44 +22,58 @@ interface CredencialPrintProps {
     emision?: string;
     vigencia?: string;
   };
-  firmante: {
-    cargo: string;
-    nombre: string;
-    firmaImagenUrl?: string;
-  };
 }
 
-export default function CredencialPrint({
-  estudiante,
-  firmante: firmanteProp,
-}: CredencialPrintProps) {
+export default function CredencialPrint({ estudiante }: CredencialPrintProps) {
   const credencialRef = useRef<HTMLDivElement>(null);
   const [generando, setGenerando] = useState(false);
   const { toast } = useToast();
-  const [firmante, setFirmante] = useState(firmanteProp);
+  const [firmante, setFirmante] = useState<{
+    cargo: string;
+    nombre: string;
+    firmaImagenUrl?: string;
+  }>({
+    cargo: "DIRECTOR DEL PLANTEL",
+    nombre: "NOMBRE NO ASIGNADO",
+    firmaImagenUrl: undefined,
+  });
 
+  // En src/components/common/credencial/CredencialPrint.tsx
   useEffect(() => {
-    if (!firmanteProp) {
-      fetch("/api/web/admins/director")
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("[Credencial] Datos director recibidos:", data);
+    const obtenerDirector = async () => {
+      try {
+        // Obtener el token del localStorage o cookies (ajusta según tu app)
+        const token =
+          typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        const res = await fetch(
+          "http://localhost:4000/api/web/administrativos/director",
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          },
+        );
+
+        const data = await res.json();
+        if (data && (data.nombre || data.cargo)) {
           setFirmante({
             cargo: data.cargo || "DIRECTOR DEL PLANTEL",
             nombre: data.nombre || "NOMBRE NO ASIGNADO",
             firmaImagenUrl: data.firmaImagenUrl || undefined,
           });
-        })
-        .catch((err) => {
-          console.error("[Credencial] Error obteniendo director:", err);
-          setFirmante({
-            cargo: "DIRECTOR DEL PLANTEL",
-            nombre: "NOMBRE NO ASIGNADO",
-            firmaImagenUrl: undefined,
-          });
+        }
+      } catch (error) {
+        console.error("ERROR FETCH DIRECTOR:", error);
+        setFirmante({
+          cargo: "DIRECTOR DEL PLANTEL",
+          nombre: "NOMBRE NO ASIGNADO",
+          firmaImagenUrl: undefined,
         });
-    }
-  }, [firmanteProp]);
+      }
+    };
+    obtenerDirector();
+  }, []);
 
   const handleDescargarPDF = async () => {
     if (!credencialRef.current) return;
@@ -272,15 +286,12 @@ export default function CredencialPrint({
               }}
             >
               {/* IZQUIERDA */}
-              <div style={{ lineHeight: "1.2" }}>
-                <p style={{ fontSize: "8px", fontWeight: 600 }}>
+              <div style={{ lineHeight: "1.2"}}>
+                <p style={{ fontSize: "13px", fontWeight: 600 }}>
                   SISTEMA ESCOLARIZADO
                 </p>
-                <p style={{ fontSize: "7px" }}>
+                <p style={{ fontSize: "11px" }}>
                   TURNO {estudiante.turno || "MATUTINO"}
-                </p>
-                <p style={{ fontSize: "7px" }}>
-                  GRUPO {estudiante.grupo || "N/A"}
                 </p>
               </div>
 
