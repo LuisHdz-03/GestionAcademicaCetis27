@@ -18,8 +18,7 @@ export type UserRole =
   | "guardia"
   | "prefecto"
   | "administrativo"
-  | "directivo"
-  | "padre"; // <-- Agregamos el rol de padre
+  | "directivo";
 
 export interface UserCapabilities {
   accesoInstitucionalCompleto?: boolean;
@@ -38,7 +37,7 @@ export interface User {
   cargo?: string;
   capacidades?: UserCapabilities;
   passwordChangeRequired?: boolean;
-  matricula?: string; // Para los padres
+  // matricula?: string; // Eliminado campo de padres
 }
 
 export interface PeriodoActivo {
@@ -54,7 +53,6 @@ type AuthContextType = {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
-  loginPadre: (matricula: string, curp: string) => Promise<void>; // <-- Nueva función
   logout: () => void;
 };
 
@@ -102,25 +100,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const parsedUser = JSON.parse(usuarioGuardado) as User;
         setUser(parsedUser);
-
-        // Solo cargamos periodos si NO es padre
-        if (parsedUser.tipoUsuario !== "padre") {
-          try {
-            const resPeriodos = await fetch(`${API_URL}/periodos`, {
-              headers: { Authorization: `Bearer ${token}` },
-              signal: AbortSignal.timeout(10000),
-            });
-            if (resPeriodos.ok) {
-              const dataPeriodos = await resPeriodos.json();
-              const periodoActual = dataPeriodos.find(
-                (p: any) => p.activo === true,
-              );
-              setPeriodoActivo(periodoActual || null);
-            }
-          } catch (error) {
-            console.warn("No se pudo cargar el periodo activo global");
-          }
-        }
       } catch (error) {
         logout();
       } finally {
@@ -188,53 +167,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loginPadre = async (matricula: string, curp: string): Promise<void> => {
-    if (!isClient) return;
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(`${API_URL}/padres/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matricula, curp }),
-        signal: AbortSignal.timeout(15000),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.error || "Datos incorrectos. Verifica la Matrícula y CURP.",
-        );
-      }
-
-      const usuarioPadre: User = {
-        id: result.alumno.idEstudiante,
-        nombre: "Tutor de",
-        apellidoPaterno: result.alumno.nombreCompleto,
-        tipoUsuario: "padre",
-        matricula: result.alumno.matricula,
-      };
-
-      localStorage.setItem("token", result.token);
-      localStorage.setItem("usuario", JSON.stringify(usuarioPadre));
-      setUser(usuarioPadre);
-
-      router.push("/dashboard/tutor");
-    } catch (error: any) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const value = {
     user,
     periodoActivo,
     isAuthenticated: !!user,
     isLoading,
     login,
-    loginPadre,
     logout,
   };
 
