@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/useToast";
 import { downloadTemplate, uploadCsv } from "@/lib/upload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Download, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -313,14 +314,22 @@ export default function EspaciosPage() {
             </CardTitle>
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" onClick={handleDescargarMachote}>
-                Descargar Machote
+                <Download className="w-4 h-4 mr-2" /> Descargar Machote
               </Button>
               <Button
                 variant="outline"
                 onClick={handleCargarExcel}
                 disabled={uploading}
               >
-                {uploading ? "Cargando..." : "Cargar Excel"}
+                {uploading ? (
+                  <>
+                    <Upload className="w-4 h-4 mr-2 animate-spin" /> Cargando...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" /> Cargar Excel
+                  </>
+                )}
               </Button>
               <Button
                 onClick={openCreate}

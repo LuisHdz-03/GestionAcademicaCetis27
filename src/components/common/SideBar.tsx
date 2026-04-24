@@ -9,6 +9,7 @@ import {
   HiDocumentText,
   HiClipboardDocumentCheck,
   HiQueueList,
+  HiBuildingStorefront,
 } from "react-icons/hi2";
 import { FaGraduationCap, FaCheckCircle } from "react-icons/fa";
 import { MdQrCodeScanner } from "react-icons/md";
@@ -38,7 +39,6 @@ export default function Sidebar({
   const { user } = useAuth();
   const expanded = isMobile ? true : isExpanded;
 
-  // Normalización de texto para roles y cargos
   const normalizarTexto = (texto: string) => {
     if (!texto) return "";
     return texto
@@ -63,9 +63,13 @@ export default function Sidebar({
     ...cargosDirectivos,
     "JEFE DE DEPARTAMENTO",
     "SECRETARIO",
+    "GUARDIA",
   ];
 
   const tienePermiso = (itemRoles: string[], itemCargos: string[] = []) => {
+    if (tipoUsuario === "ADMINISTRATIVO" && cargoUsuario === "GUARDIA") {
+      return true;
+    }
     if (tipoUsuario === "ADMINISTRATIVO" && cargoUsuario === "PREFECTO") {
       return itemRoles.includes("PREFECTO");
     }
@@ -107,7 +111,7 @@ export default function Sidebar({
       cargos: cargosAdministrativosGrales,
     },
     {
-      icon: FaCheckCircle,
+      icon: HiBuildingStorefront,
       label: "Espacios",
       href: "/dashboard/espacios",
       roles: ["ADMINISTRATIVO", "DIRECTIVO"],
@@ -150,16 +154,21 @@ export default function Sidebar({
     },
   ];
 
-  const itemsPermitidos = menuItems.filter((item) =>
+  let itemsPermitidos = menuItems.filter((item) =>
     tienePermiso(item.roles, item.cargos),
   );
+  if (tipoUsuario === "ADMINISTRATIVO" && cargoUsuario === "GUARDIA") {
+    itemsPermitidos = itemsPermitidos.filter(
+      (item) =>
+        item.label === "Escanear QR" || item.label === "Registros de Entrada",
+    );
+  }
 
   return (
     <TooltipProvider>
       <div
         className={cn(
           "bg-[#691C32] border-r transition-all duration-300 ease-in-out z-40 flex flex-col",
-          // CLASES CLAVE: sticky, top-0 y h-screen para que no se mueva al dar scroll
           "sticky top-0 h-screen",
           isMobile ? "w-72 max-w-[85vw]" : expanded ? "w-64" : "w-16",
         )}

@@ -14,7 +14,7 @@ export default function ActionsBar({ activeTab }: ActionsBarProps) {
       case "alumnos":
         return "Agregar alumno";
       case "administradores":
-        return "Agregar administrador";
+        return "Agregar Personal Escolar";
       default:
         return "Agregar";
     }

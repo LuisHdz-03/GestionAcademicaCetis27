@@ -1,5 +1,11 @@
 "use client";
 
+// Capitaliza solo la primera letra y el resto en minúsculas
+function capitalizar(texto: string) {
+  if (!texto) return "";
+  return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
+}
+
 import {
   Table,
   TableBody,
@@ -110,7 +116,9 @@ export default function DataTable({
         return <TableCell key={cellKey}></TableCell>;
       case "Cargo":
         return (
-          <TableCell key={cellKey}>{(item as Admin).cargo || ""}</TableCell>
+          <TableCell key={cellKey}>
+            {capitalizar((item as Admin).cargo || "")}
+          </TableCell>
         );
 
       case "Grupo": {

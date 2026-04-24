@@ -24,7 +24,7 @@ export default function AddAdminForm({
   mode = "create",
   initialData,
 }: AddAdminFormProps) {
-  const { toast } = useToast(); 
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState<AdminFormData>({
     nombre: initialData?.nombre || "",
@@ -45,9 +45,9 @@ export default function AddAdminForm({
     "Jefe de Departamento",
     "Secretario",
     "Prefecto",
+    "Guardia",
   ];
 
-  // Si el cargo actual del admin no está en la lista, agregarlo
   const cargoActual = formData.cargo;
   const todosLosCargos =
     cargoActual && !cargosDisponibles.includes(cargoActual)
@@ -59,7 +59,12 @@ export default function AddAdminForm({
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: value });
+    // Siempre guardar el cargo con mayúscula inicial
+    let cargoFormateado = value;
+    if (name === "cargo") {
+      cargoFormateado = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    }
+    setFormData({ ...formData, [name]: cargoFormateado });
   };
 
   // 3. ACTUALIZAMOS EL HANDLESUBMIT CON VALIDACIONES
@@ -195,7 +200,7 @@ export default function AddAdminForm({
           name="area"
           value={formData.area || ""}
           onChange={handleChange}
-          placeholder="Ej. Administración General"
+          placeholder="Ej. Área General"
         />
       </div>
 
@@ -203,7 +208,7 @@ export default function AddAdminForm({
         type="submit"
         className="w-full bg-[#691C32] hover:bg-[#4a1424] text-white mt-4"
       >
-        {mode === "create" ? "Agregar Administrador" : "Guardar cambios"}
+        {mode === "create" ? "Agregar Personal Escolar" : "Guardar cambios"}
       </Button>
     </form>
   );

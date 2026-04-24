@@ -28,8 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const API_URL =
-  "http://localhost:4000/api/web";
+const API_URL = "http://localhost:4000/api/web";
 const API_DEBUG = process.env.NEXT_PUBLIC_DEBUG_API === "true";
 
 const logApi = (label: string, payload: unknown) => {
@@ -422,7 +421,7 @@ export default function DashboardPage() {
 
   const stats = [
     {
-      title: "Alumnos activos",
+      title: "Alumnos",
       value: String(alumnos.length),
       icon: HiUsers,
       color: "text-blue-600",
@@ -443,7 +442,7 @@ export default function DashboardPage() {
       bgColor: "bg-purple-100",
     },
     {
-      title: "Administradores",
+      title: "Personal Escolar",
       value: String(administradores.length),
       icon: HiBriefcase,
       color: "text-amber-600",
@@ -812,4 +811,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

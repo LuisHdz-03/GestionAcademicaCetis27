@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { downloadTemplate, uploadCsv } from "@/lib/upload";
+import { Download, Upload } from "lucide-react";
 import {
   HiMagnifyingGlass,
   HiCheckCircle,
@@ -505,14 +506,22 @@ export default function PaseDeListaPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" onClick={handleDescargarMachote}>
-            Descargar Machote
+            <Download className="w-4 h-4 mr-2" /> Descargar Machote
           </Button>
           <Button
             variant="outline"
             onClick={handleSubirExcel}
             disabled={uploadingExcel}
           >
-            {uploadingExcel ? "Cargando..." : "Subir Excel"}
+            {uploadingExcel ? (
+              <>
+                <Upload className="w-4 h-4 mr-2 animate-spin" /> Cargando...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4 mr-2" /> Subir Excel
+              </>
+            )}
           </Button>
         </div>
         {asistenciaBloqueada && (

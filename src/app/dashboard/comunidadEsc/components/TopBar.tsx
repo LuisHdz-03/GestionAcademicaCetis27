@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   HiMagnifyingGlass,
   HiPlus,
@@ -22,6 +22,8 @@ import {
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
+
+import DescargarCredencialesButton from "@/components/common/credencial/DescargarCredencialesButton";
 import { uploadCsv, downloadTemplate, type TemplateType } from "@/lib/upload";
 
 interface TopBarProps {
@@ -63,6 +65,7 @@ export default function TopBar({
       alumnos: "estudiantes",
       docentes: "docentes",
       administradores: "administrativos",
+      personalEscolar: "administrativos", // Soporte por si cambiaste el ID del tab
     };
     const tipo = templateMap[activeTab];
     if (!tipo) return;
@@ -81,7 +84,8 @@ export default function TopBar({
       let endpoint = activeTab;
       if (activeTab === "alumnos") endpoint = "estudiantes";
       if (activeTab === "docentes") endpoint = "docentes";
-      if (activeTab === "administradores") endpoint = "administrativos";
+      if (activeTab === "administradores" || activeTab === "personalEscolar")
+        endpoint = "administrativos";
 
       const { ok, data } = await uploadCsv(file, endpoint);
 
@@ -118,6 +122,7 @@ export default function TopBar({
       case "alumnos":
         return ["Nombre", "Email", "Matrícula", "Especialidad", "Semestre"];
       case "administradores":
+      case "personalEscolar":
         return ["Nombre", "Email", "Cargo", "N° Empleado"];
       default:
         return [];
@@ -226,7 +231,12 @@ export default function TopBar({
             input.accept = ".csv, .xlsx";
             input.onchange = (e: any) => {
               const file = e.target.files?.[0];
-              if (file && confirm(`¿Cargar archivo para ${activeTab}?`)) {
+              if (
+                file &&
+                confirm(
+                  `¿Cargar archivo para ${activeTab === "administradores" ? "Personal Escolar" : activeTab}?`,
+                )
+              ) {
                 enviarArchivoAlBackend(file);
               }
             };
@@ -236,7 +246,9 @@ export default function TopBar({
           <HiArrowDownTray className="w-4 h-4" /> Cargar CSV
         </Button>
 
-        {["alumnos", "docentes", "administradores"].includes(activeTab) && (
+        {["alumnos", "docentes", "administradores", "personalEscolar"].includes(
+          activeTab,
+        ) && (
           <Button
             variant="outline"
             className="gap-2 w-full sm:w-auto"
@@ -247,18 +259,26 @@ export default function TopBar({
           </Button>
         )}
 
-        <Button
-          className="bg-[#691C32] hover:bg-[#5a1829] text-white gap-2 w-full sm:w-auto"
-          onClick={onAddClick}
-          disabled={isUploading}
-        >
-          <HiPlus className="w-4 h-4" />
-          {activeTab === "docentes"
-            ? "Agregar docente"
-            : activeTab === "alumnos"
-              ? "Agregar alumno"
-              : "Agregar administrador"}
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            className="bg-[#691C32] hover:bg-[#5a1829] text-white gap-2 w-full sm:w-auto"
+            onClick={onAddClick}
+            disabled={isUploading}
+          >
+            <HiPlus className="w-4 h-4" />
+            {activeTab === "docentes"
+              ? "Agregar docente"
+              : activeTab === "alumnos"
+                ? "Agregar alumno"
+                : "Agregar Personal Escolar"}
+          </Button>
+          {activeTab === "alumnos" && (
+            <React.Suspense fallback={null}>
+              {/* Botón para descargar credenciales masivas */}
+              <DescargarCredencialesButton />
+            </React.Suspense>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -8,10 +8,13 @@ interface TabsSelectorProps {
 const tabs = [
   { id: "docentes", label: "Docentes" },
   { id: "alumnos", label: "Alumnos" },
-  { id: "administradores", label: "Administradores" },
+  { id: "administradores", label: "Personal Escolar" },
 ];
 
-export default function TabsSelector({ activeTab, setActiveTab }: TabsSelectorProps) {
+export default function TabsSelector({
+  activeTab,
+  setActiveTab,
+}: TabsSelectorProps) {
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
       {tabs.map((tab) => (

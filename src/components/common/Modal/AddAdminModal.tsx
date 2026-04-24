@@ -32,7 +32,7 @@ export default function AddAdminModal({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Agregar Administrador</DialogTitle>
+          <DialogTitle>Agregar Personal Escolar</DialogTitle>
         </DialogHeader>
         <AddAdminForm onSubmit={handleSubmit} />
       </DialogContent>

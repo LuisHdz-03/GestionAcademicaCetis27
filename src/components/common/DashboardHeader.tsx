@@ -77,12 +77,7 @@ export default function DashboardHeader({
   const cargoUsuario = normalizarTexto(
     (user as any)?.cargo || tipoUsuario || "",
   );
-  const esDirectivo = [
-    "DIRECTOR",
-    "SUBDIRECTORA ACADEMICA",
-    "COORDINADOR",
-    "COORDINADOR ACADEMICO",
-  ].includes(cargoUsuario);
+  const esDirector = cargoUsuario === "DIRECTOR";
 
   const headerBg = "#691C32";
   const textColor = "#FFFFFF";
@@ -546,7 +541,13 @@ export default function DashboardHeader({
                 className="text-xs sm:text-sm mt-0.5 sm:mt-1 truncate"
                 style={{ color: mutedTextColor }}
               >
-                {tipoUsuario}
+                {normalizarTexto(tipoUsuario) === "ADMINISTRATIVO"
+                  ? "Control Escolar"
+                  : normalizarTexto(tipoUsuario) === "ADMINISTRADOR"
+                  ? "Personal Escolar"
+                  : normalizarTexto(tipoUsuario) === "ADMINISTRADORES"
+                  ? "Personal Escolar"
+                  : tipoUsuario}
               </p>
             </div>
           </div>
@@ -582,7 +583,13 @@ export default function DashboardHeader({
                       {nombreUsuario}
                     </p>
                     <p className="text-xs" style={{ color: mutedTextColor }}>
-                      {tipoUsuario}
+                      {normalizarTexto(tipoUsuario) === "ADMINISTRATIVO"
+                        ? "Control Escolar"
+                        : normalizarTexto(tipoUsuario) === "ADMINISTRADOR"
+                        ? "Personal Escolar"
+                        : normalizarTexto(tipoUsuario) === "ADMINISTRADORES"
+                        ? "Personal Escolar"
+                        : tipoUsuario}
                     </p>
                   </div>
                 </Button>
@@ -600,18 +607,16 @@ export default function DashboardHeader({
                 {/* Usamos onSelect en lugar de onClick. 
                   e.preventDefault() evita que Radix cierre el dropdown antes de que React abra el modal.
                 */}
-                {user?.tipoUsuario !== "padre" && (
-                  <DropdownMenuItem
-                    className="text-sm rounded-md cursor-pointer hover:bg-[#50172A]"
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      cargarPerfilEditable();
-                    }}
-                  >
-                    Actualizar Perfil
-                  </DropdownMenuItem>
-                )}
-                {esDirectivo && (
+                <DropdownMenuItem
+                  className="text-sm rounded-md cursor-pointer hover:bg-[#50172A]"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    cargarPerfilEditable();
+                  }}
+                >
+                  Actualizar Perfil
+                </DropdownMenuItem>
+                {esDirector && (
                   <DropdownMenuItem
                     className="text-sm rounded-md cursor-pointer hover:bg-[#50172A]"
                     onSelect={(e) => {
