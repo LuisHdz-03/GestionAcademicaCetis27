@@ -253,6 +253,7 @@ export function useCommunity(): UseCommunityReturn {
           matricula: a.matricula || "",
           semestre: a.semestre || 1,
           fechaIngreso: a.fechaIngreso || "",
+          tokenPadre: a.tokenPadre || "",
           idEspecialidad:
             a.especialidad?.idEspecialidad ||
             a.grupo?.especialidadId ||
@@ -680,13 +681,29 @@ export function useCommunity(): UseCommunityReturn {
         };
       };
 
-      const payload = {
-        semestre: data.semestreActual,
-        grupoId: data.idGrupo,
+      const payload: any = {
+        nombre: data.nombre ?? (data as any).usuario?.nombre,
+        apellidoPaterno:
+          data.apellidoPaterno ?? (data as any).usuario?.apellidoPaterno,
+        apellidoMaterno:
+          data.apellidoMaterno ?? (data as any).usuario?.apellidoMaterno,
+        curp: data.curp ?? (data as any).usuario?.curp,
+        matricula: data.numeroControl ?? (data as any).matricula,
+        email: data.email ?? (data as any).usuario?.email,
+        telefono: (data as any).telefono ?? (data as any).usuario?.telefono,
+        direccion: (data as any).direccion ?? (data as any).usuario?.direccion,
+        semestre: data.semestreActual ?? (data as any).semestre,
+        grupoId: data.idGrupo ?? (data as any).grupo?.idGrupo,
         credencialFechaEmision: dataExt.credencialFechaEmision,
         credencialFechaExpiracion: dataExt.credencialFechaExpiracion,
         tutor: dataExt.tutor,
       };
+
+      Object.keys(payload).forEach((key) => {
+        if (payload[key] === undefined) {
+          delete payload[key];
+        }
+      });
 
       const response = await fetch(`${API_URL}/estudiantes/${id}`, {
         method: "PUT",
@@ -699,6 +716,7 @@ export function useCommunity(): UseCommunityReturn {
       await fetchAlumnos();
       return true;
     } catch (err) {
+      console.error(err);
       return false;
     }
   };

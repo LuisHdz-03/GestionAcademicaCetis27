@@ -34,6 +34,7 @@ export interface Alumno {
   idGrupo?: number;
   grupo?: string | { idGrupo?: number; nombre?: string };
   activo: boolean;
+  tokenPadre?: string;
   direccion?: string;
   fechaIngreso?: string;
   credencialFechaEmision?: string | null;

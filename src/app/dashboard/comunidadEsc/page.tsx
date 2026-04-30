@@ -243,7 +243,14 @@ export default function CommunityManagementPage() {
       case "docentes":
         return ["Nombre", "Email", "Especialidad", "N° Empleado"];
       case "alumnos":
-        return ["Nombre", "Email", "Matrícula", "Especialidad", "Grupo"];
+        return [
+          "Nombre",
+          "Email",
+          "Matrícula",
+          "Especialidad",
+          "Grupo",
+          "Llave Padre",
+        ];
       case "administradores":
         return ["Nombre", "Email", "Cargo", "N° Empleado"];
       default:

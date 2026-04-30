@@ -14,6 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useState } from "react";
+import { HiEye, HiEyeSlash } from "react-icons/hi2";
 import ActionsDropdown from "./ActionsDropdown";
 import { Docente, Alumno, Admin } from "@/types/community";
 
@@ -70,12 +72,19 @@ export default function DataTable({
           "Especialidad",
           "Semestre",
           "Grupo",
+          "Llave Padre",
         ];
       case "administradores":
         return ["Nombre", "Email", "Cargo", "N° Empleado"];
       default:
         return [];
     }
+  };
+
+  const [showToken, setShowToken] = useState<{ [key: number]: boolean }>({});
+
+  const handleToggleToken = (id: number) => {
+    setShowToken((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const renderCell = (column: string, item: Docente | Alumno | Admin) => {
@@ -131,6 +140,37 @@ export default function DataTable({
 
         return (
           <TableCell key={cellKey}>{nombreGrupo || "Sin grupo"}</TableCell>
+        );
+      }
+      case "Llave Padre": {
+        const alumno = item as Alumno;
+        const token = alumno.tokenPadre || "";
+        const id = getStableItemId(item as BaseItem);
+        return (
+          <TableCell key={cellKey}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type={showToken[id] ? "text" : "password"}
+                value={token}
+                readOnly
+                style={{ width: "120px", fontFamily: "monospace" }}
+              />
+              <button
+                type="button"
+                aria-label={showToken[id] ? "Ocultar llave" : "Mostrar llave"}
+                onClick={() => handleToggleToken(id)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                  fontSize: "1.1em",
+                }}
+              >
+                {showToken[id] ? <HiEyeSlash size={20} /> : <HiEye size={20} />}
+              </button>
+            </div>
+          </TableCell>
         );
       }
       default:

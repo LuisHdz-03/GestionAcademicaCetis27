@@ -34,8 +34,7 @@ import {
   HiExclamationTriangle,
 } from "react-icons/hi2";
 
-const API_URL =
-  "http://localhost:4000/api/web";
+const API_URL = "http://localhost:4000/api/web";
 
 const OPCIONES = [
   {
@@ -337,17 +336,20 @@ export default function PaseDeListaPage() {
     try {
       const listaAlumnosFormateada = alumnos.map((alumno) => {
         const idAlum = alumno.idEstudiante || alumno.id;
-        return { alumnoId: idAlum, estatus: asistencia[idAlum] };
+        return {
+          matricula: String(alumno.matricula), // <-- EL BACKEND PIDE LA MATRICULA AQUI
+          estatus: asistencia[idAlum],
+        };
       });
 
       const res = await fetch(`${API_URL}/asistencias`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          claseId: parseInt(claseSeleccionada),
+          materia: materiaNombre, // <-- ENVIAMOS EL NOMBRE DE LA MATERIA
           listaAlumnos: listaAlumnosFormateada,
           metodo: "MANUAL",
-          fecha: sesionActivaFecha, // <--- SE LA ENVIAMOS AL BACKEND PARA QUE NO ADIVINE
+          fecha: sesionActivaFecha,
         }),
       });
 
@@ -1116,4 +1118,3 @@ export default function PaseDeListaPage() {
     </div>
   );
 }
-
