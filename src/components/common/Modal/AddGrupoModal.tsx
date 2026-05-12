@@ -58,8 +58,7 @@ interface Espacio {
   activo?: boolean;
 }
 
-const API_URL =
-  "http://localhost:4000/api/web";
+const API_URL = "http://localhost:4000/api/web";
 
 interface EditGrupoModalProps {
   open: boolean;
@@ -512,32 +511,7 @@ export default function EditGrupoModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Docente</Label>
-              <Select
-                onValueChange={(v) => handleSelectChange("docenteId", v)}
-                value={
-                  formData.docenteId > 0 ? formData.docenteId.toString() : ""
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar Docente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {docentes.map((d) => (
-                    <SelectItem
-                      key={d.idDocente || d.id}
-                      value={String(d.idDocente || d.id)}
-                    >
-                      {d.usuario?.nombre || ""}{" "}
-                      {d.usuario?.apellidoPaterno || ""}{" "}
-                      {d.usuario?.apellidoMaterno || ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="grid grid-cols-1 gap-4">
             <div>
               <Label>Docente tutor</Label>
               <Select
@@ -635,4 +609,3 @@ export default function EditGrupoModal({
     </Dialog>
   );
 }
-

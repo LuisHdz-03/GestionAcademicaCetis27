@@ -33,12 +33,12 @@ export default function AddClaseModal({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="text-2xl text-[#691C32]">
-            {mode === "edit" ? "Editar Clase" : "Vincular Nueva Clase"}
+            {mode === "edit" ? "Editar Clase" : "Vincular Docente a Materia"}
           </DialogTitle>
           <DialogDescription>
             {mode === "edit"
               ? "Modifica los datos de la clase asignada."
-              : "Asigna un docente a un grupo y especifica la materia que va a impartir."}
+              : "Asigna un docente a una materia y selecciona el grupo donde la va a impartir."}
           </DialogDescription>
         </DialogHeader>
 

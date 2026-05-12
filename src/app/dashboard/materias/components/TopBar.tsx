@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { useState } from "react";
 import AddEspeModal from "@/components/common/Modal/AddEspeModal";
 import { HiArrowDownTray } from "react-icons/hi2";
@@ -87,6 +87,15 @@ export default function TopBar({ onAddEspecialidad }: TopBarProps) {
             Gestión de especialidades
           </h1>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              type="button"
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Descargar Machote
+            </Button>
+
             {/* Botón para cargar especialidades por CSV */}
             <Button
               variant="outline"

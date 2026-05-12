@@ -138,7 +138,6 @@ export default function GestionEspecialidadesPage() {
               return ok;
             }}
             onCreateGrupo={async (data) => {
-              // 👇 Traducimos del Modal -> a TypeScript
               const ok = await createGrupo({
                 codigo: (data as any).nombre,
                 semestre: (data as any).grado,
@@ -169,7 +168,6 @@ export default function GestionEspecialidadesPage() {
               return ok;
             }}
             onUpdateGrupo={async (id, data) => {
-              // 👇 Traducimos del Modal -> a TypeScript
               const ok = await updateGrupo(id, {
                 codigo: (data as any).nombre,
                 semestre: (data as any).grado,

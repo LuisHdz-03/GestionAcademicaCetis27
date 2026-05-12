@@ -212,7 +212,8 @@ export default function AsignarClaseForm({
 
   const docenteOpts: Option[] = docentes.map((d) => ({
     value: String(d.idDocente || d.id),
-    label: `${d.usuario?.nombre || d.nombre || ""} ${d.usuario?.apellidoPaterno || d.apellidoPaterno || ""}`.trim(),
+    label:
+      `${d.usuario?.nombre || d.nombre || ""} ${d.usuario?.apellidoPaterno || d.apellidoPaterno || ""}`.trim(),
     sublabel: d.especialidad || d.cargo || "",
   }));
 
@@ -358,7 +359,7 @@ export default function AsignarClaseForm({
           {resumen.docente && (
             <p className="text-sm text-gray-700">
               <span className="font-medium">Docente:</span>{" "}
-              {resumen.docente.usuario?.nombre || resumen.docente.nombre} {" "}
+              {resumen.docente.usuario?.nombre || resumen.docente.nombre}{" "}
               {resumen.docente.usuario?.apellidoPaterno ||
                 resumen.docente.apellidoPaterno}
             </p>
@@ -375,7 +376,7 @@ export default function AsignarClaseForm({
           ? "Guardando..."
           : mode === "edit"
             ? "Guardar Cambios"
-            : "Vincular Docente a Grupo"}
+            : "Vincular Docente a Materia"}
       </Button>
     </form>
   );

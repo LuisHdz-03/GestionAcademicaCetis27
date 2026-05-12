@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Download } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -394,6 +394,14 @@ export default function MateriasTabs({
             <div className="flex flex-wrap gap-2 flex-shrink-0">
               <Button
                 variant="outline"
+                type="button"
+                className="flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Descargar Machote
+              </Button>
+              <Button
+                variant="outline"
                 className="flex items-center gap-2"
                 disabled={isUploading}
                 onClick={() => {
@@ -539,6 +547,14 @@ export default function MateriasTabs({
 
             {/* Botones */}
             <div className="flex flex-wrap gap-2 flex-shrink-0">
+              <Button
+                variant="outline"
+                type="button"
+                className="flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Descargar Machote
+              </Button>
               <Button
                 variant="outline"
                 className="flex items-center gap-2"

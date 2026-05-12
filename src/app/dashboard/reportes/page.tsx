@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,8 +22,7 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/contexts/AuthContext";
 
-const API_URL =
-  "http://localhost:4000/api/web";
+const API_URL = "http://localhost:4000/api/web";
 
 interface TutorFamiliar {
   nombre: string;
@@ -138,6 +137,7 @@ export default function ReportesPage() {
   const [busquedaAlumno, setBusquedaAlumno] = useState("");
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [alumnosFiltrados, setAlumnosFiltrados] = useState<Alumno[]>([]);
+  const [busquedaReporteAlumno, setBusquedaReporteAlumno] = useState("");
   const [reporteVisualizacion, setReporteVisualizacion] =
     useState<Reporte | null>(null);
   const [mostrarDetalleReporte, setMostrarDetalleReporte] = useState(false);
@@ -752,6 +752,20 @@ export default function ReportesPage() {
     return fechaReporte >= inicio && fechaReporte <= fin;
   });
 
+  const reportesFiltrados = useMemo(() => {
+    const termino = normalizarTexto(busquedaReporteAlumno);
+
+    if (!termino) {
+      return reportesFiltradosPorPeriodo;
+    }
+
+    return reportesFiltradosPorPeriodo.filter((reporte) => {
+      const nombre = normalizarTexto(reporte.nombreEstudiante || "");
+      const matricula = normalizarTexto(reporte.matriculaEstudiante || "");
+      return nombre.includes(termino) || matricula.includes(termino);
+    });
+  }, [busquedaReporteAlumno, reportesFiltradosPorPeriodo]);
+
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -1026,9 +1040,25 @@ export default function ReportesPage() {
           <CardTitle>Reportes del Periodo Activo</CardTitle>
         </CardHeader>
         <CardContent>
-          {reportesFiltradosPorPeriodo.length === 0 ? (
+          <div className="mb-4 max-w-md">
+            <Label htmlFor="buscar-reporte-alumno">
+              Buscar reporte por alumno
+            </Label>
+            <Input
+              id="buscar-reporte-alumno"
+              type="text"
+              placeholder="Ej: Juan Pérez o 213110..."
+              value={busquedaReporteAlumno}
+              onChange={(e) => setBusquedaReporteAlumno(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+
+          {reportesFiltrados.length === 0 ? (
             <p className="text-center text-gray-500 py-8">
-              No hay reportes registrados en este periodo escolar.
+              {busquedaReporteAlumno.trim()
+                ? "No se encontraron reportes para ese alumno en este periodo escolar."
+                : "No hay reportes registrados en este periodo escolar."}
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -1044,7 +1074,7 @@ export default function ReportesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {reportesFiltradosPorPeriodo.map((reporte) => (
+                  {reportesFiltrados.map((reporte) => (
                     <TableRow key={reporte.idReporte}>
                       <TableCell>
                         {new Date(
@@ -1190,4 +1220,3 @@ export default function ReportesPage() {
     </div>
   );
 }
-

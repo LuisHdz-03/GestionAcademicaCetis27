@@ -160,7 +160,7 @@ export default function HorariosPage() {
           </CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={handleDescargarMachote}>
-              <Download className="w-4 h-4 mr-2" /> Descargar Machote
+              <Upload className="w-4 h-4 mr-2" /> Descargar Machote
             </Button>
             <Button
               variant="outline"
@@ -168,8 +168,8 @@ export default function HorariosPage() {
               disabled={uploadingExcel}
               className="flex items-center"
             >
-              <Upload className="w-4 h-4 mr-2" />
-              {uploadingExcel ? "Cargando..." : "Carga Masiva"}
+              <Download className="w-4 h-4 mr-2" />
+              {uploadingExcel ? "Cargando..." : "Cargar Materias"}
             </Button>
             <Button
               onClick={() => setIsModalOpen(true)}

@@ -104,18 +104,49 @@ export default function DashboardHeader({
     setLoadingPerfil(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/auth/perfil-editable`, {
+      const endpoint = `${API_URL}/auth/perfil-editable`;
+      const requestHeaders = {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      console.group("[PERFIL] Solicitud perfil editable");
+      console.log("[PERFIL] endpoint:", endpoint);
+      console.log("[PERFIL] method:", "GET");
+      console.log("[PERFIL] token presente:", Boolean(token));
+      console.log(
+        "[PERFIL] token preview:",
+        token ? `${token.slice(0, 18)}...${token.slice(-10)}` : "sin token",
+      );
+      console.log("[PERFIL] headers:", requestHeaders);
+
+      const response = await fetch(endpoint, {
         method: "GET",
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: requestHeaders,
       });
 
-      if (!response.ok) {
-        throw new Error("No se pudo cargar el perfil editable");
+      const responseText = await response.text();
+      let responseData: any = null;
+
+      try {
+        responseData = responseText ? JSON.parse(responseText) : null;
+      } catch {
+        responseData = responseText;
       }
 
-      const data = await response.json();
+      console.log("[PERFIL] status:", response.status, response.statusText);
+      console.log("[PERFIL] ok:", response.ok);
+      console.log("[PERFIL] response body:", responseData);
+      console.groupEnd();
+
+      if (!response.ok) {
+        throw new Error(
+          responseData?.error ||
+            responseData?.mensaje ||
+            "No se pudo cargar el perfil editable",
+        );
+      }
+
+      const data = responseData;
       const asObject = (v: any) => {
         if (Array.isArray(v)) return v[0] || {};
         return v && typeof v === "object" ? v : {};
