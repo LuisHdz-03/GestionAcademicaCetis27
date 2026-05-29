@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import * as htmlToImage from "html-to-image";
 import jsPDF from "jspdf";
-import JSZip from "jszip";
 import { Button } from "@/components/ui/button";
 import CredencialCard from "./CredencialCard";
 
@@ -31,45 +30,60 @@ export default function DescargarCredencialesMasivo() {
     firmaImagenUrl: undefined as string | undefined,
   });
 
-  // Obtener firmante solo una vez
-  useEffect(() => {
-    const obtenerDirector = async () => {
-      try {
-        const token =
-          typeof window !== "undefined" ? localStorage.getItem("token") : null;
-        const res = await fetch(
-          "http://localhost:4000/api/web/administrativos/director",
-          {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
+  const agregarCacheBust = (url?: string) => {
+    if (!url) return undefined;
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}t=${Date.now()}`;
+  };
+
+  const obtenerDirector = async () => {
+    try {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch(
+        "http://localhost:4000/api/web/administrativos/director",
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-        );
-        const data = await res.json();
-        if (data && (data.nombre || data.cargo)) {
-          setFirmante({
-            cargo: data.cargo || "DIRECTOR DEL PLANTEL",
-            nombre: data.nombre || "NOMBRE NO ASIGNADO",
-            firmaImagenUrl: data.firmaImagenUrl || undefined,
-          });
-        }
-      } catch {
-        setFirmante({
-          cargo: "DIRECTOR DEL PLANTEL",
-          nombre: "NOMBRE NO ASIGNADO",
-          firmaImagenUrl: undefined,
-        });
+        },
+      );
+      const data = await res.json();
+      if (data && (data.nombre || data.cargo)) {
+        return {
+          cargo: data.cargo || "DIRECTOR DEL PLANTEL",
+          nombre: data.nombre || "NOMBRE NO ASIGNADO",
+          firmaImagenUrl: agregarCacheBust(data.firmaImagenUrl || undefined),
+        };
       }
+    } catch {
+      // Usar valores por defecto cuando no se pueda obtener el firmante.
+    }
+
+    return {
+      cargo: "DIRECTOR DEL PLANTEL",
+      nombre: "NOMBRE NO ASIGNADO",
+      firmaImagenUrl: undefined,
     };
-    obtenerDirector();
+  };
+
+  useEffect(() => {
+    const cargarDirectorInicial = async () => {
+      setFirmante(await obtenerDirector());
+    };
+
+    cargarDirectorInicial();
   }, []);
 
-  // Paso 1: Al hacer clic, cargar alumnos y marcar pendiente descarga
   const handleDescargarTodas = async () => {
     setDescargando(true);
     setProgreso(0);
     setPendienteDescarga(false);
+
+    const directorActualizado = await obtenerDirector();
+    setFirmante(directorActualizado);
+
     const token = localStorage.getItem("token");
     const res = await fetch(
       "http://localhost:4000/api/web/estudiantes/credenciales",
@@ -85,47 +99,59 @@ export default function DescargarCredencialesMasivo() {
     setPendienteDescarga(true);
   };
 
-  // Paso 2: Cuando alumnos y pendienteDescarga cambian, generar ZIP
+  // Paso 2: Cuando alumnos y pendienteDescarga cambian, generar PDF múltiple
   useEffect(() => {
-    const generarZip = async () => {
+    const generarPdf = async () => {
       if (!pendienteDescarga || !alumnos.length) return;
-      // Esperar a que React renderice las credenciales ocultas
+
       await new Promise((resolve) => setTimeout(resolve, 400));
-      const zip = new JSZip();
+
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "letter",
+      });
+
+      const cardWidth = 171.2;
+      const cardHeight = 54;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const cardsPerPage = 3;
+      const verticalGap = 6;
+      const totalHeight =
+        cardsPerPage * cardHeight + (cardsPerPage - 1) * verticalGap;
+      const startX = (pageWidth - cardWidth) / 2;
+      const startY = (pageHeight - totalHeight) / 2;
+
       for (let i = 0; i < alumnos.length; i++) {
-        const alumno = alumnos[i];
         const ref = credencialRefs.current[i];
         if (!ref) continue;
+
         await new Promise((resolve) => setTimeout(resolve, 150));
+
         const imgData = await htmlToImage.toPng(ref, {
           cacheBust: true,
           backgroundColor: "#ffffff",
           pixelRatio: 5,
         });
-        const pdf = new jsPDF({
-          orientation: "landscape",
-          unit: "mm",
-          format: "letter",
-        });
-        const ancho = 85.6;
-        const alto = 54;
-        const x = (pdf.internal.pageSize.getWidth() - ancho * 2) / 2;
-        const y = 20;
-        pdf.addImage(imgData, "PNG", x, y, ancho * 2, alto);
-        const pdfBlob = pdf.output("blob");
-        zip.file(`Credencial_${alumno.noControl}.pdf`, pdfBlob);
+
+        if (i > 0 && i % cardsPerPage === 0) {
+          pdf.addPage("letter", "landscape");
+        }
+
+        const positionInPage = i % cardsPerPage;
+        const y = startY + positionInPage * (cardHeight + verticalGap);
+
+        pdf.addImage(imgData, "PNG", startX, y, cardWidth, cardHeight);
         setProgreso(i + 1);
       }
-      const zipBlob = await zip.generateAsync({ type: "blob" });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Credenciales.zip";
-      a.click();
+
+      pdf.save("Credenciales.pdf");
       setDescargando(false);
       setPendienteDescarga(false);
     };
-    generarZip();
+
+    generarPdf();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alumnos, pendienteDescarga]);
 

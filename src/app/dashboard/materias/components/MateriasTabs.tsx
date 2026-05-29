@@ -31,6 +31,11 @@ interface Materia {
   totalHoras: number;
   semestre: number;
   idEspecialidad?: number;
+  espacioId?: number;
+  espacioNombre?: string;
+  creditos?: number;
+  horasTeoria?: number;
+  horasPractica?: number;
 }
 
 interface Grupo {
@@ -41,6 +46,7 @@ interface Grupo {
   integrantes: number;
   turno?: string;
   aula?: string;
+  materiasNombres?: string[];
   idEspecialidad?: number;
   idPeriodo?: number;
   idDocente?: number;
@@ -146,6 +152,7 @@ export default function MateriasTabs({
     "Código",
     "Total de horas",
     "Semestre",
+    "Espacio",
   ]);
 
   const [grupoVisibleColumns, setGrupoVisibleColumns] = useState<string[]>([
@@ -375,17 +382,21 @@ export default function MateriasTabs({
                 <DropdownMenuContent className="w-[200px]">
                   <DropdownMenuLabel>Selecciona columnas</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {["Nombre", "Código", "Total de horas", "Semestre"].map(
-                    (col) => (
-                      <DropdownMenuCheckboxItem
-                        key={col}
-                        checked={materiaVisibleColumns.includes(col)}
-                        onCheckedChange={() => toggleMateriaColumn(col)}
-                      >
-                        {col}
-                      </DropdownMenuCheckboxItem>
-                    ),
-                  )}
+                  {[
+                    "Nombre",
+                    "Código",
+                    "Total de horas",
+                    "Semestre",
+                    "Espacio",
+                  ].map((col) => (
+                    <DropdownMenuCheckboxItem
+                      key={col}
+                      checked={materiaVisibleColumns.includes(col)}
+                      onCheckedChange={() => toggleMateriaColumn(col)}
+                    >
+                      {col}
+                    </DropdownMenuCheckboxItem>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -443,6 +454,7 @@ export default function MateriasTabs({
                     creditos: (m as any).creditos ?? 0,
                     horasTeoria: (m as any).horasTeoria ?? 0,
                     horasPractica: (m as any).horasPractica ?? 0,
+                    espacioId: (m as any).espacioId ?? 0,
                     idEspecialidad: (m as any).idEspecialidad ?? 0,
                     activo: (m as any).activo ?? true,
                   };
@@ -600,10 +612,7 @@ export default function MateriasTabs({
                   turno: ((g as any).turno as any) ?? "MATUTINO",
                   aula: (g as any).aula ?? "",
                   idEspecialidad: (g as any).idEspecialidad ?? 0,
-                  idPeriodo: (g as any).idPeriodo ?? 0,
-                  idDocente: (g as any).idDocente ?? 0,
                   docenteTutorId: (g as any).docenteTutorId ?? 0,
-                  idMaterias: (g as any).idMaterias ?? [],
                   activo: (g as any).activo ?? true,
                 };
                 setEditingGrupo(grupoData as any);

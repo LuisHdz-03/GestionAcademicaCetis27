@@ -24,7 +24,7 @@ interface Grupo {
   semestre: number;
   turno?: string;
   aula?: string;
-  idMaterias?: number[];
+  materiasNombres?: string[];
   integrantes: number;
 }
 
@@ -103,7 +103,13 @@ export default function GruposTable({
                   <TableCell>{grupo.aula || "Sin aula"}</TableCell>
                 )}
                 {visibleColumns.includes("Materias") && (
-                  <TableCell>{grupo.idMaterias?.length || 0}</TableCell>
+                  <TableCell className="max-w-[260px]">
+                    <span className="line-clamp-2 text-sm text-gray-700">
+                      {grupo.materiasNombres?.length
+                        ? grupo.materiasNombres.join(", ")
+                        : "Sin materias"}
+                    </span>
+                  </TableCell>
                 )}
                 {visibleColumns.includes("Alumnos") && (
                   <TableCell>{grupo.integrantes}</TableCell>

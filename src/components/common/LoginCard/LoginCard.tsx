@@ -57,7 +57,7 @@ export default function LoginCard() {
       </h2>
 
       <LoginForm />
-
+{/** 
       <div className="mt-3 text-center">
         <Link
           href="/auth/forgot-password"
@@ -65,7 +65,7 @@ export default function LoginCard() {
         >
           ¿Olvidaste tu contraseña?
         </Link>
-      </div>
+      </div>*/}
 
       {error && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">

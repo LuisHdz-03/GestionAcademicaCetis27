@@ -70,7 +70,8 @@ export default function AddGrupoForm({
     activo: initialData?.activo ?? true,
   });
 
- 
+  const selectedMateriaIds = formData.idMaterias ?? [];
+
   const [selectKey, setSelectKey] = useState<number>(0);
 
   useEffect(() => {
@@ -123,8 +124,7 @@ export default function AddGrupoForm({
       !formData.semestre ||
       !formData.idPeriodo ||
       !formData.idDocente ||
-      !formData.idMaterias ||
-      formData.idMaterias.length === 0 ||
+      selectedMateriaIds.length === 0 ||
       !formData.idEspecialidad
     ) {
       alert(
@@ -305,10 +305,10 @@ export default function AddGrupoForm({
             disabled={!formData.idEspecialidad || materias.length === 0}
             onValueChange={(value) => {
               const id = parseInt(value);
-              if (!isNaN(id) && !formData.idMaterias.includes(id)) {
+              if (!isNaN(id) && !selectedMateriaIds.includes(id)) {
                 setFormData((prev) => ({
                   ...prev,
-                  idMaterias: [...prev.idMaterias, id],
+                  idMaterias: [...(prev.idMaterias ?? []), id],
                 }));
               }
               // Forzamos el render del componente para que vuelva a mostrar el placeholder
@@ -335,7 +335,7 @@ export default function AddGrupoForm({
                 </SelectItem>
               ) : (
                 materias
-                  .filter((m) => !formData.idMaterias.includes(m.id))
+                  .filter((m) => !selectedMateriaIds.includes(m.id))
                   .map((materia) => (
                     <SelectItem key={materia.id} value={materia.id.toString()}>
                       {materia.nombre} ({materia.codigo})
@@ -350,12 +350,12 @@ export default function AddGrupoForm({
       <div className="mt-2">
         <Label className="text-gray-700 mb-1">Materias seleccionadas:</Label>
         <div className="flex flex-wrap gap-2 min-h-[28px] p-2 border rounded-md bg-gray-50">
-          {formData.idMaterias.length === 0 ? (
+          {selectedMateriaIds.length === 0 ? (
             <span className="text-gray-400 text-sm">
               Ninguna materia seleccionada
             </span>
           ) : (
-            formData.idMaterias.map((id) => {
+            selectedMateriaIds.map((id) => {
               const mat = materias.find((m) => m.id === id);
               if (!mat) return null;
               return (
@@ -370,7 +370,7 @@ export default function AddGrupoForm({
                     onClick={() =>
                       setFormData({
                         ...formData,
-                        idMaterias: formData.idMaterias.filter(
+                        idMaterias: selectedMateriaIds.filter(
                           (mid) => mid !== id,
                         ),
                       })

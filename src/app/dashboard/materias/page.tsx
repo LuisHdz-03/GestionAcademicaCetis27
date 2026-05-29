@@ -127,7 +127,13 @@ export default function GestionEspecialidadesPage() {
               const ok = await createMateria({
                 nombre: data.nombre,
                 codigo: data.codigo,
-                horas: (data as any).horas ?? 0,
+                horas:
+                  Number((data as any).horasTeoria || 0) +
+                  Number((data as any).horasPractica || 0),
+                horasTeoria: (data as any).horasTeoria,
+                horasPractica: (data as any).horasPractica,
+                creditos: (data as any).creditos,
+                espacioId: (data as any).espacioId,
                 semestre: data.semestre,
                 idEspecialidad: activeEspecialidad
                   ? (activeEspecialidad as any).id
@@ -139,7 +145,7 @@ export default function GestionEspecialidadesPage() {
             }}
             onCreateGrupo={async (data) => {
               const ok = await createGrupo({
-                codigo: (data as any).nombre,
+                nombre: (data as any).nombre,
                 semestre: (data as any).grado,
                 turno: (data as any).turno,
                 aula: (data as any).aula,
@@ -148,13 +154,12 @@ export default function GestionEspecialidadesPage() {
                   (activeEspecialidad
                     ? (activeEspecialidad as any).id
                     : undefined),
-                idPeriodo: (data as any).periodoId,
-                idDocente: (data as any).docenteId,
                 docenteTutorId: (data as any).docenteTutorId,
-                idMaterias: (data as any).materiasIds,
                 activo: true,
               });
-              if (ok) await fetchGrupos(activeEspecialidad?.id as any);
+              if (ok) {
+                await fetchGrupos(activeEspecialidad?.id as any);
+              }
               return ok;
             }}
             onUpdateMateria={async (id, data) => {
@@ -169,15 +174,12 @@ export default function GestionEspecialidadesPage() {
             }}
             onUpdateGrupo={async (id, data) => {
               const ok = await updateGrupo(id, {
-                codigo: (data as any).nombre,
+                nombre: (data as any).nombre,
                 semestre: (data as any).grado,
                 turno: (data as any).turno,
                 aula: (data as any).aula,
                 idEspecialidad: (data as any).especialidadId,
-                idPeriodo: (data as any).periodoId,
-                idDocente: (data as any).docenteId,
                 docenteTutorId: (data as any).docenteTutorId,
-                idMaterias: (data as any).materiasIds,
               });
               if (ok) await fetchGrupos(activeEspecialidad?.id as any);
               return ok;

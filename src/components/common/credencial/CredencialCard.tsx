@@ -28,6 +28,17 @@ export default function CredencialCard({
 }: CredencialCardProps) {
   const primary = "#691C32";
   const gold = "#B38E5D";
+  const placeholderBg = "#F8F1E7";
+  const placeholderStroke = "#B38E5D";
+  const resolveMediaUrl = (url?: string) => {
+    if (!url) return undefined;
+    if (/^https?:\/\//i.test(url) || url.startsWith("data:")) return url;
+    return `http://localhost:4000${url.startsWith("/") ? "" : "/"}${url}`;
+  };
+  const fotoSrc = resolveMediaUrl(estudiante.fotoUrl);
+  const firmaSrc = firmante.firmaImagenUrl
+    ? resolveMediaUrl(firmante.firmaImagenUrl)
+    : undefined;
   const formatearFecha = (fecha?: string) => {
     if (!fecha) return "N/A";
     return fecha.substring(0, 10);
@@ -98,16 +109,51 @@ export default function CredencialCard({
                   margin: "auto",
                 }}
               >
-                {estudiante.fotoUrl ? (
+                {fotoSrc ? (
                   <img
-                    src={estudiante.fotoUrl}
+                    src={fotoSrc}
                     style={{
                       width: "100%",
                       height: "100%",
                       objectFit: "cover",
                     }}
                   />
-                ) : null}
+                ) : (
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: placeholderBg,
+                    }}
+                  >
+                    <svg
+                      width="62"
+                      height="62"
+                      viewBox="0 0 64 64"
+                      aria-hidden="true"
+                    >
+                      <circle cx="32" cy="32" r="30" fill="#FFF9F2" />
+                      <circle
+                        cx="32"
+                        cy="24"
+                        r="10"
+                        fill="none"
+                        stroke={placeholderStroke}
+                        strokeWidth="3"
+                      />
+                      <path
+                        d="M16 52c3.5-8 10.2-12 16-12s12.5 4 16 12"
+                        fill="none"
+                        stroke={placeholderStroke}
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+                )}
               </div>
               <p style={{ fontSize: "8px", margin: 0 }}>NO. DE CONTROL</p>
               <p
@@ -209,15 +255,15 @@ export default function CredencialCard({
           style={{
             display: "flex",
             alignItems: "center",
-            padding: "10px 20px",
-            gap: "20px",
+            padding: "8px 18px 6px",
+            gap: "16px",
           }}
         >
           <QRCode value={estudiante.noControl} size={60} />
           <div style={{ width: "1px", height: "40px", background: primary }} />
           <img
             src="/images/DGETI.png"
-            style={{ height: "60px", opacity: 0.3 }}
+            style={{ height: "52px", opacity: 0.3 }}
           />
         </div>
         {/* DIRECTOR */}
@@ -227,29 +273,89 @@ export default function CredencialCard({
             width: "220px",
             alignSelf: "center",
             textAlign: "center",
-            padding: "5px",
+            padding: "32px 8px 6px",
+            minHeight: "62px",
+            lineHeight: 1,
+            overflow: "visible",
+            position: "relative",
           }}
         >
-          <p style={{ fontSize: "9px", color: gold, fontWeight: 800 }}>
+          {firmaSrc ? (
+            <div
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "8px",
+                width: "196px",
+                height: "42px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "visible",
+                transform: "translateX(calc(-50% + 12px))",
+                pointerEvents: "none",
+              }}
+            >
+              <img
+                src={firmaSrc}
+                alt="Firma del director"
+                style={{
+                  width: "190px",
+                  height: "50px",
+                  objectFit: "contain",
+                  transform: "scale(1.3)",
+                  transformOrigin: "center center",
+                  filter: "contrast(1.7) brightness(0.62)",
+                }}
+              />
+            </div>
+          ) : null}
+          <p
+            style={{
+              fontSize: "8px",
+              color: gold,
+              fontWeight: 800,
+              margin: 0,
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
             {firmante.cargo}
           </p>
-          <p style={{ fontSize: "9px", color: primary }}>{firmante.nombre}</p>
+          <p
+            style={{
+              fontSize: "8px",
+              color: primary,
+              margin: "1px 0 0",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            {firmante.nombre}
+          </p>
         </div>
         <div
           style={{
-            width: "95%",
+            width: "92%",
             height: "1.5px",
             background: primary,
             alignSelf: "center",
-            marginTop: "5px",
+            marginTop: "4px",
           }}
         />
         {/* DIRECCIÓN */}
-        <div style={{ textAlign: "center", padding: "5px" }}>
-          <p style={{ fontSize: "9px", color: primary, fontWeight: 800 }}>
+        <div style={{ textAlign: "center", padding: "3px 8px 4px" }}>
+          <p
+            style={{
+              fontSize: "8px",
+              color: primary,
+              fontWeight: 800,
+              margin: 0,
+            }}
+          >
             DIRECCIÓN DEL PLANTEL
           </p>
-          <p style={{ fontSize: "6px" }}>
+          <p style={{ fontSize: "5.5px", lineHeight: 1.1, margin: "1px 0 0" }}>
             CARRETERA CARAPAN-URUAPAN KM 66.8 URUAPAN, MICHOACAN, CP.60000, TEL.
             5231509
           </p>

@@ -61,8 +61,8 @@ export interface GrupoFormData {
   turno: "MATUTINO" | "VESPERTINO" | "MIXTO";
   aula: string;
   idEspecialidad: number;
-  idPeriodo: number;
-  idDocente: number;
+  idPeriodo?: number;
+  idDocente?: number;
   docenteTutorId?: number;
   idMaterias: number[];
   activo: boolean;
@@ -76,6 +76,7 @@ export interface MateriaFormData {
   creditos?: number;
   horasTeoria?: number;
   horasPractica?: number;
+  espacioId?: number;
   idEspecialidad: number;
   activo: boolean;
 }

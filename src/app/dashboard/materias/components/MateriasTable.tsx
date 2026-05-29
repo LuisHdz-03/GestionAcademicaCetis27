@@ -23,6 +23,7 @@ interface Materia {
   codigo: string;
   totalHoras: number;
   semestre: number;
+  espacioNombre?: string;
 }
 
 interface Props {
@@ -72,6 +73,11 @@ export default function MateriasTable({
                   Semestre
                 </TableHead>
               )}
+              {visibleColumns.includes("Espacio") && (
+                <TableHead className="bg-[#691C32] text-white">
+                  Espacio
+                </TableHead>
+              )}
               <TableHead className="bg-[#691C32] text-white text-right">
                 Acciones
               </TableHead>
@@ -93,6 +99,11 @@ export default function MateriasTable({
                 )}
                 {visibleColumns.includes("Semestre") && (
                   <TableCell>{materia.semestre}</TableCell>
+                )}
+                {visibleColumns.includes("Espacio") && (
+                  <TableCell>
+                    {materia.espacioNombre || "Sin espacio"}
+                  </TableCell>
                 )}
                 <TableCell className="text-right">
                   <DropdownMenu>

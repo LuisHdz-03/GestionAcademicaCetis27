@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import SignaturePad from "@/components/common/SignaturePad";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -473,8 +474,8 @@ export default function DashboardHeader({
     if (!firmaFile) {
       console.log("[FIRMA] No hay archivo seleccionado");
       toast({
-        title: "Archivo requerido",
-        description: "Selecciona una imagen de firma para continuar.",
+        title: "Firma requerida",
+        description: "Dibuja la firma para continuar.",
         variant: "destructive",
       });
       return;
@@ -575,10 +576,10 @@ export default function DashboardHeader({
                 {normalizarTexto(tipoUsuario) === "ADMINISTRATIVO"
                   ? "Control Escolar"
                   : normalizarTexto(tipoUsuario) === "ADMINISTRADOR"
-                  ? "Personal Escolar"
-                  : normalizarTexto(tipoUsuario) === "ADMINISTRADORES"
-                  ? "Personal Escolar"
-                  : tipoUsuario}
+                    ? "Personal Escolar"
+                    : normalizarTexto(tipoUsuario) === "ADMINISTRADORES"
+                      ? "Personal Escolar"
+                      : tipoUsuario}
               </p>
             </div>
           </div>
@@ -617,10 +618,10 @@ export default function DashboardHeader({
                       {normalizarTexto(tipoUsuario) === "ADMINISTRATIVO"
                         ? "Control Escolar"
                         : normalizarTexto(tipoUsuario) === "ADMINISTRADOR"
-                        ? "Personal Escolar"
-                        : normalizarTexto(tipoUsuario) === "ADMINISTRADORES"
-                        ? "Personal Escolar"
-                        : tipoUsuario}
+                          ? "Personal Escolar"
+                          : normalizarTexto(tipoUsuario) === "ADMINISTRADORES"
+                            ? "Personal Escolar"
+                            : tipoUsuario}
                     </p>
                   </div>
                 </Button>
@@ -655,7 +656,7 @@ export default function DashboardHeader({
                       setIsFirmaModalOpen(true);
                     }}
                   >
-                    Subir Firma
+                    Registrar Firma
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator className="bg-[#50172A]" />
@@ -823,26 +824,21 @@ export default function DashboardHeader({
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="text-[#691C32] text-xl">
-              Subir Firma de Dirección
+              Registrar Firma de Dirección
             </DialogTitle>
             <DialogDescription>
-              Sube la imagen de la firma del director para las credenciales
-              oficiales.
+              Dibuja la firma del director directamente en pantalla para las
+              credenciales oficiales.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="firma">Archivo de firma (imagen)</Label>
-              <Input
-                id="firma"
-                type="file"
-                accept="image/*"
-                onChange={(e) => setFirmaFile(e.target.files?.[0] || null)}
+              <Label>Firma digital</Label>
+              <SignaturePad
+                key={isFirmaModalOpen ? "firma-open" : "firma-closed"}
+                disabled={uploadingFirma}
+                onChange={setFirmaFile}
               />
-              <p className="text-xs text-gray-500">
-                Formato recomendado: PNG con fondo transparente o firma clara en
-                JPG.
-              </p>
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
@@ -862,7 +858,7 @@ export default function DashboardHeader({
                 onClick={handleUploadFirma}
                 className="bg-[#691C32] hover:bg-[#50172A] text-white"
               >
-                {uploadingFirma ? "Subiendo..." : "Subir Firma"}
+                {uploadingFirma ? "Guardando..." : "Guardar Firma"}
               </Button>
             </div>
           </div>

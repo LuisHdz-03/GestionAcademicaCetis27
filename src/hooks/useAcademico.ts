@@ -7,6 +7,8 @@ export interface MateriaDTO {
   nombre: string;
   codigo: string;
   idEspecialidad?: number;
+  espacioId?: number;
+  espacioNombre?: string;
   creditos?: number;
   horasTeoria?: number;
   horasPractica?: number;
@@ -29,6 +31,7 @@ export interface GrupoDTO {
   idDocente?: number;
   docenteTutorId?: number;
   idMaterias?: number[];
+  materiasNombres?: string[];
   especialidadNombre?: string;
   especialidadCodigo?: string;
   especialidadId?: number | null;
@@ -45,25 +48,26 @@ export interface CreateMateriaInput {
   horasPractica?: number;
   semestre?: number;
   idEspecialidad?: number;
+  creditos?: number;
+  espacioId?: number;
   activo?: boolean;
 }
 
 export interface CreateGrupoInput {
-  codigo: string;
+  codigo?: string;
+  nombre?: string;
   semestre?: number;
   idEspecialidad?: number;
   idPeriodo?: number;
   idDocente?: number;
   docenteTutorId?: number;
   idMateria?: number;
-  idMaterias?: number[];
   turno?: string;
   aula?: string;
   activo?: boolean;
 }
 
-const API_URL =
-  "http://localhost:4000/api/web";
+const API_URL = "http://localhost:4000/api/web";
 
 export function useAcademico() {
   const { toast } = useToast();
@@ -99,9 +103,19 @@ export function useAcademico() {
         codigo: m.codigo || m.nombre.substring(0, 3).toUpperCase(),
         idEspecialidad:
           m.especialidadId ?? m.idEspecialidad ?? m.especialidad?.id,
-        totalHoras: Number(m.horasSemana ?? m.horaSemana ?? 0),
-        horasTeoria: Number(m.horasSemana ?? m.horaSemana ?? 0),
-        horasPractica: 0,
+        espacioId:
+          m.espacioId ?? m.idEspacio ?? m.espacio?.idEspacio ?? m.espacio?.id,
+        espacioNombre: m.espacio?.nombre || "",
+        totalHoras: Number(
+          m.horasSemana ??
+            m.horaSemana ??
+            Number(m.horasTeoria || 0) + Number(m.horasPractica || 0),
+        ),
+        horasTeoria: Number(
+          m.horasTeoria ?? m.horasSemana ?? m.horaSemana ?? 0,
+        ),
+        horasPractica: Number(m.horasPractica ?? 0),
+        creditos: Number(m.creditos ?? 0),
         semestre: m.semestre || 1,
         especialidadNombre: m.especialidad?.nombre || "General",
         especialidadCodigo:
@@ -193,6 +207,15 @@ export function useAcademico() {
               return materiaId;
             })
             .filter((id: any) => id !== null) as number[],
+          materiasNombres: Array.from(
+            new Set(
+              clases
+                .map((c: any) =>
+                  String(c.materias?.nombre || c.materia?.nombre || "").trim(),
+                )
+                .filter((nombre: string) => !!nombre),
+            ),
+          ),
           especialidadNombre: g.especialidad?.nombre || "General",
           especialidadCodigo:
             g.especialidad?.codigo ||
@@ -262,11 +285,15 @@ export function useAcademico() {
         nombre: data.nombre,
         codigo: data.codigo,
         semestre: data.semestre,
+        creditos: data.creditos,
+        horasTeoria: Number(data.horasTeoria || 0),
+        horasPractica: Number(data.horasPractica || 0),
         horasSemana:
           typeof data.horas === "number"
             ? data.horas
             : Number(data.horasTeoria || 0) + Number(data.horasPractica || 0),
         especialidadId: data.idEspecialidad,
+        espacioId: data.espacioId,
       };
 
       const res = await fetch(`${API_URL}/materias`, {
@@ -291,26 +318,19 @@ export function useAcademico() {
     }
   };
 
-  const createGrupo = async (
-    data: CreateGrupoInput & { idMaterias?: number[] },
-  ) => {
+  const createGrupo = async (data: CreateGrupoInput) => {
     try {
       setLoading(true);
 
       const payload = {
-        nombre: data.codigo,
+        nombre: data.nombre || data.codigo,
         grado: Number(data.semestre),
         turno: data.turno || "MATUTINO",
         aula: data.aula || "",
-        periodoId: Number(data.idPeriodo),
         especialidadId: Number(data.idEspecialidad),
-        docenteId: data.idDocente ? Number(data.idDocente) : null,
         docenteTutorId: data.docenteTutorId
           ? Number(data.docenteTutorId)
           : null,
-        materiasIds: data.idMaterias
-          ? data.idMaterias.map((id: any) => Number(id))
-          : [],
       };
 
       const res = await fetch(`${API_URL}/grupos`, {
@@ -342,34 +362,16 @@ export function useAcademico() {
     try {
       setLoading(true);
 
-      const rawMateriaIds = Array.isArray(data.idMaterias)
-        ? data.idMaterias
-        : Array.isArray((data as any).materiasIds)
-          ? (data as any).materiasIds
-          : undefined;
-
-      const materiasIdsNormalizadas = rawMateriaIds
-        ? (Array.from(new Set(rawMateriaIds.map((id: any) => Number(id)))) as number[]).filter(
-            (id) => Number.isFinite(id) && id > 0,
-          )
-        : undefined;
-
-      const periodoId = data.idPeriodo ? Number(data.idPeriodo) : undefined;
-      const docenteId = data.idDocente ? Number(data.idDocente) : undefined;
       const docenteTutorId = data.docenteTutorId
         ? Number(data.docenteTutorId)
         : undefined;
 
       const payload = {
-        nombre: data.codigo,
+        nombre: data.nombre || data.codigo,
         grado: data.semestre ? Number(data.semestre) : undefined,
         turno: data.turno,
         aula: data.aula,
-        periodoId,
-        docenteId,
         docenteTutorId,
-        materiasIds: materiasIdsNormalizadas,
-
         especialidadId: data.idEspecialidad
           ? Number(data.idEspecialidad)
           : undefined,
@@ -412,6 +414,10 @@ export function useAcademico() {
         codigo: data.codigo,
         semestre: data.semestre,
         especialidadId: data.idEspecialidad,
+        creditos: data.creditos,
+        horasTeoria: Number(data.horasTeoria || 0),
+        horasPractica: Number(data.horasPractica || 0),
+        espacioId: data.espacioId,
       };
 
       if (
@@ -510,4 +516,3 @@ export function useAcademico() {
     deleteGrupo,
   };
 }
-
