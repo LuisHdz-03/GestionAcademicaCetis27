@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -20,32 +20,18 @@ import {
 } from "@/components/ui/table";
 import {
   Search,
-  Calendar as CalendarIcon,
   Download,
-  Filter,
   RefreshCw,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useState, useMemo, useEffect } from "react";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
-
-const API_URL =
-  "http://localhost:4000/api/web";
-
-// Tipo para los registros (Adaptado al Backend)
-type Registro = {
-  id: number;
-  estudiante: string;
-  numeroControl: string;
-  grupo: string;
-  fechaHora: string;
-  tipo: string;
-};
+import { useCommunity } from "@/hooks/useCommunity";
 
 export default function RegistrosPage() {
-  const [registros, setRegistros] = useState<Registro[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { accesos: registros, fetchAccesos, loading: isLoading } =
+    useCommunity();
 
   // Estados para los filtros
   const [busqueda, setBusqueda] = useState("");
@@ -56,50 +42,17 @@ export default function RegistrosPage() {
     to: new Date(new Date().setHours(23, 59, 59, 999)),
   });
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
-    return {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-    };
-  };
-
   const cargarRegistros = async () => {
-    setIsLoading(true);
     try {
-      // Ajusta la ruta a /accesos o la que hayas definido en el backend
-      const res = await fetch(`${API_URL}/accesos`, {
-        headers: getAuthHeaders(),
-      });
-
-      if (!res.ok) {
-        throw new Error("Error al obtener los registros de acceso");
-      }
-
-      const data = await res.json();
-
-      // Mapeamos los datos de Prisma a nuestra estructura de la tabla
-      const registrosMapeados: Registro[] = data.map((acceso: any) => ({
-        id: acceso.idAcceso || acceso.id || Math.random(),
-        estudiante:
-          `${acceso.alumno?.usuario?.nombre || ""} ${acceso.alumno?.usuario?.apellidoPaterno || ""} ${acceso.alumno?.usuario?.apellidoMaterno || ""}`.trim() ||
-          "Desconocido",
-        numeroControl: acceso.alumno?.matricula || "S/N",
-        grupo: acceso.alumno?.grupo?.nombre || "Sin Grupo",
-        fechaHora: acceso.fechaHora,
-        tipo: acceso.tipo === "ENTRADA" ? "Entrada" : "Salida",
-      }));
-
-      setRegistros(registrosMapeados);
+      await fetchAccesos();
     } catch (error) {
       console.error("Error al cargar accesos:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    cargarRegistros();
+    void cargarRegistros();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Obtener grupos únicos para el filtro a partir de los datos reales

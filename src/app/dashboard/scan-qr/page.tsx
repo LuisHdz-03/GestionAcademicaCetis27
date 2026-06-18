@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/useToast";
+import { useCommunity } from "@/hooks/useCommunity";
 import { XCircle, UserCheck, LogOut, QrCode } from "lucide-react";
 
 // Interfaces que coinciden con la respuesta de tu backend
@@ -15,11 +16,10 @@ interface AccesoResponse {
   hora: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 export default function ScanQRPage() {
   const { user, logout } = useAuth();
   const { toast } = useToast();
+  const { registrarAcceso: registrarAccesoRequest } = useCommunity();
 
   const [resultadoAcceso, setResultadoAcceso] = useState<AccesoResponse | null>(
     null,
@@ -38,7 +38,7 @@ export default function ScanQRPage() {
 
       if (e.key === "Enter") {
         const codigo = bufferRef.current.trim();
-        if (codigo) registrarAcceso(codigo);
+        if (codigo) handleRegistrarAcceso(codigo);
         bufferRef.current = "";
       } else if (e.key.length === 1) {
         bufferRef.current += e.key;
@@ -51,7 +51,7 @@ export default function ScanQRPage() {
   }, [isLoading]);
 
   // Enviamos el código al backend para validar
-  const registrarAcceso = async (tokenQR: string) => {
+  const handleRegistrarAcceso = async (tokenQR: string) => {
     if (!tokenQR || isLoading) return;
 
     setResultadoAcceso(null);
@@ -59,40 +59,7 @@ export default function ScanQRPage() {
     setIsLoading(true);
 
     try {
-      const tokenAuth = localStorage.getItem("token");
-
-      if (!tokenAuth) {
-        toast({
-          title: "Sesión Expirada",
-          description: "Inicia sesión nuevamente",
-          variant: "destructive",
-        });
-        logout();
-        return;
-      }
-
-      const response = await fetch(`${API_URL}/accesos`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${tokenAuth}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ tokenQR }),
-      });
-
-      const data = await response.json();
-
-      if (response.status === 401 && data.error === "Token inválido") {
-        logout();
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || data.mensaje || "Error al registrar el acceso",
-        );
-      }
-
+      const data = await registrarAccesoRequest(tokenQR);
       setResultadoAcceso(data as AccesoResponse);
 
       const esEntrada = data.tipo === "ENTRADA";
@@ -103,6 +70,18 @@ export default function ScanQRPage() {
       });
     } catch (err) {
       console.error("Error:", err);
+      const authError = err as Error & { code?: string };
+
+      if (authError.code === "UNAUTHORIZED") {
+        toast({
+          title: "Sesión Expirada",
+          description: "Inicia sesión nuevamente",
+          variant: "destructive",
+        });
+        logout();
+        return;
+      }
+
       const errMsg = err instanceof Error ? err.message : "Error desconocido";
       setError(errMsg);
 

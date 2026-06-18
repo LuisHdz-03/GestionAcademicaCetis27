@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "./useToast";
 import {
-  CommunityMember,
   Docente,
   Alumno,
   Admin,
@@ -41,6 +40,24 @@ interface Materia {
   especialidadNombre?: string;
   activo: boolean;
 }
+
+interface RegistroAcceso {
+  id: number;
+  estudiante: string;
+  numeroControl: string;
+  grupo: string;
+  fechaHora: string;
+  tipo: "Entrada" | "Salida";
+}
+
+interface ResultadoRegistroAcceso {
+  mensaje: string;
+  tipo: "ENTRADA" | "SALIDA";
+  alumno: string;
+  matricula: string;
+  hora: string;
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface UseCommunityReturn {
@@ -52,6 +69,7 @@ interface UseCommunityReturn {
   periodos: Periodo[];
   materias: Materia[];
   clases: any[];
+  accesos: RegistroAcceso[];
   loading: boolean;
   error: string | null;
 
@@ -63,6 +81,8 @@ interface UseCommunityReturn {
   fetchPeriodos: () => Promise<void>;
   fetchMaterias: () => Promise<void>;
   fetchClases: () => Promise<void>;
+  fetchAccesos: () => Promise<RegistroAcceso[]>;
+  registrarAcceso: (tokenQR: string) => Promise<ResultadoRegistroAcceso>;
   createEspecialidad: (data: {
     nombre: string;
     codigo: string;
@@ -144,6 +164,7 @@ export function useCommunity(): UseCommunityReturn {
   const [periodos, setPeriodos] = useState<Periodo[]>([]);
   const [materias, setMaterias] = useState<Materia[]>([]);
   const [clases, setClases] = useState<any[]>([]);
+  const [accesos, setAccesos] = useState<RegistroAcceso[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -502,6 +523,90 @@ export function useCommunity(): UseCommunityReturn {
       setClases(clasesArray);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAccesos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch(`${API_URL}/accesos`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al obtener los registros de acceso");
+      }
+
+      const result = await response.json();
+      const accesosMapeados: RegistroAcceso[] = result.map((acceso: any) => ({
+        id: acceso.idAcceso || acceso.id || Math.random(),
+        estudiante:
+          `${acceso.alumno?.usuario?.nombre || ""} ${acceso.alumno?.usuario?.apellidoPaterno || ""} ${acceso.alumno?.usuario?.apellidoMaterno || ""}`.trim() ||
+          "Desconocido",
+        numeroControl: acceso.alumno?.matricula || "S/N",
+        grupo: acceso.alumno?.grupo?.nombre || "Sin Grupo",
+        fechaHora: acceso.fechaHora,
+        tipo: acceso.tipo === "ENTRADA" ? "Entrada" : "Salida",
+      }));
+
+      setAccesos(accesosMapeados);
+      return accesosMapeados;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Error desconocido";
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const registrarAcceso = async (tokenQR: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const tokenAuth = localStorage.getItem("token");
+
+      if (!tokenAuth) {
+        const authError = new Error("Sesión expirada");
+        (authError as Error & { code?: string }).code = "UNAUTHORIZED";
+        throw authError;
+      }
+
+      const response = await fetch(`${API_URL}/accesos`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${tokenAuth}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tokenQR }),
+      });
+
+      const result = await response.json();
+
+      if (response.status === 401 && result.error === "Token inválido") {
+        const authError = new Error(result.error);
+        (authError as Error & { code?: string }).code = "UNAUTHORIZED";
+        throw authError;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          result.error || result.mensaje || "Error al registrar el acceso",
+        );
+      }
+
+      return result as ResultadoRegistroAcceso;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Error desconocido";
+      setError(message);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -1183,6 +1288,7 @@ export function useCommunity(): UseCommunityReturn {
     periodos,
     materias,
     clases,
+    accesos,
     loading,
     error,
     fetchDocentes,
@@ -1193,6 +1299,8 @@ export function useCommunity(): UseCommunityReturn {
     fetchPeriodos,
     fetchMaterias,
     fetchClases,
+    fetchAccesos,
+    registrarAcceso,
     createEspecialidad,
     updateEspecialidad,
     deleteEspecialidad,
