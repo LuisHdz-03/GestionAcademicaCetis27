@@ -22,6 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
+import BlockingLoader from "@/components/common/BlockingLoader";
 
 import DescargarCredencialesButton from "@/components/common/credencial/DescargarCredencialesButton";
 import { uploadCsv, downloadTemplate, type TemplateType } from "@/lib/upload";
@@ -52,13 +53,18 @@ export default function TopBar({
   onFilterChange,
   statusFilter,
   onStatusFilterChange,
-  itemsPerPage,
-  setItemsPerPage,
   filters,
   onAddClick,
 }: TopBarProps) {
   // Estado para controlar la pantalla de carga
   const [isUploading, setIsUploading] = useState(false);
+
+  const uploadSectionLabel =
+    activeTab === "alumnos"
+      ? "alumnos"
+      : activeTab === "docentes"
+        ? "docentes"
+        : "personal escolar";
 
   const handleDescargarPlantilla = async () => {
     const templateMap: Record<string, TemplateType> = {
@@ -131,23 +137,11 @@ export default function TopBar({
 
   return (
     <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-      {/* OVERLAY DE CARGA: Bloquea la pantalla mientras sube */}
-      {isUploading && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] backdrop-blur-sm">
-          <div className="bg-white p-8 rounded-xl shadow-2xl flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
-            {/* Spinner animado */}
-            <div className="w-14 h-14 border-4 border-[#691C32] border-t-transparent rounded-full animate-spin"></div>
-            <div className="text-center">
-              <p className="font-bold text-[#691C32] text-xl">
-                Procesando información...
-              </p>
-              <p className="text-gray-500 mt-1">
-                Por favor espera, no cierres la página.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <BlockingLoader
+        open={isUploading}
+        title={`Cargando ${uploadSectionLabel}...`}
+        description="Espera mientras se procesa la carga masiva."
+      />
 
       {/* IZQUIERDA: Buscador y Filtros */}
       <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-1 lg:flex-nowrap">
@@ -229,8 +223,8 @@ export default function TopBar({
             const input = document.createElement("input");
             input.type = "file";
             input.accept = ".csv, .xlsx";
-            input.onchange = (e: any) => {
-              const file = e.target.files?.[0];
+            input.onchange = () => {
+              const file = input.files?.[0];
               if (
                 file &&
                 confirm(

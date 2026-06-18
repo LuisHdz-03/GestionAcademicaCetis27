@@ -6,8 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Download, Plus } from "lucide-react";
 import { useState } from "react";
 import AddEspeModal from "@/components/common/Modal/AddEspeModal";
+import BlockingLoader from "@/components/common/BlockingLoader";
 import { HiArrowDownTray } from "react-icons/hi2";
-import { uploadCsv } from "@/lib/upload";
+import { downloadTemplate, uploadCsv } from "@/lib/upload";
 
 interface TopBarProps {
   onAddEspecialidad: (data: {
@@ -58,28 +59,26 @@ export default function TopBar({ onAddEspecialidad }: TopBarProps) {
     codigo: string;
     descripcion: string;
   }) => {
-    const result = await onAddEspecialidad(data);
+    await onAddEspecialidad(data);
     setOpenAddEspeModal(false);
+  };
+
+  const handleDescargarMachote = async () => {
+    try {
+      await downloadTemplate("especialidades");
+    } catch (error) {
+      console.error("Error al descargar plantilla de especialidades:", error);
+      alert("Error de conexión al descargar la plantilla.");
+    }
   };
 
   return (
     <div className="mb-6 flex-shrink-0">
-      {/* OVERLAY DE CARGA: Bloquea la pantalla mientras sube */}
-      {isUploading && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] backdrop-blur-sm">
-          <div className="bg-white p-8 rounded-xl shadow-2xl flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
-            <div className="w-14 h-14 border-4 border-[#691C32] border-t-transparent rounded-full animate-spin"></div>
-            <div className="text-center">
-              <p className="font-bold text-[#691C32] text-xl">
-                Procesando información...
-              </p>
-              <p className="text-gray-500 mt-1">
-                Por favor espera, no cierres la página.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <BlockingLoader
+        open={isUploading}
+        title="Cargando especialidades..."
+        description="Espera mientras se procesa la carga masiva."
+      />
 
       <Card>
         <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -91,6 +90,7 @@ export default function TopBar({ onAddEspecialidad }: TopBarProps) {
               variant="outline"
               type="button"
               className="flex items-center gap-2"
+              onClick={handleDescargarMachote}
             >
               <Download className="w-4 h-4" />
               Descargar Machote
@@ -105,8 +105,8 @@ export default function TopBar({ onAddEspecialidad }: TopBarProps) {
                 const input = document.createElement("input");
                 input.type = "file";
                 input.accept = ".csv, .xlsx";
-                input.onchange = (e: any) => {
-                  const file = e.target.files?.[0];
+                input.onchange = () => {
+                  const file = input.files?.[0];
                   if (file && confirm(`¿Cargar archivo de especialidades?`)) {
                     enviarArchivoAlBackend(file);
                   }

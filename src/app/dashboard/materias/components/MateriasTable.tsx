@@ -19,11 +19,18 @@ import { MoreHorizontal } from "lucide-react";
 
 interface Materia {
   id?: number;
+  idMateria?: number;
   nombre: string;
   codigo: string;
   totalHoras: number;
   semestre: number;
+  idEspecialidad?: number;
+  espacioId?: number;
   espacioNombre?: string;
+  creditos?: number;
+  horasTeoria?: number;
+  horasPractica?: number;
+  activo?: boolean;
 }
 
 interface Props {

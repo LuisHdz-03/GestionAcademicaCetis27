@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCommunity } from "@/hooks/useCommunity";
 import { useToast } from "@/hooks/useToast";
+import BlockingLoader from "@/components/common/BlockingLoader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,45 @@ import AddClaseModal from "@/components/common/Modal/AddClaseModal";
 import { Search, Plus, Pencil } from "lucide-react";
 import { Download, Upload } from "lucide-react";
 import { downloadTemplate, uploadCsv } from "@/lib/upload";
+import Pagination from "@/app/dashboard/comunidadEsc/components/Pagination";
+
+interface ClaseFormData {
+  grupoId: number;
+  materiaId: number;
+  docenteId: number;
+  horario: string;
+}
+
+interface HorarioObj {
+  dia?: string;
+  espacio?: string;
+  horaInicio?: string;
+  horaFin?: string;
+}
+
+interface ClaseItem {
+  idClase: number;
+  horario?: string | HorarioObj;
+  periodo?: {
+    activo?: boolean;
+  };
+  grupo?: {
+    nombre?: string;
+    turno?: string;
+  };
+  materias?: {
+    nombre?: string;
+  };
+  docente?: {
+    usuario?: {
+      nombre?: string;
+      apellidoPaterno?: string;
+    };
+  };
+}
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
 
 export default function HorariosPage() {
   const { toast } = useToast();
@@ -38,37 +78,44 @@ export default function HorariosPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [claseEditar, setClaseEditar] = useState<any>(null);
+  const [claseEditar, setClaseEditar] = useState<ClaseItem | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [uploadingExcel, setUploadingExcel] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
-    fetchGrupos();
-    fetchMaterias();
-    fetchDocentes();
-    fetchPeriodos();
-    fetchClases();
-  }, []);
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
+    void Promise.all([
+      fetchGrupos(),
+      fetchMaterias(),
+      fetchDocentes(),
+      fetchPeriodos(),
+      fetchClases(),
+    ]);
+  }, [fetchClases, fetchDocentes, fetchGrupos, fetchMaterias, fetchPeriodos]);
 
-  const handleAsignarClase = async (data: any) => {
+  const handleAsignarClase = async (data: ClaseFormData) => {
     const exito = await asignarClase(data);
     if (exito) {
       setIsModalOpen(false);
-      fetchClases();
+      await fetchClases();
     }
   };
 
-  const handleEditarClase = async (data: any) => {
+  const handleEditarClase = async (data: ClaseFormData) => {
     if (!claseEditar) return;
     const exito = await editarClase(claseEditar.idClase, data);
     if (exito) {
       setIsEditModalOpen(false);
       setClaseEditar(null);
-      fetchClases();
+      await fetchClases();
     }
   };
 
-  const abrirEditar = (clase: any) => {
+  const abrirEditar = (clase: ClaseItem) => {
     setClaseEditar(clase);
     setIsEditModalOpen(true);
   };
@@ -82,10 +129,10 @@ export default function HorariosPage() {
           "Usa el formato sin IDs (grupo, materia y docente por nombre/código).",
         variant: "success",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "No se pudo descargar el machote.",
+        description: getErrorMessage(error, "No se pudo descargar el machote."),
         variant: "destructive",
       });
     }
@@ -103,7 +150,7 @@ export default function HorariosPage() {
 
       setUploadingExcel(true);
       try {
-        const result = await uploadCsv(file, "clases");
+        const result = await uploadCsv(file, "clases/horarios");
         const backendMessage =
           result.data?.message || result.data?.mensaje || result.data?.error;
 
@@ -120,10 +167,10 @@ export default function HorariosPage() {
         });
 
         await fetchClases();
-      } catch (error: any) {
+      } catch (error) {
         toast({
           title: "Error",
-          description: error.message || "No se pudo subir el archivo.",
+          description: getErrorMessage(error, "No se pudo subir el archivo."),
           variant: "destructive",
         });
       } finally {
@@ -134,7 +181,7 @@ export default function HorariosPage() {
     input.click();
   };
 
-  const clasesFiltradas = clases?.filter((c: any) => {
+  const clasesFiltradas = (clases as ClaseItem[]).filter((c) => {
     if (!c.periodo || c.periodo.activo === false) {
       return false;
     }
@@ -151,8 +198,27 @@ export default function HorariosPage() {
     );
   });
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(clasesFiltradas.length / itemsPerPage),
+  );
+  const currentPageSafe = Math.min(currentPage, totalPages);
+  const startIndex = (currentPageSafe - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const clasesPaginadas = clasesFiltradas.slice(startIndex, endIndex);
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50/50 p-6 flex justify-center items-start">
+      <BlockingLoader
+        open={uploadingExcel}
+        title="Cargando clases y horarios..."
+        description="Espera mientras se procesa la carga masiva."
+      />
+
       <Card className="shadow-md w-full flex flex-col max-h-[85vh]">
         <CardHeader className="flex flex-col sm:flex-row justify-between items-center border-b pb-4 gap-4 shrink-0">
           <CardTitle className="text-3xl font-bold text-gray-900">
@@ -169,7 +235,7 @@ export default function HorariosPage() {
               className="flex items-center"
             >
               <Download className="w-4 h-4 mr-2" />
-              {uploadingExcel ? "Cargando..." : "Cargar Materias"}
+              {uploadingExcel ? "Cargando..." : "Cargar Horarios"}
             </Button>
             <Button
               onClick={() => setIsModalOpen(true)}
@@ -191,27 +257,41 @@ export default function HorariosPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            <div className="mt-3 w-full md:mt-0 md:w-auto">
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm md:w-auto"
+              >
+                <option value={10}>10 por página</option>
+                <option value={20}>20 por página</option>
+                <option value={30}>30 por página</option>
+              </select>
+            </div>
           </div>
 
           {/* Contenedor adaptado exactamente como en DataTable */}
-          <div className="flex-1 overflow-hidden rounded-md border">
-            <div className="h-full overflow-auto">
-              <Table>
+          <div className="flex-1 min-h-0 overflow-hidden rounded-md border">
+            <div className="h-full overflow-x-auto">
+              <Table className="min-w-[700px]">
                 <TableHeader className="sticky top-0 z-10">
                   <TableRow className="hover:bg-[#691C32]">
-                    <TableHead className="bg-[#691C32] text-white font-semibold py-3">
+                    <TableHead className="bg-[#691C32] text-white font-semibold py-3 whitespace-nowrap">
                       Grupo
                     </TableHead>
-                    <TableHead className="bg-[#691C32] text-white font-semibold py-3">
+                    <TableHead className="bg-[#691C32] text-white font-semibold py-3 whitespace-nowrap">
                       Materia
                     </TableHead>
-                    <TableHead className="bg-[#691C32] text-white font-semibold py-3">
+                    <TableHead className="bg-[#691C32] text-white font-semibold py-3 whitespace-nowrap">
                       Docente Titular
                     </TableHead>
-                    <TableHead className="bg-[#691C32] text-white font-semibold py-3">
+                    <TableHead className="bg-[#691C32] text-white font-semibold py-3 whitespace-nowrap">
                       Horario
                     </TableHead>
-                    <TableHead className="bg-[#691C32] text-white font-semibold py-3 w-20 text-center">
+                    <TableHead className="bg-[#691C32] text-white font-semibold py-3 w-20 text-center whitespace-nowrap">
                       Acciones
                     </TableHead>
                   </TableRow>
@@ -226,7 +306,7 @@ export default function HorariosPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : clasesFiltradas?.length === 0 ? (
+                  ) : clasesFiltradas.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={5}
@@ -238,23 +318,29 @@ export default function HorariosPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    clasesFiltradas?.map((clase: any) => (
+                    clasesPaginadas.map((clase) => (
                       <TableRow
                         key={clase.idClase}
                         className="hover:bg-gray-50 transition-colors"
                       >
-                        <TableCell className="font-medium text-[#691C32]">
+                        <TableCell className="font-medium text-[#691C32] whitespace-nowrap">
                           {clase.grupo?.nombre} - {clase.grupo?.turno}
                         </TableCell>
-                        <TableCell>{clase.materias?.nombre}</TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {clase.materias?.nombre}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {clase.docente?.usuario?.nombre}{" "}
                           {clase.docente?.usuario?.apellidoPaterno}
                         </TableCell>
-                        <TableCell className="text-gray-600">
-                          {clase.horario || "Sin definir"}
+                        <TableCell className="text-gray-600 whitespace-nowrap">
+                          {typeof clase.horario === "object" &&
+                          clase.horario !== null
+                            ? `${clase.horario.dia ?? ""} ${clase.horario.horaInicio ?? ""} - ${clase.horario.horaFin ?? ""}${clase.horario.espacio ? ` (${clase.horario.espacio})` : ""}`.trim() ||
+                              "Sin definir"
+                            : clase.horario || "Sin definir"}
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center whitespace-nowrap">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -271,6 +357,18 @@ export default function HorariosPage() {
                 </TableBody>
               </Table>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between shrink-0">
+            <div className="text-xs text-gray-600 sm:text-sm">
+              Mostrando {clasesFiltradas.length === 0 ? 0 : startIndex + 1}-
+              {Math.min(endIndex, clasesFiltradas.length)} de {clasesFiltradas.length} clases
+            </div>
+            <Pagination
+              currentPage={currentPageSafe}
+              totalPages={totalPages}
+              setCurrentPage={setCurrentPage}
+            />
           </div>
         </CardContent>
       </Card>

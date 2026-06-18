@@ -20,10 +20,16 @@ import GruposTable from "./GruposTable";
 import { HiArrowDownTray } from "react-icons/hi2";
 import AddMateriaModal from "@/components/common/Modal/AddMateriaModal";
 import AddGrupoModal from "@/components/common/Modal/AddGrupoModal";
-import { MateriaFormData, GrupoFormData } from "@/types/modal";
+import BlockingLoader from "@/components/common/BlockingLoader";
+import {
+  MateriaFormData,
+  GrupoFormData,
+  EspecialidadFormData,
+} from "@/types/modal";
 import EditEspecialidadModal from "@/components/common/Modal/EditEspecialidadModal";
+import { downloadTemplate, uploadCsv } from "@/lib/upload";
 
-interface Materia {
+interface MateriaRow {
   id?: number;
   idMateria?: number;
   nombre: string;
@@ -36,15 +42,16 @@ interface Materia {
   creditos?: number;
   horasTeoria?: number;
   horasPractica?: number;
+  activo?: boolean;
 }
 
-interface Grupo {
+interface GrupoRow {
   id?: number;
   idGrupo?: number;
   codigo: string;
   semestre: number;
   integrantes: number;
-  turno?: string;
+  turno?: GrupoFormData["turno"];
   aula?: string;
   materiasNombres?: string[];
   idEspecialidad?: number;
@@ -52,20 +59,32 @@ interface Grupo {
   idDocente?: number;
   docenteTutorId?: number;
   idMaterias?: number[];
+  activo?: boolean;
 }
 
+type UploadTarget = "materias" | "grupos" | null;
+
 interface Props {
-  materiasData?: Materia[];
-  gruposData?: Grupo[];
+  materiasData?: MateriaRow[];
+  gruposData?: GrupoRow[];
   especialidadNombre?: string;
   activeEspecialidadId?: number;
-  onCreateMateria?: (data: any) => Promise<boolean> | boolean;
-  onCreateGrupo?: (data: any) => Promise<boolean> | boolean;
-  onUpdateMateria?: (id: number, data: any) => Promise<boolean> | boolean;
+  onCreateMateria?: (data: MateriaFormData) => Promise<boolean> | boolean;
+  onCreateGrupo?: (data: GrupoFormData) => Promise<boolean> | boolean;
+  onUpdateMateria?: (
+    id: number,
+    data: MateriaFormData,
+  ) => Promise<boolean> | boolean;
   onDeleteMateria?: (id: number) => Promise<boolean> | boolean;
-  onUpdateGrupo?: (id: number, data: any) => Promise<boolean> | boolean;
+  onUpdateGrupo?: (
+    id: number,
+    data: GrupoFormData,
+  ) => Promise<boolean> | boolean;
   onDeleteGrupo?: (id: number) => Promise<boolean> | boolean;
-  onUpdateEspecialidad?: (id: number, data: any) => Promise<boolean> | boolean;
+  onUpdateEspecialidad?: (
+    id: number,
+    data: Partial<EspecialidadFormData>,
+  ) => Promise<boolean> | boolean;
   onDeleteEspecialidad?: (id: number) => Promise<boolean> | boolean;
   especialidades?: Array<{
     id: number;
@@ -115,12 +134,13 @@ export default function MateriasTabs({
   const [searchTerm, setSearchTerm] = useState("");
   const [openEditEspecialidad, setOpenEditEspecialidad] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadTarget, setUploadTarget] = useState<UploadTarget>(null);
 
   // Función centralizada para subir CSV con overlay de carga
   const enviarArchivoAlBackend = async (file: File, endpoint: string) => {
     setIsUploading(true);
+    setUploadTarget(endpoint === "grupos" ? "grupos" : "materias");
     try {
-      const { uploadCsv } = await import("@/lib/upload");
       const { ok, data } = await uploadCsv(file, endpoint);
       if (ok) {
         const insertados =
@@ -145,6 +165,7 @@ export default function MateriasTabs({
       alert("Error de conexión con el servidor.");
     } finally {
       setIsUploading(false);
+      setUploadTarget(null);
     }
   };
   const [materiaVisibleColumns, setMateriaVisibleColumns] = useState<string[]>([
@@ -226,7 +247,7 @@ export default function MateriasTabs({
   const handleAddMateria = async (data: MateriaFormData): Promise<boolean> => {
     try {
       if (editingMateria && editingMateria.id && onUpdateMateria) {
-        const ok = await onUpdateMateria(editingMateria.id, data as any);
+        const ok = await onUpdateMateria(editingMateria.id, data);
         if (!ok) return false;
       } else if (onCreateMateria) {
         const ok = await onCreateMateria(data);
@@ -242,7 +263,7 @@ export default function MateriasTabs({
   const handleAddGrupo = async (data: GrupoFormData): Promise<boolean> => {
     try {
       if (editingGrupo && editingGrupo.id && onUpdateGrupo) {
-        const ok = await onUpdateGrupo(editingGrupo.id, data as any);
+        const ok = await onUpdateGrupo(editingGrupo.id, data);
         if (!ok) return false;
       } else if (onCreateGrupo) {
         const ok = await onCreateGrupo(data);
@@ -255,24 +276,79 @@ export default function MateriasTabs({
     }
   };
 
+  const handleEditMateria = async (m: MateriaRow) => {
+    const materiaData: Partial<MateriaFormData> & { id?: number } = {
+      id: m.id,
+      nombre: m.nombre,
+      codigo: m.codigo,
+      horas: m.totalHoras ?? m.horasTeoria ?? 0,
+      creditos: m.creditos ?? 0,
+      horasTeoria: m.horasTeoria ?? 0,
+      horasPractica: m.horasPractica ?? 0,
+      espacioId: m.espacioId ?? 0,
+      idEspecialidad: m.idEspecialidad ?? 0,
+      activo: m.activo ?? true,
+    };
+    setEditingMateria(materiaData);
+    setOpenMateriaModal(true);
+  };
+
+  const handleDeleteMateria = async (m: MateriaRow) => {
+    if (confirm(`¿Estás seguro de eliminar la materia "${m.nombre}"?`)) {
+      if (m.id && onDeleteMateria) {
+        await onDeleteMateria(m.id);
+      }
+    }
+  };
+
+  const handleEditGrupo = async (g: GrupoRow) => {
+    const grupoData: Partial<GrupoFormData> & {
+      id?: number;
+      idGrupo?: number;
+    } = {
+      id: g.idGrupo || g.id,
+      idGrupo: g.idGrupo || g.id,
+      codigo: g.codigo,
+      semestre: g.semestre,
+      turno: g.turno ?? "MATUTINO",
+      aula: g.aula ?? "",
+      idEspecialidad: g.idEspecialidad ?? 0,
+      docenteTutorId: g.docenteTutorId ?? 0,
+      activo: g.activo ?? true,
+    };
+    setEditingGrupo(grupoData);
+    setOpenGrupoModal(true);
+  };
+
+  const handleDeleteGrupo = async (g: GrupoRow) => {
+    if (confirm(`¿Estás seguro de eliminar el grupo "${g.codigo}"?`)) {
+      const grupoId = g.idGrupo || g.id;
+      if (grupoId && onDeleteGrupo) {
+        await onDeleteGrupo(grupoId);
+      }
+    }
+  };
+
+  const handleDescargarMachote = async (tipo: "materias" | "grupos") => {
+    try {
+      await downloadTemplate(tipo);
+    } catch (error) {
+      console.error(`Error al descargar plantilla de ${tipo}:`, error);
+      alert("Error de conexión al descargar la plantilla.");
+    }
+  };
+
   return (
     <Tabs defaultValue="materias" className="h-full flex flex-col">
-      {/* OVERLAY DE CARGA: Bloquea la pantalla mientras sube */}
-      {isUploading && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] backdrop-blur-sm">
-          <div className="bg-white p-8 rounded-xl shadow-2xl flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
-            <div className="w-14 h-14 border-4 border-[#691C32] border-t-transparent rounded-full animate-spin"></div>
-            <div className="text-center">
-              <p className="font-bold text-[#691C32] text-xl">
-                Procesando información...
-              </p>
-              <p className="text-gray-500 mt-1">
-                Por favor espera, no cierres la página.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <BlockingLoader
+        open={isUploading}
+        title={
+          uploadTarget === "grupos"
+            ? "Cargando grupos..."
+            : "Cargando materias..."
+        }
+        description="Espera mientras se procesa la carga masiva."
+      />
 
       <Card className="h-full flex flex-col">
         {/* Header */}
@@ -407,6 +483,7 @@ export default function MateriasTabs({
                 variant="outline"
                 type="button"
                 className="flex items-center gap-2"
+                onClick={() => void handleDescargarMachote("materias")}
               >
                 <Download className="w-4 h-4" />
                 Descargar Machote
@@ -419,8 +496,8 @@ export default function MateriasTabs({
                   const input = document.createElement("input");
                   input.type = "file";
                   input.accept = ".csv, .xlsx";
-                  input.onchange = (e: any) => {
-                    const file = e.target.files?.[0];
+                  input.onchange = () => {
+                    const file = input.files?.[0];
                     if (file && confirm(`¿Cargar archivo de materias?`)) {
                       enviarArchivoAlBackend(file, "materias");
                     }
@@ -444,33 +521,8 @@ export default function MateriasTabs({
             <MateriasTable
               materias={pagedMaterias}
               visibleColumns={materiaVisibleColumns}
-              onEdit={async (m) => {
-                const materiaData: Partial<MateriaFormData> & { id?: number } =
-                  {
-                    id: m.id,
-                    nombre: m.nombre,
-                    codigo: m.codigo,
-                    horas: (m as any).totalHoras ?? (m as any).horasTeoria ?? 0,
-                    creditos: (m as any).creditos ?? 0,
-                    horasTeoria: (m as any).horasTeoria ?? 0,
-                    horasPractica: (m as any).horasPractica ?? 0,
-                    espacioId: (m as any).espacioId ?? 0,
-                    idEspecialidad: (m as any).idEspecialidad ?? 0,
-                    activo: (m as any).activo ?? true,
-                  };
-                setEditingMateria(materiaData as any);
-                setOpenMateriaModal(true);
-              }}
-              onDelete={async (m) => {
-                if (
-                  confirm(`¿Estás seguro de eliminar la materia "${m.nombre}"?`)
-                ) {
-                  if (m.id && onDeleteMateria) {
-                    const ok = await onDeleteMateria(m.id);
-                    // El parent debería refrescar los datos
-                  }
-                }
-              }}
+              onEdit={handleEditMateria}
+              onDelete={handleDeleteMateria}
             />
 
             {/* Paginación Materias */}
@@ -563,6 +615,7 @@ export default function MateriasTabs({
                 variant="outline"
                 type="button"
                 className="flex items-center gap-2"
+                onClick={() => void handleDescargarMachote("grupos")}
               >
                 <Download className="w-4 h-4" />
                 Descargar Machote
@@ -575,8 +628,8 @@ export default function MateriasTabs({
                   const input = document.createElement("input");
                   input.type = "file";
                   input.accept = ".csv, .xlsx";
-                  input.onchange = (e: any) => {
-                    const file = e.target.files?.[0];
+                  input.onchange = () => {
+                    const file = input.files?.[0];
                     if (file && confirm(`¿Cargar archivo de grupos?`)) {
                       enviarArchivoAlBackend(file, "grupos");
                     }
@@ -600,35 +653,8 @@ export default function MateriasTabs({
             <GruposTable
               grupos={pagedGrupos}
               visibleColumns={grupoVisibleColumns}
-              onEdit={async (g) => {
-                const grupoData: Partial<GrupoFormData> & {
-                  id?: number;
-                  idGrupo?: number;
-                } = {
-                  id: g.idGrupo || g.id,
-                  idGrupo: g.idGrupo || g.id,
-                  codigo: g.codigo,
-                  semestre: g.semestre,
-                  turno: ((g as any).turno as any) ?? "MATUTINO",
-                  aula: (g as any).aula ?? "",
-                  idEspecialidad: (g as any).idEspecialidad ?? 0,
-                  docenteTutorId: (g as any).docenteTutorId ?? 0,
-                  activo: (g as any).activo ?? true,
-                };
-                setEditingGrupo(grupoData as any);
-                setOpenGrupoModal(true);
-              }}
-              onDelete={async (g) => {
-                if (
-                  confirm(`¿Estás seguro de eliminar el grupo "${g.codigo}"?`)
-                ) {
-                  const grupoId = g.idGrupo || g.id;
-                  if (grupoId && onDeleteGrupo) {
-                    const ok = await onDeleteGrupo(grupoId);
-                    // El parent debería refrescar los datos
-                  }
-                }
-              }}
+              onEdit={handleEditGrupo}
+              onDelete={handleDeleteGrupo}
             />
 
             {/* Paginación Grupos */}

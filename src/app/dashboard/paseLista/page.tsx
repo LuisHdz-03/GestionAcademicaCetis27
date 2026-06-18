@@ -1,10 +1,11 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import BlockingLoader from "@/components/common/BlockingLoader";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -21,7 +22,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/useToast";
-import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { downloadTemplate, uploadCsv } from "@/lib/upload";
 import { Download, Upload } from "lucide-react";
@@ -35,6 +35,127 @@ import {
 } from "react-icons/hi2";
 
 const API_URL = "http://localhost:4000/api/web";
+
+interface AlumnoItem {
+  id?: number;
+  idEstudiante?: number;
+  nombre?: string;
+  apellidoPaterno?: string;
+  matricula?: string | number;
+  usuario?: {
+    nombre?: string;
+    apellidoPaterno?: string;
+  };
+}
+
+interface HistorialRegistro {
+  fecha?: string;
+  alumnoId?: number;
+  estatus?: string;
+  status?: string;
+  estado?: string;
+  idAsistencia?: number;
+  id?: number;
+  alumno?: {
+    id?: number;
+    idEstudiante?: number;
+    matricula?: string | number;
+    usuario?: {
+      nombre?: string;
+      apellidoPaterno?: string;
+    };
+  };
+  estudiante?: {
+    id?: number;
+    idEstudiante?: number;
+    matricula?: string | number;
+    usuario?: {
+      nombre?: string;
+      apellidoPaterno?: string;
+    };
+  };
+  nombre?: string;
+  apellidoPaterno?: string;
+  matricula?: string | number;
+}
+
+interface HistorialSesion {
+  fecha: string;
+  registros: HistorialRegistro[];
+  presentes?: number;
+  faltas?: number;
+  retardos?: number;
+  justificados?: number;
+}
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
+
+const getAlumnoId = (alumno: AlumnoItem) =>
+  alumno.idEstudiante ?? alumno.id ?? 0;
+
+const getAlumnoNombre = (alumno: AlumnoItem) =>
+  alumno.nombre || alumno.usuario?.nombre || "";
+
+const getAlumnoApellido = (alumno: AlumnoItem) =>
+  alumno.apellidoPaterno || alumno.usuario?.apellidoPaterno || "";
+
+const normalizarEstatus = (estatus?: string) => {
+  const valor = (estatus || "").trim().toUpperCase();
+
+  if (valor === "JUSTIFICADA") return "JUSTIFICADO";
+
+  return valor;
+};
+
+const getRegistroEstatus = (registro: HistorialRegistro) =>
+  normalizarEstatus(registro.estatus || registro.status || registro.estado);
+
+const getRegistroAlumnoKey = (registro: HistorialRegistro) => {
+  const alumnoId =
+    registro.alumnoId ??
+    registro.alumno?.idEstudiante ??
+    registro.alumno?.id ??
+    registro.estudiante?.idEstudiante ??
+    registro.estudiante?.id;
+
+  if (typeof alumnoId === "number") return `id:${alumnoId}`;
+
+  const matricula =
+    registro.alumno?.matricula ||
+    registro.estudiante?.matricula ||
+    registro.matricula;
+
+  if (matricula !== undefined && matricula !== null && `${matricula}`.trim()) {
+    return `matricula:${matricula}`;
+  }
+
+  const nombre =
+    registro.alumno?.usuario?.nombre ||
+    registro.estudiante?.usuario?.nombre ||
+    registro.nombre ||
+    "";
+  const apellido =
+    registro.alumno?.usuario?.apellidoPaterno ||
+    registro.estudiante?.usuario?.apellidoPaterno ||
+    registro.apellidoPaterno ||
+    "";
+
+  return `nombre:${apellido.trim().toUpperCase()}|${nombre.trim().toUpperCase()}`;
+};
+
+const deduplicarRegistrosSesion = (registros: HistorialRegistro[]) => {
+  const unicos = new Map<string, HistorialRegistro>();
+
+  registros.forEach((registro) => {
+    unicos.set(getRegistroAlumnoKey(registro), {
+      ...registro,
+      estatus: getRegistroEstatus(registro),
+    });
+  });
+
+  return Array.from(unicos.values());
+};
 
 const OPCIONES = [
   {
@@ -80,10 +201,14 @@ const OPCIONES = [
 ];
 
 export default function PaseDeListaPage() {
-  const { user } = useAuth();
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const toastRef = useRef(toast);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const claseIdParam = searchParams.get("claseId");
   const grupoIdParam = searchParams.get("grupoId");
@@ -91,7 +216,7 @@ export default function PaseDeListaPage() {
   const grupoNombre = searchParams.get("grupo") || "Grupo";
 
   const [claseSeleccionada, setClaseSeleccionada] = useState("");
-  const [alumnos, setAlumnos] = useState<any[]>([]);
+  const [alumnos, setAlumnos] = useState<AlumnoItem[]>([]);
   const [asistencia, setAsistencia] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(false);
   const [cargandoClase, setCargandoClase] = useState(false);
@@ -105,15 +230,17 @@ export default function PaseDeListaPage() {
     null,
   );
 
-  const [historial, setHistorial] = useState<any[]>([]);
+  const [historial, setHistorial] = useState<HistorialSesion[]>([]);
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
-  const [sesionDetalle, setSesionDetalle] = useState<any | null>(null);
+  const [sesionDetalle, setSesionDetalle] = useState<HistorialSesion | null>(
+    null,
+  );
   const [uploadingExcel, setUploadingExcel] = useState(false);
 
   const LIMITE_MINUTOS = 30;
 
-  const agruparPorFechaExacta = (registros: any[]) => {
-    const mapa = new Map<string, any[]>();
+  const agruparPorFechaExacta = (registros: HistorialRegistro[]) => {
+    const mapa = new Map<string, HistorialRegistro[]>();
     registros.forEach((r) => {
       const fechaKey = r.fecha;
       if (!fechaKey) return;
@@ -122,7 +249,10 @@ export default function PaseDeListaPage() {
     });
     return Array.from(mapa.entries())
       .sort((a, b) => b[0].localeCompare(a[0]))
-      .map(([fecha, regs]) => ({ fecha, registros: regs }));
+      .map(([fecha, regs]) => ({
+        fecha,
+        registros: deduplicarRegistrosSesion(regs),
+      }));
   };
 
   const getAuthHeaders = () => {
@@ -152,10 +282,13 @@ export default function PaseDeListaPage() {
         } else {
           throw new Error(data.mensaje || "No se pudieron cargar los alumnos");
         }
-      } catch (error: any) {
-        toast({
+      } catch (error) {
+        toastRef.current({
           title: "Error",
-          description: error.message,
+          description: getErrorMessage(
+            error,
+            "No se pudieron cargar los alumnos",
+          ),
           variant: "destructive",
         });
       } finally {
@@ -193,8 +326,10 @@ export default function PaseDeListaPage() {
               if (diffMinutos < LIMITE_MINUTOS) {
                 // Modo Edición
                 const asistenciaPrevia: Record<number, string> = {};
-                ultimaSesion.registros.forEach((r: any) => {
-                  asistenciaPrevia[r.alumnoId] = r.estatus;
+                ultimaSesion.registros.forEach((r) => {
+                  if (typeof r.alumnoId === "number") {
+                    asistenciaPrevia[r.alumnoId] = getRegistroEstatus(r);
+                  }
                 });
                 setAsistencia(asistenciaPrevia);
                 setSesionActivaFecha(ultimaSesion.fecha); // GUARDAMOS LA FECHA
@@ -238,8 +373,9 @@ export default function PaseDeListaPage() {
   const cambiarEstatus = (idAlumno: number, estatus: string) => {
     setAsistencia((prev) => {
       if (prev[idAlumno] === estatus) {
-        const { [idAlumno]: _, ...rest } = prev;
-        return rest;
+        const next = { ...prev };
+        delete next[idAlumno];
+        return next;
       }
       return { ...prev, [idAlumno]: estatus };
     });
@@ -247,48 +383,35 @@ export default function PaseDeListaPage() {
 
   const alumnosOrdenados = useMemo(() => {
     return [...alumnos].sort((a, b) => {
-      const apA = (
-        a.apellidoPaterno ||
-        a.usuario?.apellidoPaterno ||
-        ""
-      ).toLowerCase();
-      const apB = (
-        b.apellidoPaterno ||
-        b.usuario?.apellidoPaterno ||
-        ""
-      ).toLowerCase();
-      const nA = (a.nombre || a.usuario?.nombre || "").toLowerCase();
-      const nB = (b.nombre || b.usuario?.nombre || "").toLowerCase();
+      const apA = getAlumnoApellido(a).toLowerCase();
+      const apB = getAlumnoApellido(b).toLowerCase();
+      const nA = getAlumnoNombre(a).toLowerCase();
+      const nB = getAlumnoNombre(b).toLowerCase();
       return apA !== apB ? apA.localeCompare(apB) : nA.localeCompare(nB);
     });
   }, [alumnos]);
 
   const alumnoActivo = useMemo(() => {
-    return (
-      alumnosOrdenados.find((a: any) => !asistencia[a.idEstudiante || a.id]) ||
-      null
-    );
+    return alumnosOrdenados.find((a) => !asistencia[getAlumnoId(a)]) || null;
   }, [alumnosOrdenados, asistencia]);
 
   const alumnosFiltrados = useMemo(() => {
     if (busqueda.trim()) {
       const q = busqueda.toLowerCase();
-      return alumnosOrdenados.filter((a: any) => {
+      return alumnosOrdenados.filter((a) => {
         const nombre =
-          `${a.nombre || a.usuario?.nombre || ""} ${a.apellidoPaterno || a.usuario?.apellidoPaterno || ""}`.toLowerCase();
+          `${getAlumnoNombre(a)} ${getAlumnoApellido(a)}`.toLowerCase();
         const matricula = String(a.matricula || "").toLowerCase();
         return nombre.includes(q) || matricula.includes(q);
       });
     }
-    const activoId = alumnoActivo
-      ? alumnoActivo.idEstudiante || alumnoActivo.id
-      : null;
-    const pendientes = alumnosOrdenados.filter((a: any) => {
-      const id = a.idEstudiante || a.id;
+    const activoId = alumnoActivo ? getAlumnoId(alumnoActivo) : null;
+    const pendientes = alumnosOrdenados.filter((a) => {
+      const id = getAlumnoId(a);
       return !asistencia[id] && id !== activoId;
     });
     const marcados = alumnosOrdenados.filter(
-      (a: any) => !!asistencia[a.idEstudiante || a.id],
+      (a) => !!asistencia[getAlumnoId(a)],
     );
     return [
       ...(alumnoActivo ? [alumnoActivo] : []),
@@ -318,10 +441,7 @@ export default function PaseDeListaPage() {
   const handleSubmit = async () => {
     if (!claseSeleccionada) return;
 
-    const sinMarcar = alumnos.filter((a: any) => {
-      const id = a.idEstudiante || a.id;
-      return !asistencia[id];
-    });
+    const sinMarcar = alumnos.filter((a) => !asistencia[getAlumnoId(a)]);
 
     if (sinMarcar.length > 0) {
       toast({
@@ -335,7 +455,7 @@ export default function PaseDeListaPage() {
     setLoading(true);
     try {
       const listaAlumnosFormateada = alumnos.map((alumno) => {
-        const idAlum = alumno.idEstudiante || alumno.id;
+        const idAlum = getAlumnoId(alumno);
         return {
           matricula: String(alumno.matricula), // <-- EL BACKEND PIDE LA MATRICULA AQUI
           estatus: asistencia[idAlum],
@@ -402,10 +522,10 @@ export default function PaseDeListaPage() {
       } catch {
         /* silencioso */
       }
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getErrorMessage(error, "Error al guardar la asistencia"),
         variant: "destructive",
       });
     } finally {
@@ -421,10 +541,10 @@ export default function PaseDeListaPage() {
         description: "Descarga iniciada.",
         variant: "success",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "No se pudo descargar el machote.",
+        description: getErrorMessage(error, "No se pudo descargar el machote."),
         variant: "destructive",
       });
     }
@@ -472,10 +592,10 @@ export default function PaseDeListaPage() {
             /* silencioso */
           }
         }
-      } catch (error: any) {
+      } catch (error) {
         toast({
           title: "Error",
-          description: error.message || "No se pudo subir el Excel.",
+          description: getErrorMessage(error, "No se pudo subir el Excel."),
           variant: "destructive",
         });
       } finally {
@@ -488,6 +608,12 @@ export default function PaseDeListaPage() {
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6 max-w-5xl">
+      <BlockingLoader
+        open={uploadingExcel}
+        title="Cargando asistencias..."
+        description="Espera mientras se procesa la carga masiva."
+      />
+
       {/* ─── Header ─── */}
       <div className="flex items-center gap-3 flex-wrap">
         <button
@@ -686,14 +812,11 @@ export default function PaseDeListaPage() {
                     "grayscale opacity-70 pointer-events-none select-none",
                 )}
               >
-                {alumnosFiltrados.map((alumno: any) => {
-                  const idAlum = alumno.idEstudiante || alumno.id;
+                {alumnosFiltrados.map((alumno) => {
+                  const idAlum = getAlumnoId(alumno);
                   const matricula = alumno.matricula || "N/A";
-                  const nombre = alumno.nombre || alumno.usuario?.nombre || "";
-                  const apellido =
-                    alumno.apellidoPaterno ||
-                    alumno.usuario?.apellidoPaterno ||
-                    "";
+                  const nombre = getAlumnoNombre(alumno);
+                  const apellido = getAlumnoApellido(alumno);
                   const estatusActual = asistencia[idAlum];
                   const opcionActual = OPCIONES.find(
                     (o) => o.valor === estatusActual,
@@ -701,7 +824,7 @@ export default function PaseDeListaPage() {
                   const esActivo =
                     !busqueda &&
                     alumnoActivo &&
-                    (alumnoActivo.idEstudiante || alumnoActivo.id) === idAlum;
+                    getAlumnoId(alumnoActivo) === idAlum;
 
                   const opacityClass = "";
 
@@ -916,38 +1039,23 @@ export default function PaseDeListaPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {historial.map((sesion: any, idx: number) => {
-                    const registros: any[] = sesion.registros || [];
+                  {historial.map((sesion, idx) => {
+                    const registros = sesion.registros || [];
                     const presentes = registros.filter(
-                      (r: any) =>
-                        (r.estatus || r.status || r.estado) === "PRESENTE",
+                      (r) => getRegistroEstatus(r) === "PRESENTE",
                     ).length;
                     const faltas = registros.filter(
-                      (r: any) =>
-                        (r.estatus || r.status || r.estado) === "FALTA",
+                      (r) => getRegistroEstatus(r) === "FALTA",
                     ).length;
                     const retardos = registros.filter(
-                      (r: any) =>
-                        (r.estatus || r.status || r.estado) === "RETARDO",
+                      (r) => getRegistroEstatus(r) === "RETARDO",
                     ).length;
                     const justificados = registros.filter(
-                      (r: any) =>
-                        (r.estatus || r.status || r.estado) === "JUSTIFICADO",
+                      (r) => getRegistroEstatus(r) === "JUSTIFICADO",
                     ).length;
                     const total = registros.length;
                     const fechaRaw = sesion.fecha || "";
-
-                    const fechaFormateada = fechaRaw
-                      ? new Date(fechaRaw).toLocaleString("es-MX", {
-                          weekday: "short",
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: true,
-                        })
-                      : `Sesión ${idx + 1}`;
+                    const fechaVisible = fechaRaw || `Sesión ${idx + 1}`;
 
                     return (
                       <TableRow
@@ -955,7 +1063,7 @@ export default function PaseDeListaPage() {
                         className="hover:bg-gray-50"
                       >
                         <TableCell className="font-medium capitalize">
-                          {fechaFormateada}
+                          {fechaVisible}
                         </TableCell>
                         <TableCell className="text-center">
                           <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
@@ -989,7 +1097,6 @@ export default function PaseDeListaPage() {
                               onClick={() =>
                                 setSesionDetalle({
                                   ...sesion,
-                                  fechaFormateada,
                                   registros,
                                   presentes,
                                   faltas,
@@ -1021,7 +1128,7 @@ export default function PaseDeListaPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <HiClipboardDocumentList className="w-5 h-5 text-[#691C32]" />
-              Asistencia — {sesionDetalle?.fechaFormateada}
+              Asistencia — {sesionDetalle?.fecha || "Sesión"}
             </DialogTitle>
           </DialogHeader>
           {sesionDetalle && (
@@ -1070,8 +1177,8 @@ export default function PaseDeListaPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(sesionDetalle?.registros || []).map((r: any, i: number) => {
-                const estatus = r.estatus || r.status || r.estado || "—";
+              {(sesionDetalle?.registros || []).map((r, i) => {
+                const estatus = getRegistroEstatus(r) || "—";
                 const nombre =
                   r.alumno?.usuario?.nombre ||
                   r.estudiante?.usuario?.nombre ||

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/useToast";
+import BlockingLoader from "@/components/common/BlockingLoader";
 import { downloadTemplate, uploadCsv } from "@/lib/upload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,14 +35,31 @@ interface Espacio {
   activo?: boolean;
 }
 
-const API_URL =
-  "http://localhost:4000/api/web";
+interface EspacioApi {
+  idEspacio?: number | string;
+  id?: number | string;
+  nombre?: string;
+  tipo?: string;
+  descripcion?: string;
+  activo?: boolean;
+}
+
+interface EspacioPayload {
+  nombre: string;
+  tipo: string;
+  descripcion?: string;
+}
+
+const API_URL = "http://localhost:4000/api/web";
 
 const initialForm = {
   nombre: "",
   tipo: "",
   descripcion: "",
 };
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
 
 export default function EspaciosPage() {
   const { toast } = useToast();
@@ -66,16 +84,16 @@ export default function EspaciosPage() {
     };
   };
 
-  const normalizeEspacio = (e: any): Espacio => ({
+  const normalizeEspacio = (e: EspacioApi): Espacio => ({
     id: Number(e.idEspacio ?? e.id ?? 0),
     idEspacio: Number(e.idEspacio ?? e.id ?? 0),
     nombre: e.nombre || "",
-    tipo: e.tipo,
+    tipo: e.tipo || "",
     descripcion: e.descripcion || "",
     activo: e.activo ?? true,
   });
 
-  const fetchEspacios = async () => {
+  const fetchEspacios = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -95,22 +113,26 @@ export default function EspaciosPage() {
       }
 
       const data = await response.json();
-      const arr = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+      const arr = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+          ? data.data
+          : [];
       setEspacios(arr.map(normalizeEspacio));
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "Error al cargar espacios.",
+        description: getErrorMessage(error, "Error al cargar espacios."),
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [incluirInactivos, tipoFiltro, toast]);
 
   useEffect(() => {
-    fetchEspacios();
-  }, [tipoFiltro, incluirInactivos]);
+    void fetchEspacios();
+  }, [fetchEspacios]);
 
   const espaciosFiltrados = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -139,10 +161,10 @@ export default function EspaciosPage() {
         description: "Descarga iniciada.",
         variant: "success",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "No se pudo descargar el machote.",
+        description: getErrorMessage(error, "No se pudo descargar el machote."),
         variant: "destructive",
       });
     }
@@ -175,10 +197,10 @@ export default function EspaciosPage() {
         });
 
         await fetchEspacios();
-      } catch (error: any) {
+      } catch (error) {
         toast({
           title: "Error",
-          description: error.message || "No se pudo subir el archivo.",
+          description: getErrorMessage(error, "No se pudo subir el archivo."),
           variant: "destructive",
         });
       } finally {
@@ -225,7 +247,7 @@ export default function EspaciosPage() {
       const isEdit = !!editing;
       const id = editing?.idEspacio || editing?.id;
 
-      const payload: Record<string, any> = {
+      const payload: EspacioPayload = {
         nombre: formData.nombre.trim(),
         tipo: formData.tipo.trim(),
       };
@@ -245,7 +267,9 @@ export default function EspaciosPage() {
 
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(result.error || result.mensaje || "No se pudo guardar el espacio");
+        throw new Error(
+          result.error || result.mensaje || "No se pudo guardar el espacio",
+        );
       }
 
       toast({
@@ -259,11 +283,11 @@ export default function EspaciosPage() {
       setModalOpen(false);
       setFormData(initialForm);
       setEditing(null);
-      fetchEspacios();
-    } catch (error: any) {
+      void fetchEspacios();
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "No se pudo guardar el espacio.",
+        description: getErrorMessage(error, "No se pudo guardar el espacio."),
         variant: "destructive",
       });
     } finally {
@@ -285,7 +309,9 @@ export default function EspaciosPage() {
 
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(result.error || result.mensaje || "No se pudo desactivar el espacio");
+        throw new Error(
+          result.error || result.mensaje || "No se pudo desactivar el espacio",
+        );
       }
 
       toast({
@@ -294,11 +320,14 @@ export default function EspaciosPage() {
         variant: "success",
       });
 
-      fetchEspacios();
-    } catch (error: any) {
+      void fetchEspacios();
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "No se pudo desactivar el espacio.",
+        description: getErrorMessage(
+          error,
+          "No se pudo desactivar el espacio.",
+        ),
         variant: "destructive",
       });
     }
@@ -306,6 +335,12 @@ export default function EspaciosPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50/50 p-3 sm:p-4 lg:p-6">
+      <BlockingLoader
+        open={uploading}
+        title="Cargando espacios..."
+        description="Espera mientras se procesa la carga masiva."
+      />
+
       <Card>
         <CardHeader className="border-b space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -371,30 +406,48 @@ export default function EspaciosPage() {
               <Table className="min-w-[760px]">
                 <TableHeader>
                   <TableRow className="hover:bg-[#691C32]">
-                    <TableHead className="bg-[#691C32] text-white">Nombre</TableHead>
-                    <TableHead className="bg-[#691C32] text-white">Tipo</TableHead>
-                    <TableHead className="bg-[#691C32] text-white">Descripción</TableHead>
-                    <TableHead className="bg-[#691C32] text-white">Estado</TableHead>
-                    <TableHead className="bg-[#691C32] text-white text-center">Acciones</TableHead>
+                    <TableHead className="bg-[#691C32] text-white">
+                      Nombre
+                    </TableHead>
+                    <TableHead className="bg-[#691C32] text-white">
+                      Tipo
+                    </TableHead>
+                    <TableHead className="bg-[#691C32] text-white">
+                      Descripción
+                    </TableHead>
+                    <TableHead className="bg-[#691C32] text-white">
+                      Estado
+                    </TableHead>
+                    <TableHead className="bg-[#691C32] text-white text-center">
+                      Acciones
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                      <TableCell
+                        colSpan={5}
+                        className="text-center py-8 text-gray-500"
+                      >
                         Cargando espacios...
                       </TableCell>
                     </TableRow>
                   ) : espaciosFiltrados.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                      <TableCell
+                        colSpan={5}
+                        className="text-center py-8 text-gray-500"
+                      >
                         No hay espacios registrados.
                       </TableCell>
                     </TableRow>
                   ) : (
                     espaciosFiltrados.map((espacio) => (
                       <TableRow key={espacio.idEspacio || espacio.id}>
-                        <TableCell className="font-medium">{espacio.nombre}</TableCell>
+                        <TableCell className="font-medium">
+                          {espacio.nombre}
+                        </TableCell>
                         <TableCell>{espacio.tipo || "-"}</TableCell>
                         <TableCell>{espacio.descripcion || "-"}</TableCell>
                         <TableCell>
@@ -443,7 +496,9 @@ export default function EspaciosPage() {
               <Input
                 id="nombre"
                 value={formData.nombre}
-                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, nombre: e.target.value })
+                }
                 placeholder="Ej. Laboratorio 1"
                 required
               />
@@ -454,7 +509,9 @@ export default function EspaciosPage() {
               <Input
                 id="tipo"
                 value={formData.tipo}
-                onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, tipo: e.target.value })
+                }
                 placeholder="Ej. Aula, Laboratorio, Sala audiovisual"
                 required
               />
@@ -494,4 +551,3 @@ export default function EspaciosPage() {
     </div>
   );
 }
-

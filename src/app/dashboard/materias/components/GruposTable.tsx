@@ -22,9 +22,12 @@ interface Grupo {
   idGrupo?: number;
   codigo: string;
   semestre: number;
-  turno?: string;
+  turno?: "MATUTINO" | "VESPERTINO" | "MIXTO";
   aula?: string;
   materiasNombres?: string[];
+  idEspecialidad?: number;
+  docenteTutorId?: number;
+  activo?: boolean;
   integrantes: number;
 }
 
