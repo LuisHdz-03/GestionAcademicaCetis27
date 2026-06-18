@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const API_URL = "http://localhost:4000/api/web";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface MateriaFormData {
   nombre: string;

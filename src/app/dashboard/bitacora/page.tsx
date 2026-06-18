@@ -13,8 +13,7 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 
-const API_URL =
-  "http://localhost:4000/api/web";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface Bitacora {
   idBitacora: number;
@@ -245,4 +244,3 @@ export default function BitacoraPage() {
     </div>
   );
 }
-

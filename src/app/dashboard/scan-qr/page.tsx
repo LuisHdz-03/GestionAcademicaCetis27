@@ -15,8 +15,7 @@ interface AccesoResponse {
   hora: string;
 }
 
-const API_URL =
-  "http://localhost:4000/api/web";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ScanQRPage() {
   const { user, logout } = useAuth();
@@ -255,4 +254,3 @@ export default function ScanQRPage() {
     </div>
   );
 }
-

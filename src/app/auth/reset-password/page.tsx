@@ -8,8 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/useToast";
 
-const API_URL =
-  "http://localhost:4000/api/web";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ResetPasswordPage() {
   const { toast } = useToast();
@@ -132,4 +131,3 @@ export default function ResetPasswordPage() {
     </div>
   );
 }
-

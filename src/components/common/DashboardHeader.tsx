@@ -24,7 +24,7 @@ import { HiBars3 } from "react-icons/hi2";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/useToast";
 
-const API_URL = "http://localhost:4000/api/web";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface DashboardHeaderProps {
   nombreUsuario: string;

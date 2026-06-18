@@ -33,7 +33,11 @@ export default function CredencialCard({
   const resolveMediaUrl = (url?: string) => {
     if (!url) return undefined;
     if (/^https?:\/\//i.test(url) || url.startsWith("data:")) return url;
-    return `http://localhost:4000${url.startsWith("/") ? "" : "/"}${url}`;
+    const getFullUrl = (url: string) => {
+      return `${process.env.NEXT_PUBLIC_API_URL}${
+        url.startsWith("/") ? "" : "/"
+      }${url}`;
+    };
   };
   const fotoSrc = resolveMediaUrl(estudiante.fotoUrl);
   const firmaSrc = firmante.firmaImagenUrl

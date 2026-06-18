@@ -8,8 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/useToast";
 
-const API_URL =
-  "http://localhost:4000/api/web";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ForgotPasswordPage() {
   const { toast } = useToast();
@@ -48,7 +47,9 @@ export default function ForgotPasswordPage() {
 
     setLoading(true);
     try {
-      const { res, data } = await enviarSolicitud({ username: username.trim() });
+      const { res, data } = await enviarSolicitud({
+        username: username.trim(),
+      });
 
       if (res.ok && data?.necesitaCorreo) {
         setStep(2);
@@ -225,4 +226,3 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
-

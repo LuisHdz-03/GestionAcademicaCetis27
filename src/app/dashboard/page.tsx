@@ -28,7 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const API_URL = "http://localhost:4000/api/web";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const API_DEBUG = process.env.NEXT_PUBLIC_DEBUG_API === "true";
 
 const logApi = (label: string, payload: unknown) => {

@@ -41,7 +41,7 @@ interface Materia {
   especialidadNombre?: string;
   activo: boolean;
 }
-const API_URL = "http://localhost:4000/api/web";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface UseCommunityReturn {
   docentes: Docente[];
