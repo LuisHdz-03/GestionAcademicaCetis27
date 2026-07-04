@@ -28,8 +28,6 @@ export default function ScanQRPage() {
   const [error, setError] = useState<string | null>(null);
   const bufferRef = useRef<string>("");
 
-  // Captura teclas directamente en el documento — sin <input> visible,
-  // así ninguna extensión de contraseñas puede inyectar su botón.
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       // Ignorar si el foco está en un campo de formulario real
