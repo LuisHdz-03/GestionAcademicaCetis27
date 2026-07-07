@@ -334,23 +334,71 @@ export default function ReportesPage() {
         );
         alumnosMapeados = Array.from(alumnosMap.values());
       } else {
+        // Intentar /estudiantes primero (admins y directivos)
         const res = await fetch(`${API_URL}/estudiantes`, {
           headers: getAuthHeaders(),
         });
-        if (!res.ok) throw new Error("Error al obtener alumnos");
-        const data = await res.json();
 
-        alumnosMapeados = data.map((a: any) => {
-          return procesarEstudiante(
-            a,
-            {
-              especialidad: a.grupo?.especialidad?.nombre,
-              nombre: a.grupo?.nombre,
-              especialidadId: a.grupo?.especialidadId,
-            },
-            a.grupoId,
+        if (res.ok) {
+          const data = await res.json();
+          alumnosMapeados = data.map((a: any) =>
+            procesarEstudiante(
+              a,
+              {
+                especialidad: a.grupo?.especialidad?.nombre,
+                nombre: a.grupo?.nombre,
+                especialidadId: a.grupo?.especialidadId,
+              },
+              a.grupoId,
+            ),
           );
-        });
+        } else {
+          // Fallback para prefecto: cargar via /grupos → /estudiantes/grupo/:id
+          const resGrupos = await fetch(`${API_URL}/grupos`, {
+            headers: getAuthHeaders(),
+          });
+          if (!resGrupos.ok)
+            throw new Error(
+              `Sin permiso para obtener alumnos (HTTP ${res.status}). Contacta al administrador.`,
+            );
+
+          const grupos = await resGrupos.json();
+          const alumnosMap = new Map<number, Alumno>();
+
+          await Promise.all(
+            (Array.isArray(grupos) ? grupos : []).map(async (g: any) => {
+              const grupoId = g.idGrupo || g.id;
+              if (!grupoId) return;
+              const resAlumnos = await fetch(
+                `${API_URL}/estudiantes/grupo/${grupoId}`,
+                { headers: getAuthHeaders() },
+              );
+              if (!resAlumnos.ok) return;
+              const dataAlumnos = await resAlumnos.json();
+              const infoGrupo = {
+                nombre: g.nombre || "Sin Grupo",
+                especialidad: g.especialidad?.nombre || "Sin Asignar",
+                especialidadId: g.especialidadId || 0,
+              };
+              (Array.isArray(dataAlumnos) ? dataAlumnos : []).forEach(
+                (a: any) => {
+                  const id = a.idEstudiante || a.id;
+                  if (!alumnosMap.has(id))
+                    alumnosMap.set(
+                      id,
+                      procesarEstudiante(a, infoGrupo, grupoId),
+                    );
+                },
+              );
+            }),
+          );
+
+          alumnosMapeados = Array.from(alumnosMap.values());
+          if (alumnosMapeados.length === 0)
+            throw new Error(
+              `Sin permiso para obtener alumnos (HTTP ${res.status}). Contacta al administrador.`,
+            );
+        }
       }
 
       setAlumnos(alumnosMapeados);
