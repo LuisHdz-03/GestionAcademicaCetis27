@@ -99,6 +99,7 @@ export default function ReportesPage() {
     user?.tipoUsuario || (user as any)?.rol || "",
   );
   const cargoUsuario = normalizarTexto((user as any)?.cargo || "");
+  const esPrefecto = tipoUsuario === "PREFECTO" || cargoUsuario === "PREFECTO";
 
   const cargosPermitidosParaReportar = [
     "DIRECTOR",
@@ -116,6 +117,7 @@ export default function ReportesPage() {
   const puedeGenerarReporte =
     tipoUsuario === "DOCENTE" ||
     tipoUsuario === "ADMINISTRATIVO" ||
+    esPrefecto ||
     cargosPermitidosParaReportar.includes(cargoUsuario);
 
   const [alumnos, setAlumnos] = useState<Alumno[]>([]);
@@ -501,6 +503,8 @@ export default function ReportesPage() {
       const cargoReal =
         tipoUsuario === "DOCENTE"
           ? "DOCENTE"
+          : esPrefecto
+            ? "PREFECTO"
           : cargoUsuario || "ADMINISTRATIVO";
       const nombreQuienReporta =
         `${cargoReal} - ${user?.nombre} ${user?.apellidoPaterno}`.toUpperCase();
@@ -970,7 +974,7 @@ export default function ReportesPage() {
                     />
                   </div>
                   <div>
-                    <Label>Firma del maestro que reporta:</Label>
+                    <Label>Firma de quien reporta:</Label>
                     <Input
                       name="nombreFirmaMaestro"
                       value={formData.nombreFirmaMaestro}
