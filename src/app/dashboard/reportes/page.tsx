@@ -143,6 +143,8 @@ export default function ReportesPage() {
   const [reporteVisualizacion, setReporteVisualizacion] =
     useState<Reporte | null>(null);
   const [mostrarDetalleReporte, setMostrarDetalleReporte] = useState(false);
+  const [errorReportes, setErrorReportes] = useState<string | null>(null);
+  const [errorAlumnos, setErrorAlumnos] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     titulo: "",
@@ -352,8 +354,12 @@ export default function ReportesPage() {
       }
 
       setAlumnos(alumnosMapeados);
+      setErrorAlumnos(null);
     } catch (error) {
       console.error("Error al cargar alumnos:", error);
+      setErrorAlumnos(
+        error instanceof Error ? error.message : "No se pudieron cargar los alumnos",
+      );
     }
   };
 
@@ -362,7 +368,10 @@ export default function ReportesPage() {
       const res = await fetch(`${API_URL}/incidencias`, {
         headers: getAuthHeaders(),
       });
-      if (!res.ok) throw new Error("Error al obtener incidencias");
+      if (!res.ok) {
+        const texto = await res.text().catch(() => "");
+        throw new Error(`Error ${res.status}: ${texto || "No se pudieron obtener los reportes"}`);
+      }
       const data = await res.json();
 
       const reportesMapeados: Reporte[] = data.map((r: any) => ({
@@ -390,8 +399,12 @@ export default function ReportesPage() {
       }));
 
       setReportesRecientes(reportesMapeados.reverse());
+      setErrorReportes(null);
     } catch (error) {
       console.error("Error al cargar reportes:", error);
+      setErrorReportes(
+        error instanceof Error ? error.message : "No se pudieron cargar los reportes",
+      );
     }
   };
 
@@ -747,7 +760,8 @@ export default function ReportesPage() {
   };
 
   const reportesFiltradosPorPeriodo = reportesRecientes.filter((reporte) => {
-    if (!periodoActivo) return false;
+    // Si no hay periodo activo cargado, mostrar todos los reportes en vez de ninguno
+    if (!periodoActivo) return true;
 
     const fechaReporte = new Date(reporte.fechaReporte).getTime();
     const inicio = new Date(periodoActivo.fechaInicio).getTime();
@@ -1041,9 +1055,18 @@ export default function ReportesPage() {
       {/* Historial de Reportes */}
       <Card>
         <CardHeader>
-          <CardTitle>Reportes del Periodo Activo</CardTitle>
+          <CardTitle>
+            {periodoActivo ? "Reportes del Periodo Activo" : "Todos los Reportes"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
+          {(errorReportes || errorAlumnos) && (
+            <div className="mb-4 p-3 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm space-y-1">
+              {errorAlumnos && <p>⚠ Alumnos: {errorAlumnos}</p>}
+              {errorReportes && <p>⚠ Reportes: {errorReportes}</p>}
+              <p className="text-xs text-yellow-600">Puede ser un problema de permisos del usuario en el servidor.</p>
+            </div>
+          )}
           <div className="mb-4 max-w-md">
             <Label htmlFor="buscar-reporte-alumno">
               Buscar reporte por alumno
