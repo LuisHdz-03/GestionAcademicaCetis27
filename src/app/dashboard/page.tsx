@@ -166,7 +166,7 @@ export default function DashboardPage() {
       if (tipoUsuario === "DOCENTE") {
         router.push("/dashboard/mis-clases");
       } else if (tipoUsuario === "PREFECTO" || cargoUsuario === "PREFECTO") {
-        router.push("/dashboard/scan-qr");
+        router.push("/dashboard/reportes");
       } else if (cargosAdministrativosGrales.includes(cargoUsuario)) {
         router.push("/dashboard/comunidadEsc");
       } else {
