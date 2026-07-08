@@ -7,6 +7,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/useToast";
@@ -66,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     null,
   );
   const [isLoading, setIsLoading] = useState(true);
+  const sessionExpiredHandledRef = useRef(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -79,6 +81,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPeriodoActivo(null);
     window.location.replace("/auth/login");
   }, [isClient]);
+
+  const handleSessionExpired = useCallback(
+    (message?: string): void => {
+      if (!isClient || sessionExpiredHandledRef.current) return;
+
+      sessionExpiredHandledRef.current = true;
+      toast({
+        title: "Sesión Expirada",
+        description: message || "Tu sesión ha expirado. Ingresa de nuevo.",
+        variant: "destructive",
+      });
+      logout();
+    },
+    [isClient, logout, toast],
+  );
 
   // (Mantenemos tu useEffect de checkAuth tal como estaba...)
   useEffect(() => {
@@ -107,6 +124,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     checkAuth();
   }, [isClient, logout]);
+
+  useEffect(() => {
+    if (!isClient) return;
+
+    const originalFetch = window.fetch.bind(window);
+
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+
+      try {
+        const contentType = response.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          const payload = await response.clone().json();
+          if (payload?.code === "SESSION_EXPIRED") {
+            handleSessionExpired(
+              payload.error || payload.message || payload.mensaje,
+            );
+          }
+        }
+      } catch {
+        // Ignorar respuestas no JSON o cuerpos no parseables.
+      }
+
+      return response;
+    };
+
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [handleSessionExpired, isClient]);
 
   const login = async (
     usernameInput: string,
@@ -153,6 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         cargo: result.usuario.cargo || result.usuario.datos?.cargo || "",
       };
 
+      sessionExpiredHandledRef.current = false;
       localStorage.setItem("token", result.token);
       localStorage.setItem("usuario", JSON.stringify(usuarioFormateado));
       setUser(usuarioFormateado);
