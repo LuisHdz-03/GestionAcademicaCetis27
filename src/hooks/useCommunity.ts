@@ -68,16 +68,22 @@ interface UseCommunityReturn {
   loading: boolean;
   error: string | null;
   dashboardStats: {
-  alumnos: number;
-  docentes: number;
-  materias: number;
-  administrativos: number;
-};
+    alumnos: number;
+    docentes: number;
+    materias: number;
+    administrativos: number;
+  };
+  pagination: {
+    totalRegistros: number;
+    totalPages: number;
+    currentPage: number;
+    limit: number;
+  };
 
-fetchDashboardStats: () => Promise<void>;
+  fetchDashboardStats: () => Promise<void>;
 
   fetchDocentes: () => Promise<void>;
-  fetchAlumnos: () => Promise<void>;
+  fetchAlumnos: (page?: number, limit?: number) => Promise<void>;
   fetchAdministradores: () => Promise<void>;
   fetchGrupos: () => Promise<void>;
   fetchEspecialidades: () => Promise<void>;
@@ -184,6 +190,13 @@ export function useCommunity(): UseCommunityReturn {
     docentes: 0,
     materias: 0,
     administrativos: 0,
+  });
+
+  const [pagination, setPagination] = useState({
+    totalRegistros: 0,
+    totalPages: 0,
+    currentPage: 1,
+    limit: 20,
   });
 
   // 1. Obtener Docentes
@@ -333,7 +346,7 @@ export function useCommunity(): UseCommunityReturn {
       setAlumnos(alumnosMapeados);
 
       // Si quieres usar la paginación en la tabla:
-      // setPagination(result.pagination);
+      setPagination(result.pagination);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -565,22 +578,22 @@ export function useCommunity(): UseCommunityReturn {
 
   // fetch para el conteo de las cosas del dashboard
   const fetchDashboardStats = async () => {
-  try {
-    const response = await fetch(`${API_URL}/dashboard/stats`, {
-      headers: getAuthHeaders(),
-    });
+    try {
+      const response = await fetch(`${API_URL}/dashboard/stats`, {
+        headers: getAuthHeaders(),
+      });
 
-    if (!response.ok) {
-      throw new Error("Error al obtener estadísticas");
+      if (!response.ok) {
+        throw new Error("Error al obtener estadísticas");
+      }
+
+      const result = await response.json();
+
+      setDashboardStats(result);
+    } catch (error) {
+      console.error(error);
     }
-
-    const result = await response.json();
-
-    setDashboardStats(result);
-  } catch (error) {
-    console.error(error);
-  }
-};
+  };
 
   const fetchAccesos = async () => {
     try {
@@ -1340,6 +1353,7 @@ export function useCommunity(): UseCommunityReturn {
     especialidades,
     periodos,
     materias,
+    pagination,
     clases,
     accesos,
     loading,
