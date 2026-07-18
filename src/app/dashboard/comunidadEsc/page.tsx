@@ -200,7 +200,7 @@ export default function CommunityManagementPage() {
         break;
     }
     fetchEspecialidades();
-    fetchGrupos;
+    fetchGrupos();
   }, [user, activeTab, currentPage, itemsPerPage]);
 
   const docentesFilters = [
@@ -834,7 +834,7 @@ export default function CommunityManagementPage() {
                   onClick={async () => {
                     if (!selectedItem) return;
 
-                    const alumnoId = (selectedItem as any).id;
+                    const alumnoId = (selectedItem as any).idEstudiante;
 
                     const hasTutorData =
                       extraFormData.tutorNombre ||
