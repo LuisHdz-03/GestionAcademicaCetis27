@@ -471,17 +471,19 @@ export default function CommunityManagementPage() {
           {/* Pagination */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between flex-shrink-0 pt-4 border-t">
             <div className="text-xs sm:text-sm text-gray-600">
-              Mostrando {}
+              Mostrando{" "}
               {pagination.totalRegistros > 0
                 ? (pagination.currentPage - 1) * pagination.limit + 1
                 : 0}
-              {"-"}
+              {" - "}
               {Math.min(
                 pagination.currentPage * pagination.limit,
                 pagination.totalRegistros,
               )}{" "}
-              de {pagination.totalRegistros}
-              {activeTab}
+              de {pagination.totalRegistros}{" "}
+              {pagination.totalRegistros === 1
+                ? activeTab.slice(0, -1)
+                : activeTab}
             </div>
             <Pagination
               currentPage={pagination.currentPage}
