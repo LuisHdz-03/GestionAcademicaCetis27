@@ -82,9 +82,9 @@ interface UseCommunityReturn {
 
   fetchDashboardStats: () => Promise<void>;
 
-  fetchDocentes: () => Promise<void>;
+  fetchDocentes: (pague?: number, limit?: number) => Promise<void>;
   fetchAlumnos: (page?: number, limit?: number) => Promise<void>;
-  fetchAdministradores: () => Promise<void>;
+  fetchAdministradores: (page?: number, limit?: number) => Promise<void>;
   fetchGrupos: () => Promise<void>;
   fetchEspecialidades: () => Promise<void>;
   fetchPeriodos: () => Promise<void>;
@@ -200,22 +200,33 @@ export function useCommunity(): UseCommunityReturn {
   });
 
   // 1. Obtener Docentes
-  const fetchDocentes = async () => {
+  const fetchDocentes = async (page = 1, limit = 20) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/docentes`, {
-        headers: getAuthHeaders(),
-      });
-      if (!response.ok) throw new Error("Error al obtener docentes");
+
+      const response = await fetch(
+        `${API_URL}/docentes?page=${page}&limit=${limit}`,
+        {
+          headers: getAuthHeaders(),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al obtener docentes");
+      }
 
       const result = await response.json();
 
-      // Ajustamos el mapeo para leer los datos aplanados del back
-      const docentesMapeados = result.map((d: any) => {
+      const docentes = Array.isArray(result.data) ? result.data : [];
+
+      const docentesMapeados = docentes.map((d: any) => {
         const rawEsp = d.especialidad ?? d.especialidadNombre ?? d.Especialidad;
+
         const espNombre =
           typeof rawEsp === "string" ? rawEsp : (rawEsp?.nombre ?? "");
+
         const idDocente = Number(d.idDocente ?? d.id ?? 0);
+
         const idUsuario = Number(
           d.idUsuario ?? d.usuarioId ?? d.usuario?.id ?? 0,
         );
@@ -223,7 +234,9 @@ export function useCommunity(): UseCommunityReturn {
         return {
           id: idDocente,
           idDocente,
+
           idUsuario: idUsuario || undefined,
+
           usuario: {
             idUsuario: idUsuario || 0,
             nombre: d.usuario?.nombre || d.nombre || "",
@@ -238,15 +251,21 @@ export function useCommunity(): UseCommunityReturn {
             curp: d.usuario?.curp || d.curp || "",
             activo: d.usuario?.activo ?? d.activo ?? true,
           },
+
           numeroEmpleado: d.numeroEmpleado,
+
           especialidad:
             espNombre && espNombre !== "General" ? espNombre : "Sin Asignar",
+
           fechaContratacion: d.fechaContratacion,
+
           activo: d.activo,
         };
       });
 
       setDocentes(docentesMapeados);
+
+      setPagination(result.pagination);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -355,24 +374,36 @@ export function useCommunity(): UseCommunityReturn {
   };
 
   // 3. Obtener Administradores
-  const fetchAdministradores = async () => {
+  const fetchAdministradores = async (page = 1, limit = 20) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/administrativos`, {
-        headers: getAuthHeaders(),
-      });
-      if (!response.ok) throw new Error("Error al obtener administradores");
+
+      const response = await fetch(
+        `${API_URL}/administrativos?page=${page}&limit=${limit}`,
+        {
+          headers: getAuthHeaders(),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al obtener administradores");
+      }
 
       const result = await response.json();
 
-      const adminMapeados = result.map((a: any) => ({
+      const administradores = Array.isArray(result.data) ? result.data : [];
+
+      const adminMapeados = administradores.map((a: any) => ({
         id: Number(a.idAdministrativo ?? a.id ?? 0),
         idAdministrativo: Number(a.idAdministrativo ?? a.id ?? 0),
+
         idUsuario:
           Number(a.idUsuario ?? a.usuarioId ?? a.usuario?.id ?? 0) || undefined,
+
         usuario: {
           idUsuario:
             Number(a.idUsuario ?? a.usuarioId ?? a.usuario?.id ?? 0) || 0,
+
           nombre: a.usuario?.nombre || a.nombre || "",
           apellidoPaterno:
             a.usuario?.apellidoPaterno || a.apellidoPaterno || "",
@@ -385,6 +416,7 @@ export function useCommunity(): UseCommunityReturn {
           curp: a.usuario?.curp || a.curp || "N/A",
           activo: a.usuario?.activo ?? a.activo ?? true,
         },
+
         numeroEmpleado: a.numeroEmpleado,
         cargo: a.cargo,
         area: a.area,
@@ -392,13 +424,14 @@ export function useCommunity(): UseCommunityReturn {
       }));
 
       setAdministradores(adminMapeados);
+
+      setPagination(result.pagination);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
       setLoading(false);
     }
   };
-
   // 4. Obtener Especialidades
   const fetchEspecialidades = async () => {
     try {

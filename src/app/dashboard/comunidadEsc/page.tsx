@@ -118,6 +118,7 @@ export default function CommunityManagementPage() {
     administradores,
     especialidades,
     grupos,
+    pagination,
     loading,
     fetchDocentes,
     fetchAlumnos,
@@ -187,13 +188,20 @@ export default function CommunityManagementPage() {
       }
       return;
     }
-
-    fetchDocentes();
-    fetchAlumnos();
-    fetchAdministradores();
+    switch (activeTab) {
+      case "docentes":
+        fetchDocentes(currentPage, itemsPerPage);
+        break;
+      case "alumnos":
+        fetchAlumnos(currentPage, itemsPerPage);
+        break;
+      case "administradores":
+        fetchAdministradores(currentPage, itemsPerPage);
+        break;
+    }
     fetchEspecialidades();
-    fetchGrupos();
-  }, [user]);
+    fetchGrupos;
+  }, [user, activeTab, currentPage, itemsPerPage]);
 
   const docentesFilters = [
     "Todas las especialidades",
@@ -308,11 +316,7 @@ export default function CommunityManagementPage() {
     return matchesSearch && matchesFilter && matchesStatus;
   });
 
-  // --- Pagination ---
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentData = filteredData.slice(startIndex, endIndex);
+  const currentData = filteredData;
 
   // --- Actions ---
   const handleEdit = (item: CommunityMember) => {
@@ -467,13 +471,20 @@ export default function CommunityManagementPage() {
           {/* Pagination */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between flex-shrink-0 pt-4 border-t">
             <div className="text-xs sm:text-sm text-gray-600">
-              Mostrando {startIndex + 1}-
-              {Math.min(endIndex, filteredData.length)} de {filteredData.length}{" "}
+              Mostrando {}
+              {pagination.totalRegistros > 0
+                ? (pagination.currentPage - 1) * pagination.limit + 1
+                : 0}
+              {Math.min(
+                pagination.currentPage * pagination.limit,
+                pagination.totalRegistros,
+              )}{" "}
+              de {pagination.totalRegistros}
               {activeTab}
             </div>
             <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
               setCurrentPage={setCurrentPage}
             />
           </div>
