@@ -475,6 +475,7 @@ export default function CommunityManagementPage() {
               {pagination.totalRegistros > 0
                 ? (pagination.currentPage - 1) * pagination.limit + 1
                 : 0}
+              {"-"}
               {Math.min(
                 pagination.currentPage * pagination.limit,
                 pagination.totalRegistros,
