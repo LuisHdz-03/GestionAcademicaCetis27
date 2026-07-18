@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { useToast } from "./useToast";
-import {
-  Docente,
-  Alumno,
-  Admin,
-  Grupo,
-} from "@/types/community";
+import { Docente, Alumno, Admin, Grupo } from "@/types/community";
 import {
   DocenteFormData,
   AlumnoFormData,
@@ -232,73 +227,98 @@ export function useCommunity(): UseCommunityReturn {
   };
 
   // 2. Obtener Alumnos
-  const fetchAlumnos = async () => {
+  const fetchAlumnos = async (page = 1, limit = 20) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/estudiantes`, {
-        headers: getAuthHeaders(),
-      });
-      if (!response.ok) throw new Error("Error al obtener alumnos");
+
+      const response = await fetch(
+        `${API_URL}/estudiantes?page=${page}&limit=${limit}`,
+        {
+          headers: getAuthHeaders(),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al obtener alumnos");
+      }
 
       const result = await response.json();
 
-      const alumnosMapeados = result.map((a: any) => {
+      const alumnos = Array.isArray(result.data) ? result.data : [];
+
+      const alumnosMapeados = alumnos.map((a: any) => {
         const idEstudiante = Number(a.idEstudiante ?? a.id ?? 0);
+
         const idUsuario = Number(
-          a.idUsuario ??
-            a.usuarioId ??
-            a.usuario?.idUsuario ??
-            a.usuario?.id ??
-            0,
+          a.usuario?.idUsuario ?? a.usuarioId ?? a.idUsuario ?? 0,
         );
-        const idGrupo = Number(a.grupoId ?? a.idGrupo ?? a.grupo?.idGrupo ?? 0);
+
+        const idGrupo = Number(a.grupo?.idGrupo ?? a.grupoId ?? a.idGrupo ?? 0);
 
         return {
           id: idEstudiante,
           idEstudiante,
+
           idUsuario: idUsuario || undefined,
+
           usuario: {
-            idUsuario: idUsuario || 0,
-            nombre: a.usuario?.nombre || a.nombre || "",
-            apellidoPaterno:
-              a.usuario?.apellidoPaterno || a.apellidoPaterno || "",
-            apellidoMaterno:
-              a.usuario?.apellidoMaterno || a.apellidoMaterno || "",
-            email: a.usuario?.email || a.email || "",
-            telefono: a.usuario?.telefono || a.telefono || "",
-            fechaNacimiento:
-              a.usuario?.fechaNacimiento || a.fechaNacimiento || "",
-            curp: a.usuario?.curp || a.curp || "",
-            activo: a.usuario?.activo ?? a.activo ?? true,
+            idUsuario,
+            nombre: a.usuario?.nombre ?? "",
+            apellidoPaterno: a.usuario?.apellidoPaterno ?? "",
+            apellidoMaterno: a.usuario?.apellidoMaterno ?? "",
+            email: a.usuario?.email ?? "",
+            telefono: a.usuario?.telefono ?? "",
+            fechaNacimiento: a.usuario?.fechaNacimiento ?? "",
+            curp: a.usuario?.curp ?? "",
+            activo: a.usuario?.activo ?? true,
           },
-          matricula: a.matricula || "",
-          semestre: a.semestre || 1,
-          fechaIngreso: a.fechaIngreso || "",
-          tokenPadre: a.tokenPadre || "",
+
+          matricula: a.matricula ?? "",
+          semestre: a.semestre ?? 1,
+
+          fechaIngreso: a.fechaIngreso ?? "",
+
+          tokenPadre: a.tokenPadre ?? "",
+
           idEspecialidad:
-            a.especialidad?.idEspecialidad ||
-            a.grupo?.especialidadId ||
-            a.grupo?.especialidad?.idEspecialidad ||
+            a.grupo?.especialidad?.idEspecialidad ??
+            a.grupo?.especialidadId ??
             0,
-          especialidad:
-            a.especialidad?.nombre ||
-            a.grupo?.especialidad?.nombre ||
-            "Sin Asignar",
+
+          especialidad: a.grupo?.especialidad?.nombre ?? "Sin Asignar",
+
           idGrupo: idGrupo || undefined,
+
           grupo: a.grupo
-            ? { idGrupo: a.grupo?.idGrupo, nombre: a.grupo?.nombre }
-            : "Sin Grupo",
-          activo: a.activo ?? a.usuario?.activo ?? true,
-          direccion: a.direccion || a.usuario?.direccion || "",
-          fotoUrl: a.fotoUrl || "",
-          datosVerificados: a.datosVerificados || false,
-          credencialFechaEmision: a.credencialFechaEmision || null,
-          credencialFechaExpiracion: a.credencialFechaExpiracion || null,
-          tutor: a.tutor || null,
+            ? {
+                idGrupo,
+                nombre: a.grupo.nombre,
+                grado: a.grupo.grado,
+                turno: a.grupo.turno,
+                especialidad: a.grupo.especialidad,
+              }
+            : null,
+
+          activo: a.usuario?.activo ?? true,
+
+          direccion: a.usuario?.direccion ?? "",
+
+          fotoUrl: a.fotoUrl ?? "",
+
+          datosVerificados: a.datosVerificados ?? false,
+
+          credencialFechaEmision: a.credencialFechaEmision ?? null,
+
+          credencialFechaExpiracion: a.credencialFechaExpiracion ?? null,
+
+          tutor: a.tutor ?? null,
         };
       });
 
       setAlumnos(alumnosMapeados);
+
+      // Si quieres usar la paginación en la tabla:
+      // setPagination(result.pagination);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -556,8 +576,7 @@ export function useCommunity(): UseCommunityReturn {
       setAccesos(accesosMapeados);
       return accesosMapeados;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Error desconocido";
+      const message = err instanceof Error ? err.message : "Error desconocido";
       setError(message);
       throw err;
     } finally {
@@ -603,8 +622,7 @@ export function useCommunity(): UseCommunityReturn {
 
       return result as ResultadoRegistroAcceso;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Error desconocido";
+      const message = err instanceof Error ? err.message : "Error desconocido";
       setError(message);
       throw err;
     } finally {
