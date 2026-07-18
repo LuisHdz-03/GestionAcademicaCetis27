@@ -67,6 +67,14 @@ interface UseCommunityReturn {
   accesos: RegistroAcceso[];
   loading: boolean;
   error: string | null;
+  dashboardStats: {
+  alumnos: number;
+  docentes: number;
+  materias: number;
+  administrativos: number;
+};
+
+fetchDashboardStats: () => Promise<void>;
 
   fetchDocentes: () => Promise<void>;
   fetchAlumnos: () => Promise<void>;
@@ -170,6 +178,13 @@ export function useCommunity(): UseCommunityReturn {
       ...(token && { Authorization: `Bearer ${token}` }),
     };
   };
+
+  const [dashboardStats, setDashboardStats] = useState({
+    alumnos: 0,
+    docentes: 0,
+    materias: 0,
+    administrativos: 0,
+  });
 
   // 1. Obtener Docentes
   const fetchDocentes = async () => {
@@ -547,6 +562,25 @@ export function useCommunity(): UseCommunityReturn {
       setLoading(false);
     }
   };
+
+  // fetch para el conteo de las cosas del dashboard
+  const fetchDashboardStats = async () => {
+  try {
+    const response = await fetch(`${API_URL}/dashboard/stats`, {
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error("Error al obtener estadísticas");
+    }
+
+    const result = await response.json();
+
+    setDashboardStats(result);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   const fetchAccesos = async () => {
     try {
@@ -1294,6 +1328,7 @@ export function useCommunity(): UseCommunityReturn {
       fetchPeriodos(),
       fetchEspecialidades(),
       fetchMaterias(),
+      fetchDashboardStats(),
     ]);
   };
 
@@ -1309,6 +1344,7 @@ export function useCommunity(): UseCommunityReturn {
     accesos,
     loading,
     error,
+    dashboardStats,
     fetchDocentes,
     fetchAlumnos,
     fetchAdministradores,
@@ -1318,6 +1354,7 @@ export function useCommunity(): UseCommunityReturn {
     fetchMaterias,
     fetchClases,
     fetchAccesos,
+    fetchDashboardStats,
     registrarAcceso,
     createEspecialidad,
     updateEspecialidad,

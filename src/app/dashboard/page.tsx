@@ -45,12 +45,14 @@ export default function DashboardPage() {
     alumnos,
     administradores,
     materias,
+    dashboardStats,
     fetchDocentes,
     fetchAlumnos,
     fetchAdministradores,
     fetchMaterias,
     fetchClases,
     cerrarPeriodo,
+    fetchDashboardStats,
   } = useCommunity();
   const [hasActivePeriod, setHasActivePeriod] = useState<boolean | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -184,6 +186,7 @@ export default function DashboardPage() {
     if (!hasDashboardAccess) return;
     fetchActivePeriod();
     fetchDocentes();
+    fetchDashboardStats();
     fetchAlumnos();
     fetchAdministradores();
     fetchMaterias();
@@ -422,28 +425,28 @@ export default function DashboardPage() {
   const stats = [
     {
       title: "Alumnos",
-      value: String(alumnos.length),
+      value: String(dashboardStats.alumnos),
       icon: HiUsers,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
     },
     {
       title: "Materias",
-      value: String(materias.length),
+      value: String(dashboardStats.materias),
       icon: HiBookOpen,
       color: "text-green-600",
       bgColor: "bg-green-100",
     },
     {
       title: "Docentes",
-      value: String(docentes.length),
+      value: String(dashboardStats.docentes),
       icon: HiAcademicCap,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
     },
     {
       title: "Personal Escolar",
-      value: String(administradores.length),
+      value: String(dashboardStats.administrativos),
       icon: HiBriefcase,
       color: "text-amber-600",
       bgColor: "bg-amber-100",
