@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_ORIGIN = API_URL.replace(/\/api\/web\/?$/, "");
+
 interface CredencialPrintProps {
   estudiante: {
     nombre: string;
@@ -46,7 +49,7 @@ export default function CredencialPrint({ estudiante }: CredencialPrintProps) {
         const token =
           typeof window !== "undefined" ? localStorage.getItem("token") : null;
         const res = await fetch(
-          "http://localhost:4000/api/web/administrativos/director",
+          `${API_URL}/administrativos/director`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -118,7 +121,7 @@ export default function CredencialPrint({ estudiante }: CredencialPrintProps) {
   const resolveMediaUrl = (url?: string) => {
     if (!url) return undefined;
     if (/^https?:\/\//i.test(url) || url.startsWith("data:")) return url;
-    return `http://localhost:4000${url.startsWith("/") ? "" : "/"}${url}`;
+    return `${API_ORIGIN}${url.startsWith("/") ? "" : "/"}${url}`;
   };
   const fotoSrc = resolveMediaUrl(estudiante.fotoUrl);
   const firmaSrc = firmante.firmaImagenUrl

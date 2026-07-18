@@ -4,6 +4,8 @@ import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
 import CredencialCard from "./CredencialCard";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
 interface Alumno {
   nombre: string;
   apellidoPaterno: string;
@@ -41,7 +43,7 @@ export default function DescargarCredencialesMasivo() {
       const token =
         typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const res = await fetch(
-        "http://localhost:4000/api/web/administrativos/director",
+        `${API_URL}/administrativos/director`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -86,7 +88,7 @@ export default function DescargarCredencialesMasivo() {
 
     const token = localStorage.getItem("token");
     const res = await fetch(
-      "http://localhost:4000/api/web/estudiantes/credenciales",
+      `${API_URL}/estudiantes/credenciales`,
       {
         headers: { Authorization: `Bearer ${token}` },
       },
