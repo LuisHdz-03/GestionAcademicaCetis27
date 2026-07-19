@@ -360,16 +360,17 @@ export default function HorariosPage() {
 
           <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between shrink-0">
             <div className="text-xs text-gray-600 sm:text-sm">
-              Mostrando
+              Mostrando{" "}
               {clases.length === 0
                 ? 0
                 : (pagination.currentPage - 1) * pagination.limit + 1}
-              -
+              {" - "}
               {Math.min(
                 pagination.currentPage * pagination.limit,
                 pagination.totalRegistros,
               )}
-              de {pagination.totalRegistros} clases
+              {" de "}
+              {pagination.totalRegistros} clases
             </div>
             <Pagination
               currentPage={pagination.currentPage}
