@@ -364,12 +364,12 @@ export default function HorariosPage() {
               {clases.length === 0
                 ? 0
                 : (pagination.currentPage - 1) * pagination.limit + 1}
-              - 
+              -
               {Math.min(
                 pagination.currentPage * pagination.limit,
                 pagination.totalRegistros,
-              )} 
-              de { pagination.totalRegistros} clases
+              )}
+              de {pagination.totalRegistros} clases
             </div>
             <Pagination
               currentPage={pagination.currentPage}
