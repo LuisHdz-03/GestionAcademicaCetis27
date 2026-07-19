@@ -66,6 +66,7 @@ export default function HorariosPage() {
     materias,
     docentes,
     clases,
+    pagination,
     fetchGrupos,
     fetchMaterias,
     fetchDocentes,
@@ -93,9 +94,17 @@ export default function HorariosPage() {
       fetchMaterias(),
       fetchDocentes(),
       fetchPeriodos(),
-      fetchClases(),
+      fetchClases(currentPage, itemsPerPage),
     ]);
-  }, [fetchClases, fetchDocentes, fetchGrupos, fetchMaterias, fetchPeriodos]);
+  }, [
+    fetchClases,
+    fetchDocentes,
+    fetchGrupos,
+    fetchMaterias,
+    fetchPeriodos,
+    currentPage,
+    itemsPerPage,
+  ]);
 
   const handleAsignarClase = async (data: ClaseFormData) => {
     const exito = await asignarClase(data);
@@ -201,16 +210,6 @@ export default function HorariosPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(clasesFiltradas.length / itemsPerPage),
-  );
-  const currentPageSafe = Math.min(currentPage, totalPages);
-  const startIndex = (currentPageSafe - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const clasesPaginadas = clasesFiltradas.slice(startIndex, endIndex);
-
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50/50 p-6 flex justify-center items-start">
       <BlockingLoader
@@ -318,7 +317,7 @@ export default function HorariosPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    clasesPaginadas.map((clase) => (
+                    clasesFiltradas.map((clase) => (
                       <TableRow
                         key={clase.idClase}
                         className="hover:bg-gray-50 transition-colors"
@@ -361,12 +360,20 @@ export default function HorariosPage() {
 
           <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between shrink-0">
             <div className="text-xs text-gray-600 sm:text-sm">
-              Mostrando {clasesFiltradas.length === 0 ? 0 : startIndex + 1}-
-              {Math.min(endIndex, clasesFiltradas.length)} de {clasesFiltradas.length} clases
+              Mostrando
+              {clases.length === 0
+                ? 0
+                : (pagination.currentPage - 1) * pagination.limit + 1}
+              -
+              {Math.min(
+                pagination.currentPage * pagination.limit,
+                pagination.totalRegistros,
+              )}
+              de {pagination.totalRegistros} clases
             </div>
             <Pagination
-              currentPage={currentPageSafe}
-              totalPages={totalPages}
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
               setCurrentPage={setCurrentPage}
             />
           </div>

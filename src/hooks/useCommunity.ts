@@ -89,7 +89,7 @@ interface UseCommunityReturn {
   fetchEspecialidades: () => Promise<void>;
   fetchPeriodos: () => Promise<void>;
   fetchMaterias: () => Promise<void>;
-  fetchClases: () => Promise<void>;
+  fetchClases: (page?: number, limit?: number) => Promise<void>;
   fetchAccesos: () => Promise<RegistroAcceso[]>;
   registrarAcceso: (tokenQR: string) => Promise<ResultadoRegistroAcceso>;
   createEspecialidad: (data: {
@@ -589,19 +589,38 @@ export function useCommunity(): UseCommunityReturn {
   };
 
   // 8. Obtener Clases
-  const fetchClases = async () => {
+  const fetchClases = async (page = 1, limit = 20) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/clases`, {
+
+      const url = new URL(`${API_URL}/clases`);
+
+      url.searchParams.append("pagina", String(page));
+      url.searchParams.append("limite", String(limit));
+
+      const response = await fetch(url.toString(), {
         headers: getAuthHeaders(),
       });
-      if (!response.ok) throw new Error("Error al obtener clases");
+
+      if (!response.ok) {
+        throw new Error("Error al obtener clases");
+      }
 
       const result = await response.json();
 
-      const clasesArray = result.data ? result.data : result;
+      const clasesArray = Array.isArray(result.data) ? result.data : [];
 
       setClases(clasesArray);
+
+      // se adapto para reutilizar codigo y pos quedo asi xd
+      if (result.paginacion) {
+        setPagination({
+          totalRegistros: result.paginacion.totalRegistros,
+          totalPages: result.paginacion.paginasTotales,
+          currentPage: result.paginacion.paginaActual,
+          limit: result.paginacion.limite,
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
