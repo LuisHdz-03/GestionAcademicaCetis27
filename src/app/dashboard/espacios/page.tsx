@@ -1,6 +1,5 @@
 "use client";
-
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useToast } from "@/hooks/useToast";
 import BlockingLoader from "@/components/common/BlockingLoader";
 import { downloadTemplate, uploadCsv } from "@/lib/upload";
@@ -8,13 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import useEspacios from "@/hooks/useEspacios";
+import { Espacio } from "@/types/community";
+
 import {
   Table,
   TableBody,
@@ -23,40 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-type EspacioTipo = string;
-
-interface Espacio {
-  idEspacio?: number;
-  id?: number;
-  nombre: string;
-  tipo: EspacioTipo;
-  descripcion?: string;
-  activo?: boolean;
-}
-
-interface EspacioApi {
-  idEspacio?: number | string;
-  id?: number | string;
-  nombre?: string;
-  tipo?: string;
-  descripcion?: string;
-  activo?: boolean;
-}
-
-interface EspacioPayload {
-  nombre: string;
-  tipo: string;
-  descripcion?: string;
-}
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-const initialForm = {
-  nombre: "",
-  tipo: "",
-  descripcion: "",
-};
+import EspacioModal from "@/components/common/Modal/EspacioModal";
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
@@ -64,75 +26,28 @@ const getErrorMessage = (error: unknown, fallback: string) =>
 export default function EspaciosPage() {
   const { toast } = useToast();
 
-  const [espacios, setEspacios] = useState<Espacio[]>([]);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("");
   const [incluirInactivos, setIncluirInactivos] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [editing, setEditing] = useState<Espacio | null>(null);
-  const [formData, setFormData] = useState(initialForm);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
-    return {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-  };
-
-  const normalizeEspacio = (e: EspacioApi): Espacio => ({
-    id: Number(e.idEspacio ?? e.id ?? 0),
-    idEspacio: Number(e.idEspacio ?? e.id ?? 0),
-    nombre: e.nombre || "",
-    tipo: e.tipo || "",
-    descripcion: e.descripcion || "",
-    activo: e.activo ?? true,
-  });
-
-  const fetchEspacios = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (tipoFiltro.trim()) params.set("tipo", tipoFiltro.trim());
-      if (incluirInactivos) params.set("incluirInactivos", "true");
-
-      const query = params.toString();
-      const url = `${API_URL}/espacios${query ? `?${query}` : ""}`;
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error("No se pudieron obtener los espacios");
-      }
-
-      const data = await response.json();
-      const arr = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.data)
-          ? data.data
-          : [];
-      setEspacios(arr.map(normalizeEspacio));
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: getErrorMessage(error, "Error al cargar espacios."),
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [incluirInactivos, tipoFiltro, toast]);
-
-  useEffect(() => {
-    void fetchEspacios();
-  }, [fetchEspacios]);
+  const {
+    espacios,
+    loading,
+    saving,
+    editing,
+    formData,
+    pagina,
+    setPagina,
+    paginacion,
+    setEditing,
+    setFormData,
+    fetchEspacios,
+    onSave,
+    onDelete,
+  } = useEspacios(tipoFiltro, incluirInactivos);
 
   const espaciosFiltrados = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -149,7 +64,7 @@ export default function EspaciosPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setFormData(initialForm);
+    setFormData({ nombre: "", tipo: "", descripcion: "" });
     setModalOpen(true);
   };
 
@@ -221,118 +136,6 @@ export default function EspaciosPage() {
     setModalOpen(true);
   };
 
-  const onSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.nombre.trim()) {
-      toast({
-        title: "Dato requerido",
-        description: "El nombre del espacio es obligatorio.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.tipo.trim()) {
-      toast({
-        title: "Dato requerido",
-        description: "El tipo del espacio es obligatorio.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const isEdit = !!editing;
-      const id = editing?.idEspacio || editing?.id;
-
-      const payload: EspacioPayload = {
-        nombre: formData.nombre.trim(),
-        tipo: formData.tipo.trim(),
-      };
-
-      if (formData.descripcion.trim()) {
-        payload.descripcion = formData.descripcion.trim();
-      }
-
-      const response = await fetch(
-        isEdit ? `${API_URL}/espacios/${id}` : `${API_URL}/espacios`,
-        {
-          method: isEdit ? "PUT" : "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify(payload),
-        },
-      );
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(
-          result.error || result.mensaje || "No se pudo guardar el espacio",
-        );
-      }
-
-      toast({
-        title: "Éxito",
-        description: isEdit
-          ? "Espacio actualizado correctamente."
-          : "Espacio creado correctamente.",
-        variant: "success",
-      });
-
-      setModalOpen(false);
-      setFormData(initialForm);
-      setEditing(null);
-      void fetchEspacios();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: getErrorMessage(error, "No se pudo guardar el espacio."),
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const onDelete = async (espacio: Espacio) => {
-    const id = espacio.idEspacio || espacio.id;
-    if (!id) return;
-
-    if (!confirm(`¿Deseas desactivar el espacio "${espacio.nombre}"?`)) return;
-
-    try {
-      const response = await fetch(`${API_URL}/espacios/${id}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(
-          result.error || result.mensaje || "No se pudo desactivar el espacio",
-        );
-      }
-
-      toast({
-        title: "Espacio desactivado",
-        description: "El espacio fue marcado como inactivo.",
-        variant: "success",
-      });
-
-      void fetchEspacios();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: getErrorMessage(
-          error,
-          "No se pudo desactivar el espacio.",
-        ),
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50/50 p-3 sm:p-4 lg:p-6">
       <BlockingLoader
@@ -386,14 +189,20 @@ export default function EspaciosPage() {
             <Input
               placeholder="Filtrar por tipo"
               value={tipoFiltro}
-              onChange={(e) => setTipoFiltro(e.target.value)}
+              onChange={(e) => {
+                setTipoFiltro(e.target.value);
+                setPagina(1);
+              }}
             />
 
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input
                 type="checkbox"
                 checked={incluirInactivos}
-                onChange={(e) => setIncluirInactivos(e.target.checked)}
+                onChange={(e) => {
+                  setIncluirInactivos(e.target.checked);
+                  setPagina(1);
+                }}
               />
               Incluir inactivos
             </label>
@@ -477,77 +286,45 @@ export default function EspaciosPage() {
                   )}
                 </TableBody>
               </Table>
+              <div className="flex items-center justify-between mt-4">
+                <span className="text-sm text-gray-600">
+                  Página {paginacion.paginaActual} de{" "}
+                  {paginacion.paginasTotales}
+                  {" • "}
+                  {paginacion.totalRegistros} registros
+                </span>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={pagina <= 1 || loading}
+                    onClick={() => setPagina((p) => p - 1)}
+                  >
+                    Anterior
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    disabled={pagina >= paginacion.paginasTotales || loading}
+                    onClick={() => setPagina((p) => p + 1)}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
-
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle className="text-[#691C32] text-xl">
-              {editing ? "Editar Espacio" : "Nuevo Espacio"}
-            </DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={onSave} className="space-y-4 mt-2">
-            <div className="space-y-2">
-              <Label htmlFor="nombre">Nombre</Label>
-              <Input
-                id="nombre"
-                value={formData.nombre}
-                onChange={(e) =>
-                  setFormData({ ...formData, nombre: e.target.value })
-                }
-                placeholder="Ej. Laboratorio 1"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tipo">Tipo</Label>
-              <Input
-                id="tipo"
-                value={formData.tipo}
-                onChange={(e) =>
-                  setFormData({ ...formData, tipo: e.target.value })
-                }
-                placeholder="Ej. Aula, Laboratorio, Sala audiovisual"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="descripcion">Descripción (opcional)</Label>
-              <Input
-                id="descripcion"
-                value={formData.descripcion}
-                onChange={(e) =>
-                  setFormData({ ...formData, descripcion: e.target.value })
-                }
-                placeholder="Ej. Edificio B, planta alta"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setModalOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={saving}
-                className="bg-[#691C32] hover:bg-[#50172A] text-white"
-              >
-                {saving ? "Guardando..." : "Guardar"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <EspacioModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        editing={editing}
+        formData={formData}
+        setFormData={setFormData}
+        saving={saving}
+        onSave={onSave}
+      />
     </div>
   );
 }

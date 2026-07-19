@@ -92,4 +92,37 @@ export interface Grupo {
   fechaEdicion?: string;
 }
 
-export type CommunityMember = Alumno | Docente | Admin | Grupo;
+export type EspacioTipo = string;
+
+export interface Espacio {
+  idEspacio?: number;
+  id?: number;
+  nombre: string;
+  tipo: EspacioTipo;
+  descripcion?: string;
+  activo?: boolean;
+}
+
+export interface EspacioApi {
+  idEspacio?: number | string;
+  id?: number | string;
+  nombre?: string;
+  tipo?: string;
+  descripcion?: string;
+  activo?: boolean;
+}
+
+export interface EspacioPayload {
+  nombre: string;
+  tipo: string;
+  descripcion?: string;
+}
+
+export type CommunityMember =
+  | Alumno
+  | Docente
+  | Admin
+  | Grupo
+  | Espacio
+  | EspacioApi
+  | EspacioPayload;
