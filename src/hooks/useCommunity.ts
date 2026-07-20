@@ -79,7 +79,8 @@ interface UseCommunityReturn {
     currentPage: number;
     limit: number;
   };
-
+  cargosDisponibles: string[];
+  fetchCargosDisponibles: () => Promise<void>;
   fetchDashboardStats: () => Promise<void>;
 
   fetchDocentes: (
@@ -190,6 +191,7 @@ export function useCommunity(): UseCommunityReturn {
   const [docentes, setDocentes] = useState<Docente[]>([]);
   const [alumnos, setAlumnos] = useState<Alumno[]>([]);
   const [administradores, setAdministradores] = useState<Admin[]>([]);
+  const [cargosDisponibles, setCargosDisponibles] = useState<string[]>([]);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [periodos, setPeriodos] = useState<Periodo[]>([]);
@@ -714,6 +716,19 @@ export function useCommunity(): UseCommunityReturn {
       console.error(error);
     }
   };
+
+  const fetchCargosDisponibles = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/administrativos/cargos`, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error("Error al obtener cargos");
+      const data = await response.json();
+      setCargosDisponibles(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error al obtener cargos disponibles:", err);
+    }
+  }, []);
 
   const fetchAccesos = async () => {
     try {
@@ -1457,6 +1472,7 @@ export function useCommunity(): UseCommunityReturn {
       fetchDocentes(),
       fetchAlumnos(),
       fetchAdministradores(),
+      fetchCargosDisponibles(),
       fetchGrupos(),
       fetchPeriodos(),
       fetchEspecialidades(),
@@ -1482,6 +1498,8 @@ export function useCommunity(): UseCommunityReturn {
     fetchDocentes,
     fetchAlumnos,
     fetchAdministradores,
+    cargosDisponibles,
+    fetchCargosDisponibles,
     fetchGrupos,
     fetchEspecialidades,
     fetchPeriodos,

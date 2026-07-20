@@ -122,6 +122,8 @@ export default function CommunityManagementPage() {
     fetchDocentes,
     fetchAlumnos,
     fetchAdministradores,
+    fetchCargosDisponibles,
+    cargosDisponibles,
     fetchEspecialidades,
     fetchGrupos,
     createDocente,
@@ -273,13 +275,7 @@ export default function CommunityManagementPage() {
       Boolean,
     ),
   ];
-  const administradoresFilters = [
-    "Todos los cargos",
-    ...Array.from(new Set((administradores || []).map((a) => a.cargo))).filter(
-      Boolean,
-    ),
-  ];
-  // gruposFilters removed
+  const administradoresFilters = ["Todos los cargos", ...cargosDisponibles];
 
   const getCurrentData = () => {
     switch (activeTab) {
