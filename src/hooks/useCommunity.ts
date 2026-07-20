@@ -82,9 +82,27 @@ interface UseCommunityReturn {
 
   fetchDashboardStats: () => Promise<void>;
 
-  fetchDocentes: (page?: number, limit?: number) => Promise<void>;
-  fetchAlumnos: (page?: number, limit?: number) => Promise<void>;
-  fetchAdministradores: (page?: number, limit?: number) => Promise<void>;
+  fetchDocentes: (
+    page?: number,
+    limit?: number,
+    busqueda?: string,
+    especialidad?: string,
+    activo?: string,
+  ) => Promise<void>;
+  fetchAlumnos: (
+    page?: number,
+    limit?: number,
+    busqueda?: string,
+    especialidad?: string,
+    activo?: string,
+  ) => Promise<void>;
+  fetchAdministradores: (
+    page?: number,
+    limit?: number,
+    busqueda?: string,
+    cargo?: string,
+    activo?: string,
+  ) => Promise<void>;
   fetchGrupos: () => Promise<void>;
   fetchEspecialidades: () => Promise<void>;
   fetchPeriodos: () => Promise<void>;
@@ -204,238 +222,280 @@ export function useCommunity(): UseCommunityReturn {
   });
 
   // 1. Obtener Docentes
-  const fetchDocentes = async (page = 1, limit = 20) => {
-    try {
-      setLoading(true);
+  const fetchDocentes = useCallback(
+    async (
+      page = 1,
+      limit = 20,
+      busqueda = "",
+      especialidad = "",
+      activo = "",
+    ) => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const response = await fetch(
-        `${API_URL}/docentes?page=${page}&limit=${limit}`,
-        {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (busqueda) params.set("busqueda", busqueda);
+        if (especialidad) params.set("especialidad", especialidad);
+        if (activo) params.set("activo", activo);
+
+        const response = await fetch(`${API_URL}/docentes?${params}`, {
           headers: getAuthHeaders(),
-        },
-      );
+        });
 
-      if (!response.ok) {
-        throw new Error("Error al obtener docentes");
+        if (!response.ok) {
+          throw new Error("Error al obtener docentes");
+        }
+
+        const result = await response.json();
+
+        const docentes = Array.isArray(result.data) ? result.data : [];
+
+        const docentesMapeados = docentes.map((d: any) => {
+          const rawEsp =
+            d.especialidad ?? d.especialidadNombre ?? d.Especialidad;
+
+          const espNombre =
+            typeof rawEsp === "string" ? rawEsp : (rawEsp?.nombre ?? "");
+
+          const idDocente = Number(d.idDocente ?? d.id ?? 0);
+
+          const idUsuario = Number(
+            d.idUsuario ?? d.usuarioId ?? d.usuario?.id ?? 0,
+          );
+
+          return {
+            id: idDocente,
+            idDocente,
+
+            idUsuario: idUsuario || undefined,
+
+            usuario: {
+              idUsuario: idUsuario || 0,
+              nombre: d.usuario?.nombre || d.nombre || "",
+              apellidoPaterno:
+                d.usuario?.apellidoPaterno || d.apellidoPaterno || "",
+              apellidoMaterno:
+                d.usuario?.apellidoMaterno || d.apellidoMaterno || "",
+              email: d.usuario?.email || d.email || "",
+              telefono: d.usuario?.telefono || d.telefono || "",
+              fechaNacimiento:
+                d.usuario?.fechaNacimiento || d.fechaNacimiento || "",
+              curp: d.usuario?.curp || d.curp || "",
+              activo: d.usuario?.activo ?? d.activo ?? true,
+            },
+
+            numeroEmpleado: d.numeroEmpleado,
+
+            especialidad:
+              espNombre && espNombre !== "General" ? espNombre : "Sin Asignar",
+
+            fechaContratacion: d.fechaContratacion,
+
+            activo: d.activo,
+          };
+        });
+
+        setDocentes(docentesMapeados);
+
+        setPagination(result.pagination);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error desconocido");
+      } finally {
+        setLoading(false);
       }
-
-      const result = await response.json();
-
-      const docentes = Array.isArray(result.data) ? result.data : [];
-
-      const docentesMapeados = docentes.map((d: any) => {
-        const rawEsp = d.especialidad ?? d.especialidadNombre ?? d.Especialidad;
-
-        const espNombre =
-          typeof rawEsp === "string" ? rawEsp : (rawEsp?.nombre ?? "");
-
-        const idDocente = Number(d.idDocente ?? d.id ?? 0);
-
-        const idUsuario = Number(
-          d.idUsuario ?? d.usuarioId ?? d.usuario?.id ?? 0,
-        );
-
-        return {
-          id: idDocente,
-          idDocente,
-
-          idUsuario: idUsuario || undefined,
-
-          usuario: {
-            idUsuario: idUsuario || 0,
-            nombre: d.usuario?.nombre || d.nombre || "",
-            apellidoPaterno:
-              d.usuario?.apellidoPaterno || d.apellidoPaterno || "",
-            apellidoMaterno:
-              d.usuario?.apellidoMaterno || d.apellidoMaterno || "",
-            email: d.usuario?.email || d.email || "",
-            telefono: d.usuario?.telefono || d.telefono || "",
-            fechaNacimiento:
-              d.usuario?.fechaNacimiento || d.fechaNacimiento || "",
-            curp: d.usuario?.curp || d.curp || "",
-            activo: d.usuario?.activo ?? d.activo ?? true,
-          },
-
-          numeroEmpleado: d.numeroEmpleado,
-
-          especialidad:
-            espNombre && espNombre !== "General" ? espNombre : "Sin Asignar",
-
-          fechaContratacion: d.fechaContratacion,
-
-          activo: d.activo,
-        };
-      });
-
-      setDocentes(docentesMapeados);
-
-      setPagination(result.pagination);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [],
+  );
 
   // 2. Obtener Alumnos
-  const fetchAlumnos = async (page = 1, limit = 20) => {
-    try {
-      setLoading(true);
+  const fetchAlumnos = useCallback(
+    async (
+      page = 1,
+      limit = 20,
+      busqueda = "",
+      especialidad = "",
+      activo = "",
+    ) => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const response = await fetch(
-        `${API_URL}/estudiantes?page=${page}&limit=${limit}`,
-        {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (busqueda) params.set("busqueda", busqueda);
+        if (especialidad) params.set("especialidad", especialidad);
+        if (activo) params.set("activo", activo);
+
+        const response = await fetch(`${API_URL}/estudiantes?${params}`, {
           headers: getAuthHeaders(),
-        },
-      );
+        });
 
-      if (!response.ok) {
-        throw new Error("Error al obtener alumnos");
-      }
+        if (!response.ok) {
+          throw new Error("Error al obtener alumnos");
+        }
 
-      const result = await response.json();
+        const result = await response.json();
 
-      const alumnos = Array.isArray(result.data) ? result.data : [];
+        const alumnos = Array.isArray(result.data) ? result.data : [];
 
-      const alumnosMapeados = alumnos.map((a: any) => {
-        const idEstudiante = Number(a.idEstudiante ?? a.id ?? 0);
+        const alumnosMapeados = alumnos.map((a: any) => {
+          const idEstudiante = Number(a.idEstudiante ?? a.id ?? 0);
 
-        const idUsuario = Number(
-          a.usuario?.idUsuario ?? a.usuarioId ?? a.idUsuario ?? 0,
-        );
+          const idUsuario = Number(
+            a.usuario?.idUsuario ?? a.usuarioId ?? a.idUsuario ?? 0,
+          );
 
-        const idGrupo = Number(a.grupo?.idGrupo ?? a.grupoId ?? a.idGrupo ?? 0);
+          const idGrupo = Number(
+            a.grupo?.idGrupo ?? a.grupoId ?? a.idGrupo ?? 0,
+          );
 
-        return {
-          id: idEstudiante,
-          idEstudiante,
+          return {
+            id: idEstudiante,
+            idEstudiante,
 
-          idUsuario: idUsuario || undefined,
+            idUsuario: idUsuario || undefined,
 
-          usuario: {
-            idUsuario,
-            nombre: a.usuario?.nombre ?? "",
-            apellidoPaterno: a.usuario?.apellidoPaterno ?? "",
-            apellidoMaterno: a.usuario?.apellidoMaterno ?? "",
-            email: a.usuario?.email ?? "",
-            telefono: a.usuario?.telefono ?? "",
-            fechaNacimiento: a.usuario?.fechaNacimiento ?? "",
-            curp: a.usuario?.curp ?? "",
+            usuario: {
+              idUsuario,
+              nombre: a.usuario?.nombre ?? "",
+              apellidoPaterno: a.usuario?.apellidoPaterno ?? "",
+              apellidoMaterno: a.usuario?.apellidoMaterno ?? "",
+              email: a.usuario?.email ?? "",
+              telefono: a.usuario?.telefono ?? "",
+              fechaNacimiento: a.usuario?.fechaNacimiento ?? "",
+              curp: a.usuario?.curp ?? "",
+              activo: a.usuario?.activo ?? true,
+            },
+
+            matricula: a.matricula ?? "",
+            semestre: a.semestre ?? 1,
+
+            fechaIngreso: a.fechaIngreso ?? "",
+
+            tokenPadre: a.tokenPadre ?? "",
+
+            idEspecialidad:
+              a.grupo?.especialidad?.idEspecialidad ??
+              a.grupo?.especialidadId ??
+              0,
+
+            especialidad: a.grupo?.especialidad?.nombre ?? "Sin Asignar",
+
+            idGrupo: idGrupo || undefined,
+
+            grupo: a.grupo
+              ? {
+                  idGrupo,
+                  nombre: a.grupo.nombre,
+                  grado: a.grupo.grado,
+                  turno: a.grupo.turno,
+                  especialidad: a.grupo.especialidad,
+                }
+              : null,
+
             activo: a.usuario?.activo ?? true,
-          },
 
-          matricula: a.matricula ?? "",
-          semestre: a.semestre ?? 1,
+            direccion: a.usuario?.direccion ?? "",
 
-          fechaIngreso: a.fechaIngreso ?? "",
+            fotoUrl: a.fotoUrl ?? "",
 
-          tokenPadre: a.tokenPadre ?? "",
+            datosVerificados: a.datosVerificados ?? false,
 
-          idEspecialidad:
-            a.grupo?.especialidad?.idEspecialidad ??
-            a.grupo?.especialidadId ??
-            0,
+            credencialFechaEmision: a.credencialFechaEmision ?? null,
 
-          especialidad: a.grupo?.especialidad?.nombre ?? "Sin Asignar",
+            credencialFechaExpiracion: a.credencialFechaExpiracion ?? null,
 
-          idGrupo: idGrupo || undefined,
+            tutor: a.tutor ?? null,
+          };
+        });
 
-          grupo: a.grupo
-            ? {
-                idGrupo,
-                nombre: a.grupo.nombre,
-                grado: a.grupo.grado,
-                turno: a.grupo.turno,
-                especialidad: a.grupo.especialidad,
-              }
-            : null,
-
-          activo: a.usuario?.activo ?? true,
-
-          direccion: a.usuario?.direccion ?? "",
-
-          fotoUrl: a.fotoUrl ?? "",
-
-          datosVerificados: a.datosVerificados ?? false,
-
-          credencialFechaEmision: a.credencialFechaEmision ?? null,
-
-          credencialFechaExpiracion: a.credencialFechaExpiracion ?? null,
-
-          tutor: a.tutor ?? null,
-        };
-      });
-
-      setAlumnos(alumnosMapeados);
-
-      // Si quieres usar la paginación en la tabla:
-      setPagination(result.pagination);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-    } finally {
-      setLoading(false);
-    }
-  };
+        setAlumnos(alumnosMapeados);
+        setPagination(result.pagination);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error desconocido");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
   // 3. Obtener Administradores
-  const fetchAdministradores = async (page = 1, limit = 20) => {
-    try {
-      setLoading(true);
+  const fetchAdministradores = useCallback(
+    async (page = 1, limit = 20, busqueda = "", cargo = "", activo = "") => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const response = await fetch(
-        `${API_URL}/administrativos?page=${page}&limit=${limit}`,
-        {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (busqueda) params.set("busqueda", busqueda);
+        if (cargo) params.set("cargo", cargo);
+        if (activo) params.set("activo", activo);
+
+        const response = await fetch(`${API_URL}/administrativos?${params}`, {
           headers: getAuthHeaders(),
-        },
-      );
+        });
 
-      if (!response.ok) {
-        throw new Error("Error al obtener administradores");
-      }
+        if (!response.ok) {
+          throw new Error("Error al obtener administradores");
+        }
 
-      const result = await response.json();
+        const result = await response.json();
 
-      const administradores = Array.isArray(result.data) ? result.data : [];
+        const administradores = Array.isArray(result.data) ? result.data : [];
 
-      const adminMapeados = administradores.map((a: any) => ({
-        id: Number(a.idAdministrativo ?? a.id ?? 0),
-        idAdministrativo: Number(a.idAdministrativo ?? a.id ?? 0),
+        const adminMapeados = administradores.map((a: any) => ({
+          id: Number(a.idAdministrativo ?? a.id ?? 0),
+          idAdministrativo: Number(a.idAdministrativo ?? a.id ?? 0),
 
-        idUsuario:
-          Number(a.idUsuario ?? a.usuarioId ?? a.usuario?.id ?? 0) || undefined,
-
-        usuario: {
           idUsuario:
-            Number(a.idUsuario ?? a.usuarioId ?? a.usuario?.id ?? 0) || 0,
+            Number(a.idUsuario ?? a.usuarioId ?? a.usuario?.id ?? 0) ||
+            undefined,
 
-          nombre: a.usuario?.nombre || a.nombre || "",
-          apellidoPaterno:
-            a.usuario?.apellidoPaterno || a.apellidoPaterno || "",
-          apellidoMaterno:
-            a.usuario?.apellidoMaterno || a.apellidoMaterno || "",
-          email: a.usuario?.email || a.email || "",
-          telefono: a.usuario?.telefono || a.telefono || "N/A",
-          fechaNacimiento:
-            a.usuario?.fechaNacimiento || a.fechaNacimiento || "N/A",
-          curp: a.usuario?.curp || a.curp || "N/A",
-          activo: a.usuario?.activo ?? a.activo ?? true,
-        },
+          usuario: {
+            idUsuario:
+              Number(a.idUsuario ?? a.usuarioId ?? a.usuario?.id ?? 0) || 0,
 
-        numeroEmpleado: a.numeroEmpleado,
-        cargo: a.cargo,
-        area: a.area,
-        activo: a.activo,
-      }));
+            nombre: a.usuario?.nombre || a.nombre || "",
+            apellidoPaterno:
+              a.usuario?.apellidoPaterno || a.apellidoPaterno || "",
+            apellidoMaterno:
+              a.usuario?.apellidoMaterno || a.apellidoMaterno || "",
+            email: a.usuario?.email || a.email || "",
+            telefono: a.usuario?.telefono || a.telefono || "N/A",
+            fechaNacimiento:
+              a.usuario?.fechaNacimiento || a.fechaNacimiento || "N/A",
+            curp: a.usuario?.curp || a.curp || "N/A",
+            activo: a.usuario?.activo ?? a.activo ?? true,
+          },
 
-      setAdministradores(adminMapeados);
+          numeroEmpleado: a.numeroEmpleado,
+          cargo: a.cargo,
+          area: a.area,
+          activo: a.activo,
+        }));
 
-      setPagination(result.pagination);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-    } finally {
-      setLoading(false);
-    }
-  };
+        setAdministradores(adminMapeados);
+
+        setPagination(result.pagination);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error desconocido");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
   // 4. Obtener Especialidades
   const fetchEspecialidades = async () => {
     try {

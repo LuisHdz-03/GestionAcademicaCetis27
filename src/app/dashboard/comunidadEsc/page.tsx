@@ -13,7 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import TabsSelector from "./components/TabsSelector";
 import TopBar from "./components/TopBar";
 import DataTable from "./components/DataTable";
@@ -144,6 +143,7 @@ export default function CommunityManagementPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   // --- Modal States ---
   const [openDocenteModal, setOpenDocenteModal] = useState(false);
@@ -190,18 +190,76 @@ export default function CommunityManagementPage() {
     }
     switch (activeTab) {
       case "docentes":
-        fetchDocentes(currentPage, itemsPerPage);
+      case "alumnos": {
+        const especialidadFiltro =
+          selectedFilter && !selectedFilter.startsWith("Todas")
+            ? selectedFilter
+            : "";
+        const activoFiltro =
+          statusFilter && statusFilter !== "todos"
+            ? statusFilter === "activos"
+              ? "true"
+              : "false"
+            : "";
+
+        if (activeTab === "docentes") {
+          fetchDocentes(
+            currentPage,
+            itemsPerPage,
+            debouncedSearchTerm,
+            especialidadFiltro,
+            activoFiltro,
+          );
+        } else {
+          fetchAlumnos(
+            currentPage,
+            itemsPerPage,
+            debouncedSearchTerm,
+            especialidadFiltro,
+            activoFiltro,
+          );
+        }
         break;
-      case "alumnos":
-        fetchAlumnos(currentPage, itemsPerPage);
+      }
+      case "administradores": {
+        const cargoFiltro =
+          selectedFilter && !selectedFilter.startsWith("Todos")
+            ? selectedFilter
+            : "";
+        const activoFiltro =
+          statusFilter && statusFilter !== "todos"
+            ? statusFilter === "activos"
+              ? "true"
+              : "false"
+            : "";
+        fetchAdministradores(
+          currentPage,
+          itemsPerPage,
+          debouncedSearchTerm,
+          cargoFiltro,
+          activoFiltro,
+        );
         break;
-      case "administradores":
-        fetchAdministradores(currentPage, itemsPerPage);
-        break;
+      }
     }
     fetchEspecialidades();
     fetchGrupos();
-  }, [user, activeTab, currentPage, itemsPerPage]);
+  }, [
+    user,
+    activeTab,
+    currentPage,
+    itemsPerPage,
+    debouncedSearchTerm,
+    selectedFilter,
+    statusFilter,
+  ]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [searchTerm]);
 
   const docentesFilters = [
     "Todas las especialidades",
@@ -279,6 +337,14 @@ export default function CommunityManagementPage() {
 
   // --- Filtered Data ---
   const filteredData = getCurrentData()!.filter((item: CommunityMember) => {
+    // Alumnos ya viene filtrado desde el servidor, no filtrar de nuevo en cliente
+    if (
+      activeTab === "alumnos" ||
+      activeTab === "docentes" ||
+      activeTab === "administradores"
+    )
+      return true;
+
     const searchLower = searchTerm.toLowerCase();
     const usuario = (item as any).usuario || {};
 
