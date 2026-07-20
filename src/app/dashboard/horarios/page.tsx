@@ -94,17 +94,12 @@ export default function HorariosPage() {
       fetchMaterias(),
       fetchDocentes(),
       fetchPeriodos(),
-      fetchClases(currentPage, itemsPerPage),
     ]);
-  }, [
-    fetchClases,
-    fetchDocentes,
-    fetchGrupos,
-    fetchMaterias,
-    fetchPeriodos,
-    currentPage,
-    itemsPerPage,
-  ]);
+  }, [fetchClases, fetchDocentes, fetchGrupos, fetchMaterias, fetchPeriodos]);
+
+  useEffect(() => {
+    void fetchClases(currentPage, itemsPerPage);
+  }, [fetchClases, currentPage, itemsPerPage]);
 
   const handleAsignarClase = async (data: ClaseFormData) => {
     const exito = await asignarClase(data);
@@ -274,7 +269,7 @@ export default function HorariosPage() {
 
           {/* Contenedor adaptado exactamente como en DataTable */}
           <div className="flex-1 min-h-0 overflow-hidden rounded-md border">
-            <div className="h-full overflow-x-auto">
+            <div className="h-full overflow-x-auto overflow-y-auto">
               <Table className="min-w-[700px]">
                 <TableHeader className="sticky top-0 z-10">
                   <TableRow className="hover:bg-[#691C32]">
