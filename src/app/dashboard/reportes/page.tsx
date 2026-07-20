@@ -146,6 +146,13 @@ export default function ReportesPage() {
   const [errorReportes, setErrorReportes] = useState<string | null>(null);
   const [errorAlumnos, setErrorAlumnos] = useState<string | null>(null);
 
+  const [paginacionReportes, setPaginacionReportes] = useState({
+    totalRegistros: 0,
+    totalPages: 1,
+    currentPage: 1,
+    limit: 50,
+  });
+
   const [formData, setFormData] = useState({
     titulo: "",
     tipo: "DISCIPLINARIO",
@@ -406,21 +413,33 @@ export default function ReportesPage() {
     } catch (error) {
       console.error("Error al cargar alumnos:", error);
       setErrorAlumnos(
-        error instanceof Error ? error.message : "No se pudieron cargar los alumnos",
+        error instanceof Error
+          ? error.message
+          : "No se pudieron cargar los alumnos",
       );
     }
   };
 
-  const cargarReportesRecientes = async () => {
+  const cargarReportesRecientes = async (pagina: number = 1) => {
     try {
-      const res = await fetch(`${API_URL}/incidencias`, {
-        headers: getAuthHeaders(),
-      });
+      const res = await fetch(
+        `${API_URL}/incidencias?page=${pagina}&limit=${paginacionReportes.limit}`,
+        {
+          headers: getAuthHeaders(),
+        },
+      );
       if (!res.ok) {
         const texto = await res.text().catch(() => "");
-        throw new Error(`Error ${res.status}: ${texto || "No se pudieron obtener los reportes"}`);
+        throw new Error(
+          `Error ${res.status}: ${texto || "No se pudieron obtener los reportes"}`,
+        );
       }
-      const data = await res.json();
+      const respuesta = await res.json();
+      if (respuesta.pagination) {
+        setPaginacionReportes(respuesta.pagination);
+      }
+
+      const data = Array.isArray(respuesta) ? respuesta : respuesta.data || [];
 
       const reportesMapeados: Reporte[] = data.map((r: any) => ({
         idReporte: r.idReporte || r.idIncidencia,
@@ -446,12 +465,14 @@ export default function ReportesPage() {
         tutorHistorico: r.alumno?.tutor || r.estudiante?.tutor || null,
       }));
 
-      setReportesRecientes(reportesMapeados.reverse());
+      setReportesRecientes([...reportesMapeados].reverse());
       setErrorReportes(null);
     } catch (error) {
       console.error("Error al cargar reportes:", error);
       setErrorReportes(
-        error instanceof Error ? error.message : "No se pudieron cargar los reportes",
+        error instanceof Error
+          ? error.message
+          : "No se pudieron cargar los reportes",
       );
     }
   };
@@ -566,7 +587,7 @@ export default function ReportesPage() {
           ? "DOCENTE"
           : esPrefecto
             ? "PREFECTO"
-          : cargoUsuario || "ADMINISTRATIVO";
+            : cargoUsuario || "ADMINISTRATIVO";
       const nombreQuienReporta =
         `${cargoReal} - ${user?.nombre} ${user?.apellidoPaterno}`.toUpperCase();
 
@@ -1104,7 +1125,9 @@ export default function ReportesPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {periodoActivo ? "Reportes del Periodo Activo" : "Todos los Reportes"}
+            {periodoActivo
+              ? "Reportes del Periodo Activo"
+              : "Todos los Reportes"}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -1112,7 +1135,9 @@ export default function ReportesPage() {
             <div className="mb-4 p-3 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm space-y-1">
               {errorAlumnos && <p>⚠ Alumnos: {errorAlumnos}</p>}
               {errorReportes && <p>⚠ Reportes: {errorReportes}</p>}
-              <p className="text-xs text-yellow-600">Puede ser un problema de permisos del usuario en el servidor.</p>
+              <p className="text-xs text-yellow-600">
+                Puede ser un problema de permisos del usuario en el servidor.
+              </p>
             </div>
           )}
           <div className="mb-4 max-w-md">
@@ -1202,6 +1227,33 @@ export default function ReportesPage() {
                   ))}
                 </TableBody>
               </Table>
+              <div className="flex justify-between mt-4 items-center">
+                <Button
+                  disabled={paginacionReportes.currentPage <= 1}
+                  onClick={() => {
+                    cargarReportesRecientes(paginacionReportes.currentPage - 1);
+                  }}
+                >
+                  Anterior
+                </Button>
+
+                <span>
+                  Página {paginacionReportes.currentPage} de{" "}
+                  {paginacionReportes.totalPages}
+                </span>
+
+                <Button
+                  disabled={
+                    paginacionReportes.currentPage >=
+                    paginacionReportes.totalPages
+                  }
+                  onClick={() => {
+                    cargarReportesRecientes(paginacionReportes.currentPage + 1);
+                  }}
+                >
+                  Siguiente
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
