@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useToast } from "./useToast";
 import { Docente, Alumno, Admin, Grupo } from "@/types/community";
 import {
@@ -589,7 +589,7 @@ export function useCommunity(): UseCommunityReturn {
   };
 
   // 8. Obtener Clases
-  const fetchClases = async (page = 1, limit = 20) => {
+  const fetchClases = useCallback(async (page = 1, limit = 20) => {
     try {
       setLoading(true);
 
@@ -626,7 +626,7 @@ export function useCommunity(): UseCommunityReturn {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // fetch para el conteo de las cosas del dashboard
   const fetchDashboardStats = async () => {
