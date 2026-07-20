@@ -342,13 +342,15 @@ export default function ReportesPage() {
         alumnosMapeados = Array.from(alumnosMap.values());
       } else {
         // Intentar /estudiantes primero (admins y directivos)
-        const res = await fetch(`${API_URL}/estudiantes`, {
+        const res = await fetch(`${API_URL}/estudiantes/para-reporte`, {
           headers: getAuthHeaders(),
         });
 
         if (res.ok) {
-          const data = await res.json();
-          alumnosMapeados = data.map((a: any) =>
+          const respuesta = await res.json();
+          const listaEstudiantes = respuesta.data || [];
+
+          alumnosMapeados = listaEstudiantes.map((a: any) =>
             procesarEstudiante(
               a,
               {
