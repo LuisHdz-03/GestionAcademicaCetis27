@@ -118,6 +118,19 @@ export interface EspacioPayload {
   descripcion?: string;
 }
 
+export interface Bitacora {
+  idBitacora: number;
+  accion: string;
+  detalles: string;
+  fechaHora: string;
+  ipBase: string;
+  usuario: {
+    nombre: string;
+    apellidoPaterno: string;
+    email: string;
+  } | null;
+}
+
 export type CommunityMember =
   | Alumno
   | Docente
@@ -125,4 +138,5 @@ export type CommunityMember =
   | Grupo
   | Espacio
   | EspacioApi
-  | EspacioPayload;
+  | EspacioPayload
+  | Bitacora;

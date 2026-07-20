@@ -82,7 +82,7 @@ interface UseCommunityReturn {
 
   fetchDashboardStats: () => Promise<void>;
 
-  fetchDocentes: (pague?: number, limit?: number) => Promise<void>;
+  fetchDocentes: (page?: number, limit?: number) => Promise<void>;
   fetchAlumnos: (page?: number, limit?: number) => Promise<void>;
   fetchAdministradores: (page?: number, limit?: number) => Promise<void>;
   fetchGrupos: () => Promise<void>;

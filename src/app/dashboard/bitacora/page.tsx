@@ -12,64 +12,28 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/useToast";
 import { HiMagnifyingGlass } from "react-icons/hi2";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-interface Bitacora {
-  idBitacora: number;
-  accion: string;
-  detalles: string;
-  fechaHora: string;
-  ipBase: string;
-  usuario: {
-    nombre: string;
-    apellidoPaterno: string;
-    email: string;
-  } | null;
-}
+import { useBitacora } from "@/hooks/useBitacora";
+import { Button } from "@/components/ui/button";
 
 export default function BitacoraPage() {
   const { toast } = useToast();
-  const [registros, setRegistros] = useState<Bitacora[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
-    return {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-    };
-  };
-
-  const cargarBitacora = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/bitacoras`, {
-        headers: getAuthHeaders(),
-      });
-
-      if (!res.ok) throw new Error("Error al obtener la bitácora");
-
-      const data = await res.json();
-      // Aseguramos que sea un array y lo ordenamos por fecha más reciente
-      const registrosArray = Array.isArray(data) ? data : data.data || [];
-      setRegistros(registrosArray);
-    } catch (error) {
-      console.error("Error:", error);
-      toast({
-        title: "Error de conexión",
-        description: "No se pudo cargar la bitácora del sistema.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    fetchBitacora,
+    registrosFiltrados,
+    loading,
+    error,
+    searchTerm,
+    pagination,
+    setSearchTerm,
+  } = useBitacora();
 
   useEffect(() => {
-    cargarBitacora();
-  }, []);
+    const timeout = setTimeout(() => {
+      fetchBitacora(1, pagination.limit, searchTerm);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [searchTerm]);
 
   // Función para darle color al "Badge" según la acción
   const getColorAccion = (accion: string) => {
@@ -101,20 +65,6 @@ export default function BitacoraPage() {
 
     return "bg-gray-100 text-gray-800 border-gray-200"; // Por defecto
   };
-
-  // Filtrado de búsqueda
-  const registrosFiltrados = registros.filter((reg) => {
-    const busqueda = searchTerm.toLowerCase();
-    const nombreUsuario = reg.usuario
-      ? `${reg.usuario.nombre} ${reg.usuario.apellidoPaterno}`.toLowerCase()
-      : "sistema";
-
-    return (
-      nombreUsuario.includes(busqueda) ||
-      reg.accion.toLowerCase().includes(busqueda) ||
-      (reg.detalles && reg.detalles.toLowerCase().includes(busqueda))
-    );
-  });
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
@@ -150,6 +100,11 @@ export default function BitacoraPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
+          {error && (
+            <div className="m-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-800 text-sm">
+              ⚠ {error}
+            </div>
+          )}
           {loading ? (
             <div className="flex justify-center items-center py-20">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#691C32]"></div>
@@ -239,6 +194,33 @@ export default function BitacoraPage() {
               </Table>
             </div>
           )}
+          <div className="flex justify-between items-center px-4 py-3 border-t border-gray-100">
+            <Button
+              variant="outline"
+              disabled={pagination.currentPage <= 1}
+              onClick={() =>
+                fetchBitacora(pagination.currentPage - 1, pagination.limit)
+              }
+            >
+              Anterior
+            </Button>
+
+            <span className="text-sm text-gray-600">
+              Página {pagination.currentPage} de {pagination.totalPages || 1}
+              {" · "}
+              {pagination.totalRegistros} registros
+            </span>
+
+            <Button
+              variant="outline"
+              disabled={pagination.currentPage >= pagination.totalPages}
+              onClick={() =>
+                fetchBitacora(pagination.currentPage + 1, pagination.limit)
+              }
+            >
+              Siguiente
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
