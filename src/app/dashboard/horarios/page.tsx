@@ -213,7 +213,7 @@ export default function HorariosPage() {
         description="Espera mientras se procesa la carga masiva."
       />
 
-      <Card className="shadow-md w-full flex flex-col max-h-[85vh]">
+      <Card className="shadow-md w-full flex flex-col h-[85vh]">
         <CardHeader className="flex flex-col sm:flex-row justify-between items-center border-b pb-4 gap-4 shrink-0">
           <CardTitle className="text-3xl font-bold text-gray-900">
             Gestión de Clases y Horarios
