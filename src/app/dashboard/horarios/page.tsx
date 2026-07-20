@@ -251,20 +251,6 @@ export default function HorariosPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="mt-3 w-full md:mt-0 md:w-auto">
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm md:w-auto"
-              >
-                <option value={10}>10 por página</option>
-                <option value={20}>20 por página</option>
-                <option value={30}>30 por página</option>
-              </select>
-            </div>
           </div>
 
           {/* Contenedor adaptado exactamente como en DataTable */}
@@ -367,11 +353,30 @@ export default function HorariosPage() {
               {" de "}
               {pagination.totalRegistros} clases
             </div>
-            <Pagination
-              currentPage={pagination.currentPage}
-              totalPages={pagination.totalPages}
-              setCurrentPage={setCurrentPage}
-            />
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagination.currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                Anterior
+              </Button>
+              <span className="text-sm text-gray-600 px-2">
+                Página {pagination.currentPage} de {pagination.totalPages || 1}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagination.currentPage >= pagination.totalPages}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))
+                }
+              >
+                Siguiente
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
