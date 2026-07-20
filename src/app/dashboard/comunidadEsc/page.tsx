@@ -246,6 +246,7 @@ export default function CommunityManagementPage() {
     }
     fetchEspecialidades();
     fetchGrupos();
+    fetchCargosDisponibles();
   }, [
     user,
     activeTab,
