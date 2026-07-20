@@ -85,6 +85,7 @@ export default function HorariosPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [uploadingExcel, setUploadingExcel] = useState(false);
   const hasLoadedRef = useRef(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -98,8 +99,19 @@ export default function HorariosPage() {
   }, [fetchClases, fetchDocentes, fetchGrupos, fetchMaterias, fetchPeriodos]);
 
   useEffect(() => {
-    void fetchClases(currentPage, itemsPerPage);
-  }, [fetchClases, currentPage, itemsPerPage]);
+    const timeout = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
+
+  useEffect(() => {
+    void fetchClases(currentPage, pagination.limit, debouncedSearchTerm);
+  }, [fetchClases, currentPage, debouncedSearchTerm, pagination.limit]);
 
   const handleAsignarClase = async (data: ClaseFormData) => {
     const exito = await asignarClase(data);
@@ -185,26 +197,10 @@ export default function HorariosPage() {
     input.click();
   };
 
-  const clasesFiltradas = (clases as ClaseItem[]).filter((c) => {
-    if (!c.periodo || c.periodo.activo === false) {
-      return false;
-    }
-    const buscar = searchTerm.toLowerCase();
-    const grupo = c.grupo?.nombre?.toLowerCase() || "";
-    const materia = c.materias?.nombre?.toLowerCase() || "";
-    const docente =
-      `${c.docente?.usuario?.nombre} ${c.docente?.usuario?.apellidoPaterno}`.toLowerCase();
+  const clasesActivas = (clases as ClaseItem[]).filter(
+    (c) => c.periodo && c.periodo.activo !== false,
+  );
 
-    return (
-      grupo.includes(buscar) ||
-      materia.includes(buscar) ||
-      docente.includes(buscar)
-    );
-  });
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50/50 p-6 flex justify-center items-start">
       <BlockingLoader
@@ -286,7 +282,7 @@ export default function HorariosPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : clasesFiltradas.length === 0 ? (
+                  ) : clasesActivas.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={5}
@@ -298,7 +294,7 @@ export default function HorariosPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    clasesFiltradas.map((clase) => (
+                    clasesActivas.map((clase) => (
                       <TableRow
                         key={clase.idClase}
                         className="hover:bg-gray-50 transition-colors"
