@@ -38,7 +38,6 @@ export interface User {
   cargo?: string;
   capacidades?: UserCapabilities;
   passwordChangeRequired?: boolean;
-  // matricula?: string; // Eliminado campo de padres
 }
 
 export interface PeriodoActivo {
@@ -77,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isClient) return;
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
+    localStorage.removeItem("sessionExpiresAt");
     setUser(null);
     setPeriodoActivo(null);
     window.location.replace("/auth/login");
@@ -137,7 +137,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const contentType = response.headers.get("content-type") || "";
         if (contentType.includes("application/json")) {
           const payload = await response.clone().json();
-          if (payload?.code === "SESSION_EXPIRED") {
+          if (
+            payload?.code === "SESSION_EXPIRED" ||
+            payload?.code === "INVALID_TOKEN"
+          ) {
             handleSessionExpired(
               payload.error || payload.message || payload.mensaje,
             );
@@ -154,6 +157,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.fetch = originalFetch;
     };
   }, [handleSessionExpired, isClient]);
+
+  useEffect(() => {
+    if (!isClient) return;
+
+    const checkExpiracionAlVolver = () => {
+      if (document.visibilityState !== "visible") return;
+
+      const expiresAtStr = localStorage.getItem("sessionExpiresAt");
+      if (!expiresAtStr) return;
+
+      const expiresAt = new Date(expiresAtStr).getTime();
+      if (Date.now() >= expiresAt) {
+        handleSessionExpired("Tu sesión ha expirado. Ingresa de nuevo.");
+      }
+    };
+
+    document.addEventListener("visibilitychange", checkExpiracionAlVolver);
+    window.addEventListener("focus", checkExpiracionAlVolver);
+    checkExpiracionAlVolver();
+
+    return () => {
+      document.removeEventListener("visibilitychange", checkExpiracionAlVolver);
+      window.removeEventListener("focus", checkExpiracionAlVolver);
+    };
+  }, [isClient, handleSessionExpired]);
 
   const login = async (
     usernameInput: string,
@@ -203,6 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionExpiredHandledRef.current = false;
       localStorage.setItem("token", result.token);
       localStorage.setItem("usuario", JSON.stringify(usuarioFormateado));
+      localStorage.setItem("sessionExpiresAt", result.session.expiresAt);
       setUser(usuarioFormateado);
 
       router.push("/dashboard");
