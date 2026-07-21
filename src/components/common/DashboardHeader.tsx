@@ -110,16 +110,6 @@ export default function DashboardHeader({
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       };
 
-      console.group("[PERFIL] Solicitud perfil editable");
-      console.log("[PERFIL] endpoint:", endpoint);
-      console.log("[PERFIL] method:", "GET");
-      console.log("[PERFIL] token presente:", Boolean(token));
-      console.log(
-        "[PERFIL] token preview:",
-        token ? `${token.slice(0, 18)}...${token.slice(-10)}` : "sin token",
-      );
-      console.log("[PERFIL] headers:", requestHeaders);
-
       const response = await fetch(endpoint, {
         method: "GET",
         headers: requestHeaders,
@@ -133,11 +123,6 @@ export default function DashboardHeader({
       } catch {
         responseData = responseText;
       }
-
-      console.log("[PERFIL] status:", response.status, response.statusText);
-      console.log("[PERFIL] ok:", response.ok);
-      console.log("[PERFIL] response body:", responseData);
-      console.groupEnd();
 
       if (!response.ok) {
         throw new Error(
@@ -383,7 +368,6 @@ export default function DashboardHeader({
   const resolverIdAdministrativo = async (): Promise<number | null> => {
     const token = localStorage.getItem("token");
     if (!token) {
-      console.log("[FIRMA][ADMIN] No hay token");
       return null;
     }
 
@@ -394,15 +378,9 @@ export default function DashboardHeader({
     });
 
     if (!response.ok) {
-      console.log(
-        "[FIRMA][ADMIN] Respuesta no OK al obtener administrativos",
-        response.status,
-      );
       return null;
     }
     const admins = await response.json();
-    console.log("[FIRMA][ADMIN] Lista de administrativos:", admins);
-    console.log("[FIRMA][ADMIN] Usuario actual:", user);
 
     // Buscar coincidencia por todos los posibles campos de id
     const admin = (Array.isArray(admins) ? admins : []).find((a: any) => {
@@ -430,32 +408,12 @@ export default function DashboardHeader({
         a.apellido_materno?.toLowerCase() ===
           user?.apellidoMaterno?.toLowerCase();
       const nombreCompletoMatch = nombreMatch && apPatMatch && apMatMatch;
-      if (idMatch || emailMatch || nombreCompletoMatch) {
-        console.log("[FIRMA][ADMIN] Coincidencia encontrada:", a);
-      }
       return idMatch || emailMatch || nombreCompletoMatch;
     });
 
     if (!admin) {
       // Log extra de todos los ids y nombres para depuración
-      (Array.isArray(admins) ? admins : []).forEach((a: any) => {
-        console.log("[FIRMA][ADMIN][DEBUG] Administrativo:", {
-          id: a.id,
-          idUsuario: a.idUsuario,
-          usuarioId: a.usuarioId,
-          usuario_id: a.usuario?.id,
-          idAdministrativo: a.idAdministrativo,
-          nombre: a.nombre,
-          apellidoPaterno: a.apellidoPaterno,
-          apellido_paterno: a.apellido_paterno,
-          apellidoMaterno: a.apellidoMaterno,
-          apellido_materno: a.apellido_materno,
-          email: a.email,
-        });
-      });
-      console.log(
-        "[FIRMA][ADMIN] No se encontró coincidencia para el usuario actual",
-      );
+      (Array.isArray(admins) ? admins : []).forEach((a: any) => {});
     }
 
     return admin
@@ -472,7 +430,6 @@ export default function DashboardHeader({
 
   const handleUploadFirma = async () => {
     if (!firmaFile) {
-      console.log("[FIRMA] No hay archivo seleccionado");
       toast({
         title: "Firma requerida",
         description: "Dibuja la firma para continuar.",
@@ -484,24 +441,15 @@ export default function DashboardHeader({
     setUploadingFirma(true);
     try {
       const token = localStorage.getItem("token");
-      console.log("[FIRMA] Token:", token);
       if (!token) throw new Error("No hay sesión activa");
 
       const idAdministrativo = await resolverIdAdministrativo();
-      console.log("[FIRMA] idAdministrativo:", idAdministrativo);
       if (!idAdministrativo) {
         throw new Error("No se pudo identificar el administrativo asociado.");
       }
 
       const formData = new FormData();
       formData.append("firma", firmaFile);
-      formData.append("idAdministrativo", String(idAdministrativo));
-      console.log("[FIRMA] formData keys:", Array.from(formData.keys()));
-      console.log(
-        "[FIRMA] formData idAdministrativo:",
-        formData.get("idAdministrativo"),
-      );
-      console.log("[FIRMA] formData firma:", formData.get("firma"));
 
       const response = await fetch(`${API_URL}/administrativos/firma/subir`, {
         method: "POST",
@@ -510,7 +458,6 @@ export default function DashboardHeader({
         },
         body: formData,
       });
-      console.log("[FIRMA] response status:", response.status);
 
       if (!response.ok) {
         const statusMessage: Record<number, string> = {
@@ -532,7 +479,6 @@ export default function DashboardHeader({
       setIsFirmaModalOpen(false);
       setFirmaFile(null);
     } catch (error: any) {
-      console.error("[FIRMA] Error:", error);
       toast({
         title: "Error al subir firma",
         description: error.message || "Intenta de nuevo más tarde.",
