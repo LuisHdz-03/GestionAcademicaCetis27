@@ -308,10 +308,12 @@ export default function PaseDeListaPage() {
           `${API_URL}/asistencias/historial?claseId=${claseIdParam}`,
           { headers: getAuthHeaders() },
         );
+
         if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            const agrupado = agruparPorFechaExacta(data);
+          const response = await res.json();
+
+          if (Array.isArray(response.data) && response.data.length > 0) {
+            const agrupado = agruparPorFechaExacta(response.data);
             setHistorial(agrupado);
 
             const ultimaSesion = agrupado[0];
@@ -324,19 +326,19 @@ export default function PaseDeListaPage() {
               );
 
               if (diffMinutos < LIMITE_MINUTOS) {
-                // Modo Edición
                 const asistenciaPrevia: Record<number, string> = {};
+
                 ultimaSesion.registros.forEach((r) => {
                   if (typeof r.alumnoId === "number") {
                     asistenciaPrevia[r.alumnoId] = getRegistroEstatus(r);
                   }
                 });
+
                 setAsistencia(asistenciaPrevia);
-                setSesionActivaFecha(ultimaSesion.fecha); // GUARDAMOS LA FECHA
+                setSesionActivaFecha(ultimaSesion.fecha);
                 setAsistenciaBloqueada(false);
                 setMinutosRestantes(LIMITE_MINUTOS - diffMinutos);
               } else {
-                // Modo Nueva Lista
                 setAsistencia({});
                 setSesionActivaFecha(null);
                 setAsistenciaBloqueada(false);
@@ -495,29 +497,30 @@ export default function PaseDeListaPage() {
           `${API_URL}/asistencias/historial?claseId=${claseSeleccionada}`,
           { headers: getAuthHeaders() },
         );
-        if (resH.ok) {
-          const dataH = await resH.json();
-          if (Array.isArray(dataH) && dataH.length > 0) {
-            const agrupado = agruparPorFechaExacta(dataH);
-            setHistorial(agrupado);
+        const response = await resH.json();
 
-            // Lo actualizamos para que si guardan de nuevo, re-edite esta misma
-            const ultimaSesion = agrupado[0];
-            setSesionActivaFecha(ultimaSesion.fecha);
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          const agrupado = agruparPorFechaExacta(response.data);
+          setHistorial(agrupado);
 
-            const horaRegistro = new Date(ultimaSesion.fecha);
-            const ahora = new Date();
-            const diffMinutos = Math.floor(
-              (ahora.getTime() - horaRegistro.getTime()) / 60000,
-            );
-            if (diffMinutos >= LIMITE_MINUTOS) {
-              setAsistenciaBloqueada(true);
-              setMinutosRestantes(null);
-            } else {
-              setMinutosRestantes(LIMITE_MINUTOS - diffMinutos);
-              setAsistenciaBloqueada(false);
-            }
+          const ultimaSesion = agrupado[0];
+          setSesionActivaFecha(ultimaSesion.fecha);
+
+          const horaRegistro = new Date(ultimaSesion.fecha);
+          const ahora = new Date();
+          const diffMinutos = Math.floor(
+            (ahora.getTime() - horaRegistro.getTime()) / 60000,
+          );
+
+          if (diffMinutos >= LIMITE_MINUTOS) {
+            setAsistenciaBloqueada(true);
+            setMinutosRestantes(null);
+          } else {
+            setMinutosRestantes(LIMITE_MINUTOS - diffMinutos);
+            setAsistenciaBloqueada(false);
           }
+        } else {
+          setHistorial([]);
         }
       } catch {
         /* silencioso */
