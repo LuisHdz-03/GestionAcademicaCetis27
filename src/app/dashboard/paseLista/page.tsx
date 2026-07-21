@@ -270,6 +270,72 @@ export default function PaseDeListaPage() {
     };
   };
 
+  const cargarHistorial = async (page = 1) => {
+    setCargandoHistorial(true);
+    setAsistenciaBloqueada(false);
+    setMinutosRestantes(null);
+    setSesionActivaFecha(null);
+
+    try {
+      const res = await fetch(
+        `${API_URL}/asistencias/historial?claseId=${claseIdParam}&page=${page}&limit=10`,
+        { headers: getAuthHeaders() },
+      );
+
+      if (res.ok) {
+        const response = await res.json();
+
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          const agrupado = agruparPorFechaExacta(response.data);
+          setHistorial(agrupado);
+          setPagination(response.pagination);
+
+          // Solo aplica la lógica de "sesión activa/bloqueada" en la página 1
+          if (page === 1) {
+            const ultimaSesion = agrupado[0];
+            if (ultimaSesion && ultimaSesion.registros.length > 0) {
+              const horaRegistro = new Date(ultimaSesion.fecha);
+              const ahora = new Date();
+              const diffMinutos = Math.floor(
+                (ahora.getTime() - horaRegistro.getTime()) / 60000,
+              );
+
+              if (diffMinutos < LIMITE_MINUTOS) {
+                const asistenciaPrevia: Record<number, string> = {};
+                ultimaSesion.registros.forEach((r) => {
+                  if (typeof r.alumnoId === "number") {
+                    asistenciaPrevia[r.alumnoId] = getRegistroEstatus(r);
+                  }
+                });
+                setAsistencia(asistenciaPrevia);
+                setSesionActivaFecha(ultimaSesion.fecha);
+                setAsistenciaBloqueada(false);
+                setMinutosRestantes(LIMITE_MINUTOS - diffMinutos);
+              } else {
+                setAsistencia({});
+                setSesionActivaFecha(null);
+                setAsistenciaBloqueada(false);
+                setMinutosRestantes(null);
+              }
+            }
+          }
+        } else {
+          setHistorial([]);
+          setPagination({
+            totalRegistros: 0,
+            totalPages: 1,
+            currentPage: 1,
+            limit: 10,
+          });
+        }
+      }
+    } catch {
+      setHistorial([]);
+    } finally {
+      setCargandoHistorial(false);
+    }
+  };
+
   useEffect(() => {
     if (!grupoIdParam || !claseIdParam) return;
 
@@ -304,74 +370,13 @@ export default function PaseDeListaPage() {
     };
     cargarAlumnos();
 
-    const cargarHistorial = async () => {
-      setCargandoHistorial(true);
-      setAsistenciaBloqueada(false);
-      setMinutosRestantes(null);
-      setSesionActivaFecha(null);
-
-      try {
-        const res = await fetch(
-          `${API_URL}/asistencias/historial?claseId=${claseIdParam}`,
-          { headers: getAuthHeaders() },
-        );
-
-        if (res.ok) {
-          const response = await res.json();
-
-          if (Array.isArray(response.data) && response.data.length > 0) {
-            const agrupado = agruparPorFechaExacta(response.data);
-            setHistorial(agrupado);
-            setPagination(response.pagination);
-            const ultimaSesion = agrupado[0];
-
-            if (ultimaSesion && ultimaSesion.registros.length > 0) {
-              const horaRegistro = new Date(ultimaSesion.fecha);
-              const ahora = new Date();
-              const diffMinutos = Math.floor(
-                (ahora.getTime() - horaRegistro.getTime()) / 60000,
-              );
-
-              if (diffMinutos < LIMITE_MINUTOS) {
-                const asistenciaPrevia: Record<number, string> = {};
-
-                ultimaSesion.registros.forEach((r) => {
-                  if (typeof r.alumnoId === "number") {
-                    asistenciaPrevia[r.alumnoId] = getRegistroEstatus(r);
-                  }
-                });
-
-                setAsistencia(asistenciaPrevia);
-                setSesionActivaFecha(ultimaSesion.fecha);
-                setAsistenciaBloqueada(false);
-                setMinutosRestantes(LIMITE_MINUTOS - diffMinutos);
-              } else {
-                setAsistencia({});
-                setSesionActivaFecha(null);
-                setAsistenciaBloqueada(false);
-                setMinutosRestantes(null);
-              }
-            }
-          } else {
-            setHistorial([]);
-            setHistorial([]);
-            setPagination({
-              totalRegistros: 0,
-              totalPages: 1,
-              currentPage: 1,
-              limit: 10,
-            });
-          }
-        }
-      } catch {
-        setHistorial([]);
-      } finally {
-        setCargandoHistorial(false);
-      }
-    };
     setPaginaActual(1);
-    cargarHistorial();
   }, [claseIdParam, grupoIdParam]);
+
+  useEffect(() => {
+    if (!claseIdParam) return;
+    cargarHistorial(paginaActual);
+  }, [paginaActual, claseIdParam]);
 
   useEffect(() => {
     if (minutosRestantes === null || asistenciaBloqueada) return;
