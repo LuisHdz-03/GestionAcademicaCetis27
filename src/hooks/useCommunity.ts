@@ -113,7 +113,15 @@ interface UseCommunityReturn {
     limit?: number,
     busqueda?: string,
   ) => Promise<void>;
-  fetchAccesos: () => Promise<RegistroAcceso[]>;
+  fetchAccesos: (
+    page?: number,
+    limit?: number,
+    busqueda?: string,
+    fechaInicio?: string,
+    fechaFin?: string,
+    grupo?: string,
+    tipo?: string,
+  ) => Promise<RegistroAcceso[]>;
   registrarAcceso: (tokenQR: string) => Promise<ResultadoRegistroAcceso>;
   createEspecialidad: (data: {
     nombre: string;
@@ -730,41 +738,67 @@ export function useCommunity(): UseCommunityReturn {
     }
   }, []);
 
-  const fetchAccesos = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const fetchAccesos = useCallback(
+    async (
+      page = 1,
+      limit = 50,
+      busqueda = "",
+      fechaInicio = "",
+      fechaFin = "",
+      grupo = "",
+      tipo = "",
+    ) => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const response = await fetch(`${API_URL}/accesos`, {
-        headers: getAuthHeaders(),
-      });
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (busqueda) params.set("busqueda", busqueda);
+        if (fechaInicio) params.set("fechaInicio", fechaInicio);
+        if (fechaFin) params.set("fechaFin", fechaFin);
+        if (grupo) params.set("grupo", grupo);
+        if (tipo) params.set("tipo", tipo);
 
-      if (!response.ok) {
-        throw new Error("Error al obtener los registros de acceso");
+        const response = await fetch(`${API_URL}/accesos?${params}`, {
+          headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error("Error al obtener los registros de acceso");
+        }
+
+        const result = await response.json();
+        const accesos = Array.isArray(result.data) ? result.data : [];
+
+        const accesosMapeados: RegistroAcceso[] = accesos.map(
+          (acceso: any) => ({
+            id: acceso.idAcceso || acceso.id || Math.random(),
+            estudiante:
+              `${acceso.alumno?.usuario?.nombre || ""} ${acceso.alumno?.usuario?.apellidoPaterno || ""} ${acceso.alumno?.usuario?.apellidoMaterno || ""}`.trim() ||
+              "Desconocido",
+            numeroControl: acceso.alumno?.matricula || "S/N",
+            grupo: acceso.alumno?.grupo?.nombre || "Sin Grupo",
+            fechaHora: acceso.fechaHora,
+            tipo: acceso.tipo === "ENTRADA" ? "Entrada" : "Salida",
+          }),
+        );
+
+        setAccesos(accesosMapeados);
+        return accesosMapeados;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Error desconocido";
+        setError(message);
+        throw err;
+      } finally {
+        setLoading(false);
       }
-
-      const result = await response.json();
-      const accesosMapeados: RegistroAcceso[] = result.map((acceso: any) => ({
-        id: acceso.idAcceso || acceso.id || Math.random(),
-        estudiante:
-          `${acceso.alumno?.usuario?.nombre || ""} ${acceso.alumno?.usuario?.apellidoPaterno || ""} ${acceso.alumno?.usuario?.apellidoMaterno || ""}`.trim() ||
-          "Desconocido",
-        numeroControl: acceso.alumno?.matricula || "S/N",
-        grupo: acceso.alumno?.grupo?.nombre || "Sin Grupo",
-        fechaHora: acceso.fechaHora,
-        tipo: acceso.tipo === "ENTRADA" ? "Entrada" : "Salida",
-      }));
-
-      setAccesos(accesosMapeados);
-      return accesosMapeados;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Error desconocido";
-      setError(message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [],
+  );
 
   const registrarAcceso = async (tokenQR: string) => {
     try {
