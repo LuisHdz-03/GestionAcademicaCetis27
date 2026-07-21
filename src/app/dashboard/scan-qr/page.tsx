@@ -30,7 +30,6 @@ export default function ScanQRPage() {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      // Ignorar si el foco está en un campo de formulario real
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
@@ -48,7 +47,6 @@ export default function ScanQRPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
-  // Enviamos el código al backend para validar
   const handleRegistrarAcceso = async (tokenQR: string) => {
     if (!tokenQR || isLoading) return;
 
@@ -94,39 +92,6 @@ export default function ScanQRPage() {
     }
   };
 
-  // El handleKeyDown ya no es necesario — se captura en el useEffect de document
-
-  const esPrefecto =
-    user?.tipoUsuario === "prefecto" ||
-    (user?.tipoUsuario === "administrativo" &&
-      (user?.cargo || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase()
-        .trim() === "PREFECTO");
-
-  if (
-    user?.tipoUsuario !== "guardia" &&
-    user?.tipoUsuario !== "admin" &&
-    !esPrefecto
-  ) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full pt-20">
-        <div className="text-center p-8 max-w-md bg-white rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">
-            Acceso Denegado
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Solo el personal de seguridad puede usar el escáner.
-          </p>
-          <Button onClick={() => (window.location.href = "/dashboard")}>
-            Volver al panel
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto p-4 md:p-6">
       <div className="max-w-2xl mx-auto">
@@ -150,7 +115,6 @@ export default function ScanQRPage() {
         </div>
 
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-          {/* Zona de resultados */}
           <div className="p-8 min-h-[300px] flex flex-col items-center justify-center bg-gray-50">
             {isLoading ? (
               <div className="text-center">

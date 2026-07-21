@@ -290,7 +290,6 @@ export default function PaseDeListaPage() {
           setHistorial(agrupado);
           setPagination(response.pagination);
 
-          // Solo aplica la lógica de "sesión activa/bloqueada" en la página 1
           if (page === 1) {
             const ultimaSesion = agrupado[0];
             if (ultimaSesion && ultimaSesion.registros.length > 0) {
