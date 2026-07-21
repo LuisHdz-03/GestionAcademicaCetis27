@@ -236,6 +236,13 @@ export default function PaseDeListaPage() {
     null,
   );
   const [uploadingExcel, setUploadingExcel] = useState(false);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [pagination, setPagination] = useState({
+    totalRegistros: 0,
+    totalPages: 1,
+    currentPage: 1,
+    limit: 10,
+  });
 
   const LIMITE_MINUTOS = 30;
 
@@ -315,7 +322,7 @@ export default function PaseDeListaPage() {
           if (Array.isArray(response.data) && response.data.length > 0) {
             const agrupado = agruparPorFechaExacta(response.data);
             setHistorial(agrupado);
-
+            setPagination(response.pagination);
             const ultimaSesion = agrupado[0];
 
             if (ultimaSesion && ultimaSesion.registros.length > 0) {
@@ -347,6 +354,13 @@ export default function PaseDeListaPage() {
             }
           } else {
             setHistorial([]);
+            setHistorial([]);
+            setPagination({
+              totalRegistros: 0,
+              totalPages: 1,
+              currentPage: 1,
+              limit: 10,
+            });
           }
         }
       } catch {
@@ -355,6 +369,7 @@ export default function PaseDeListaPage() {
         setCargandoHistorial(false);
       }
     };
+    setPaginaActual(1);
     cargarHistorial();
   }, [claseIdParam, grupoIdParam]);
 
@@ -581,14 +596,16 @@ export default function PaseDeListaPage() {
 
         if (claseIdParam) {
           try {
-            const resH = await fetch(
-              `${API_URL}/asistencias/historial?claseId=${claseIdParam}`,
+            const res = await fetch(
+              `${API_URL}/asistencias/historial?claseId=${claseIdParam}&page=${paginaActual}&limit=10`,
               { headers: getAuthHeaders() },
             );
-            if (resH.ok) {
-              const dataH = await resH.json();
-              if (Array.isArray(dataH) && dataH.length > 0) {
-                setHistorial(agruparPorFechaExacta(dataH));
+            if (res.ok) {
+              const dataH = await res.json();
+
+              if (Array.isArray(dataH.data)) {
+                setHistorial(agruparPorFechaExacta(dataH.data));
+                setPagination(dataH.pagination);
               }
             }
           } catch {
@@ -1118,6 +1135,27 @@ export default function PaseDeListaPage() {
                 </TableBody>
               </Table>
             )}
+            <div className="flex items-center justify-end gap-3 p-4 border-t">
+              <Button
+                variant="outline"
+                disabled={paginaActual === 1}
+                onClick={() => setPaginaActual((p) => p - 1)}
+              >
+                Anterior
+              </Button>
+
+              <span className="text-sm">
+                Página {pagination.currentPage} de {pagination.totalPages}
+              </span>
+
+              <Button
+                variant="outline"
+                disabled={paginaActual >= pagination.totalPages}
+                onClick={() => setPaginaActual((p) => p + 1)}
+              >
+                Siguiente
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
