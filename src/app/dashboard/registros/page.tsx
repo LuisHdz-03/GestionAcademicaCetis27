@@ -20,14 +20,17 @@ import {
 } from "@/components/ui/table";
 import { Search, Download, RefreshCw } from "lucide-react";
 import * as XLSX from "xlsx";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { useCommunity } from "@/hooks/useCommunity";
 
 const formatFecha = (date?: Date) => {
   if (!date) return "";
-  return date.toISOString().split("T")[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 export default function RegistrosPage() {
@@ -59,11 +62,6 @@ export default function RegistrosPage() {
     return () => clearTimeout(timeout);
   }, [busqueda]);
 
-  // Reset a página 1 cuando cambia cualquier filtro
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedBusqueda, filtroGrupo, filtroTipo, dateRange]);
-
   // Carga de grupos (fuente estable, independiente de los accesos filtrados)
   useEffect(() => {
     void fetchGrupos();
@@ -71,11 +69,14 @@ export default function RegistrosPage() {
   }, []);
 
   // Fetch de accesos: reacciona a filtros y paginación
+  const filtrosKey = `${debouncedBusqueda}|${filtroGrupo}|${filtroTipo}|${formatFecha(dateRange?.from)}|${formatFecha(dateRange?.to)}`;
+  const filtrosKeyRef = useRef(filtrosKey);
+
   const cargarRegistros = async () => {
     try {
       await fetchAccesos(
         currentPage,
-        50,
+        20,
         debouncedBusqueda,
         formatFecha(dateRange?.from),
         formatFecha(dateRange?.to),
@@ -88,9 +89,17 @@ export default function RegistrosPage() {
   };
 
   useEffect(() => {
+    const cambiaronFiltros = filtrosKeyRef.current !== filtrosKey;
+    filtrosKeyRef.current = filtrosKey;
+
+    if (cambiaronFiltros && currentPage !== 1) {
+      setCurrentPage(1); // el cambio de currentPage disparará este mismo efecto otra vez, ya en página 1
+      return;
+    }
+
     void cargarRegistros();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, debouncedBusqueda, filtroGrupo, filtroTipo, dateRange]);
+  }, [currentPage, filtrosKey]);
 
   // Función para exportar a Excel (exporta lo que está cargado actualmente)
   const exportToExcel = () => {

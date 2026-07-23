@@ -741,7 +741,7 @@ export function useCommunity(): UseCommunityReturn {
   const fetchAccesos = useCallback(
     async (
       page = 1,
-      limit = 50,
+      limit = 20,
       busqueda = "",
       fechaInicio = "",
       fechaFin = "",
