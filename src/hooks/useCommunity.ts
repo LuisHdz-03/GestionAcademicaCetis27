@@ -787,6 +787,7 @@ export function useCommunity(): UseCommunityReturn {
         );
 
         setAccesos(accesosMapeados);
+        setPagination(result.pagination);
         return accesosMapeados;
       } catch (err) {
         const message =
