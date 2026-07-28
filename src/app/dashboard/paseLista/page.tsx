@@ -50,6 +50,7 @@ interface AlumnoItem {
 
 interface HistorialRegistro {
   fecha?: string;
+  tomadaEn?: string; // ⬅️ NUEVO: timestamp real de creación/última edición
   alumnoId?: number;
   estatus?: string;
   status?: string;
@@ -86,6 +87,11 @@ interface HistorialSesion {
   faltas?: number;
   retardos?: number;
   justificados?: number;
+}
+
+interface BloqueadoPorTiempo {
+  referencia: string;
+  error: string;
 }
 
 const getErrorMessage = (error: unknown, fallback: string) =>
@@ -157,6 +163,13 @@ const deduplicarRegistrosSesion = (registros: HistorialRegistro[]) => {
   return Array.from(unicos.values());
 };
 
+// Obtiene el timestamp real de la sesión a partir de los registros (tomadaEn),
+// con fallback a `fecha` por si algún registro viejo no lo trae.
+const getTomadaEnSesion = (sesion: HistorialSesion): string | null => {
+  const conTomadaEn = sesion.registros.find((r) => r.tomadaEn);
+  return conTomadaEn?.tomadaEn ?? sesion.fecha ?? null;
+};
+
 const OPCIONES = [
   {
     valor: "PRESENTE",
@@ -200,6 +213,10 @@ const OPCIONES = [
   },
 ];
 
+// Valor por defecto mientras no hayamos recibido la ventana real del backend
+// (el backend la manda en cada respuesta de POST /asistencias)
+const VENTANA_EDICION_DEFAULT = 10;
+
 export default function PaseDeListaPage() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -225,7 +242,12 @@ export default function PaseDeListaPage() {
   const [asistenciaBloqueada, setAsistenciaBloqueada] = useState(false);
   const [minutosRestantes, setMinutosRestantes] = useState<number | null>(null);
 
-  // NUEVA VARIABLE: Guarda la fecha exacta si estamos editando
+  // Ventana de tolerancia real, reportada por el backend (fallback a 10 min)
+  const [ventanaEdicionMinutos, setVentanaEdicionMinutos] = useState(
+    VENTANA_EDICION_DEFAULT,
+  );
+
+  // Guarda la fecha (día) exacta si estamos editando una sesión existente
   const [sesionActivaFecha, setSesionActivaFecha] = useState<string | null>(
     null,
   );
@@ -243,8 +265,6 @@ export default function PaseDeListaPage() {
     currentPage: 1,
     limit: 10,
   });
-
-  const LIMITE_MINUTOS = 30;
 
   const agruparPorFechaExacta = (registros: HistorialRegistro[]) => {
     const mapa = new Map<string, HistorialRegistro[]>();
@@ -270,6 +290,43 @@ export default function PaseDeListaPage() {
     };
   };
 
+  // Calcula el estado de edición (bloqueada / minutos restantes) a partir
+  // del timestamp REAL de la sesión (tomadaEn), no de la fecha truncada.
+  const aplicarEstadoEdicion = (sesion: HistorialSesion) => {
+    const tomadaEnRaw = getTomadaEnSesion(sesion);
+    if (!tomadaEnRaw) {
+      setAsistencia({});
+      setSesionActivaFecha(null);
+      setAsistenciaBloqueada(false);
+      setMinutosRestantes(null);
+      return;
+    }
+
+    const horaRegistro = new Date(tomadaEnRaw);
+    const ahora = new Date();
+    const diffMinutos = Math.floor(
+      (ahora.getTime() - horaRegistro.getTime()) / 60000,
+    );
+
+    if (diffMinutos < ventanaEdicionMinutos) {
+      const asistenciaPrevia: Record<number, string> = {};
+      sesion.registros.forEach((r) => {
+        if (typeof r.alumnoId === "number") {
+          asistenciaPrevia[r.alumnoId] = getRegistroEstatus(r);
+        }
+      });
+      setAsistencia(asistenciaPrevia);
+      setSesionActivaFecha(sesion.fecha);
+      setAsistenciaBloqueada(false);
+      setMinutosRestantes(ventanaEdicionMinutos - diffMinutos);
+    } else {
+      setAsistencia({});
+      setSesionActivaFecha(null);
+      setAsistenciaBloqueada(false);
+      setMinutosRestantes(null);
+    }
+  };
+
   const cargarHistorial = async (page = 1) => {
     setCargandoHistorial(true);
     setAsistenciaBloqueada(false);
@@ -293,29 +350,7 @@ export default function PaseDeListaPage() {
           if (page === 1) {
             const ultimaSesion = agrupado[0];
             if (ultimaSesion && ultimaSesion.registros.length > 0) {
-              const horaRegistro = new Date(ultimaSesion.fecha);
-              const ahora = new Date();
-              const diffMinutos = Math.floor(
-                (ahora.getTime() - horaRegistro.getTime()) / 60000,
-              );
-
-              if (diffMinutos < LIMITE_MINUTOS) {
-                const asistenciaPrevia: Record<number, string> = {};
-                ultimaSesion.registros.forEach((r) => {
-                  if (typeof r.alumnoId === "number") {
-                    asistenciaPrevia[r.alumnoId] = getRegistroEstatus(r);
-                  }
-                });
-                setAsistencia(asistenciaPrevia);
-                setSesionActivaFecha(ultimaSesion.fecha);
-                setAsistenciaBloqueada(false);
-                setMinutosRestantes(LIMITE_MINUTOS - diffMinutos);
-              } else {
-                setAsistencia({});
-                setSesionActivaFecha(null);
-                setAsistenciaBloqueada(false);
-                setMinutosRestantes(null);
-              }
+              aplicarEstadoEdicion(ultimaSesion);
             }
           }
         } else {
@@ -375,6 +410,7 @@ export default function PaseDeListaPage() {
   useEffect(() => {
     if (!claseIdParam) return;
     cargarHistorial(paginaActual);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginaActual, claseIdParam]);
 
   useEffect(() => {
@@ -478,7 +514,7 @@ export default function PaseDeListaPage() {
       const listaAlumnosFormateada = alumnos.map((alumno) => {
         const idAlum = getAlumnoId(alumno);
         return {
-          matricula: String(alumno.matricula), // <-- EL BACKEND PIDE LA MATRICULA AQUI
+          matricula: String(alumno.matricula),
           estatus: asistencia[idAlum],
         };
       });
@@ -487,7 +523,7 @@ export default function PaseDeListaPage() {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          materia: materiaNombre, // <-- ENVIAMOS EL NOMBRE DE LA MATERIA
+          materia: materiaNombre,
           listaAlumnos: listaAlumnosFormateada,
           metodo: "MANUAL",
           fecha: sesionActivaFecha,
@@ -496,21 +532,48 @@ export default function PaseDeListaPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        if (data.bloqueado) {
-          setAsistenciaBloqueada(true);
-          setMinutosRestantes(null);
-          throw new Error(data.mensaje);
-        }
         throw new Error(data.mensaje || "Error al guardar la asistencia");
+      }
+
+      // Guarda la ventana de tolerancia real que reporta el backend
+      if (typeof data.ventanaEdicionMinutos === "number") {
+        setVentanaEdicionMinutos(data.ventanaEdicionMinutos);
+      }
+
+      const bloqueados: BloqueadoPorTiempo[] = Array.isArray(
+        data.bloqueadosPorTiempo,
+      )
+        ? data.bloqueadosPorTiempo
+        : [];
+
+      const insertados = data.insertados ?? data.totalRegistros ?? 0;
+      const actualizados = data.actualizados ?? 0;
+
+      let descripcion = "";
+      if (insertados > 0 && actualizados > 0) {
+        descripcion = `${insertados} nuevo(s) registrado(s), ${actualizados} actualizado(s).`;
+      } else if (actualizados > 0) {
+        descripcion = `Se actualizaron ${actualizados} asistencia(s) existentes.`;
+      } else {
+        descripcion = `Se registraron ${insertados} asistencias correctamente.`;
       }
 
       toast({
         title: "Éxito",
-        description: `Se registraron ${data.totalRegistros} asistencias correctamente.`,
+        description: descripcion,
         variant: "success",
       });
 
-      // Recargar historial
+      // Si algún alumno quedó fuera de la ventana de edición, avisa por separado
+      if (bloqueados.length > 0) {
+        toast({
+          title: "Algunos registros no se pudieron editar",
+          description: `${bloqueados.length} alumno(s) ya no estaban dentro de la ventana de ${data.ventanaEdicionMinutos ?? ventanaEdicionMinutos} min y conservan su asistencia original.`,
+          variant: "destructive",
+        });
+      }
+
+      // Recargar historial con el estado fresco
       try {
         const resH = await fetch(
           `${API_URL}/asistencias/historial?claseId=${claseSeleccionada}`,
@@ -523,21 +586,7 @@ export default function PaseDeListaPage() {
           setHistorial(agrupado);
 
           const ultimaSesion = agrupado[0];
-          setSesionActivaFecha(ultimaSesion.fecha);
-
-          const horaRegistro = new Date(ultimaSesion.fecha);
-          const ahora = new Date();
-          const diffMinutos = Math.floor(
-            (ahora.getTime() - horaRegistro.getTime()) / 60000,
-          );
-
-          if (diffMinutos >= LIMITE_MINUTOS) {
-            setAsistenciaBloqueada(true);
-            setMinutosRestantes(null);
-          } else {
-            setMinutosRestantes(LIMITE_MINUTOS - diffMinutos);
-            setAsistenciaBloqueada(false);
-          }
+          aplicarEstadoEdicion(ultimaSesion);
         } else {
           setHistorial([]);
         }
@@ -679,7 +728,7 @@ export default function PaseDeListaPage() {
         {asistenciaBloqueada && (
           <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-full text-gray-600 text-sm font-semibold flex-shrink-0">
             <HiLockClosed className="w-4 h-4" />
-            Edición cerrada (Más de {LIMITE_MINUTOS} min)
+            Edición cerrada (Más de {ventanaEdicionMinutos} min)
           </div>
         )}
         {!asistenciaBloqueada && minutosRestantes !== null && (
