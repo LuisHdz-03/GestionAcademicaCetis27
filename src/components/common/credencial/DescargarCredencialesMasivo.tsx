@@ -1,7 +1,17 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import * as htmlToImage from "html-to-image";
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import CredencialCard from "./CredencialCard";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
@@ -45,12 +55,33 @@ export default function DescargarCredencialesMasivo() {
   const [descargando, setDescargando] = useState(false);
   const [progreso, setProgreso] = useState(0);
   const [alumnoActual, setAlumnoActual] = useState<Alumno | null>(null);
-  const capturaRef = useRef<HTMLDivElement>(null);
+  const frenteRef = useRef<HTMLDivElement>(null);
+  const reversoRef = useRef<HTMLDivElement>(null);
   const [firmante, setFirmante] = useState({
     cargo: "DIRECTOR DEL PLANTEL",
     nombre: "NOMBRE NO ASIGNADO",
     firmaImagenUrl: undefined as string | undefined,
   });
+
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [cargandoAlumnos, setCargandoAlumnos] = useState(false);
+  const [alumnosDisponibles, setAlumnosDisponibles] = useState<Alumno[]>([]);
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
+  const [busqueda, setBusqueda] = useState("");
+
+  const alumnosFiltrados = useMemo(() => {
+    const termino = busqueda.trim().toLowerCase();
+    if (!termino) return alumnosDisponibles;
+    return alumnosDisponibles.filter((a) =>
+      `${a.nombre} ${a.apellidoPaterno} ${a.apellidoMaterno} ${a.noControl}`
+        .toLowerCase()
+        .includes(termino),
+    );
+  }, [alumnosDisponibles, busqueda]);
+
+  const todosSeleccionados =
+    alumnosFiltrados.length > 0 &&
+    alumnosFiltrados.every((a) => seleccionados.has(a.noControl));
 
   const agregarCacheBust = (url?: string) => {
     if (!url) return undefined;
@@ -95,85 +126,141 @@ export default function DescargarCredencialesMasivo() {
     cargarDirectorInicial();
   }, []);
 
-  const capturarAlumno = async (alumno: Alumno): Promise<string> => {
-    setAlumnoActual(alumno);
-    await esperaraSiguienteFrame();
-
-    if (!capturaRef.current) {
-      throw new Error("No se pudo preparar la credencial para captura.");
-    }
-
-    await esperarImagenes(capturaRef.current);
-
-    return htmlToImage.toPng(capturaRef.current, {
+  const capturarCara = async (
+    ref: React.RefObject<HTMLDivElement | null>,
+  ): Promise<string> => {
+    if (!ref.current) throw new Error("Ref no disponible para captura.");
+    await esperarImagenes(ref.current);
+    return htmlToImage.toPng(ref.current, {
       cacheBust: true,
       backgroundColor: "#ffffff",
       pixelRatio: 2.5,
     });
   };
 
-  const handleDescargarTodas = async () => {
+  const capturarAlumno = async (
+    alumno: Alumno,
+  ): Promise<{ frente: string; reverso: string }> => {
+    setAlumnoActual(alumno);
+    await esperaraSiguienteFrame();
+    const frente = await capturarCara(frenteRef);
+    const reverso = await capturarCara(reversoRef);
+    return { frente, reverso };
+  };
+
+  const abrirModalSeleccion = async () => {
+    setModalAbierto(true);
+    setCargandoAlumnos(true);
+    setBusqueda("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/estudiantes/credenciales`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      let data = await res.json();
+      if (!Array.isArray(data)) {
+        data = [];
+      }
+      setAlumnosDisponibles(data);
+      setSeleccionados(new Set(data.map((a: Alumno) => a.noControl)));
+    } finally {
+      setCargandoAlumnos(false);
+    }
+  };
+
+  const alternarSeleccion = (noControl: string) => {
+    setSeleccionados((prev) => {
+      const siguiente = new Set(prev);
+      if (siguiente.has(noControl)) {
+        siguiente.delete(noControl);
+      } else {
+        siguiente.add(noControl);
+      }
+      return siguiente;
+    });
+  };
+
+  const alternarSeleccionarTodos = () => {
+    setSeleccionados((prev) => {
+      const siguiente = new Set(prev);
+      if (todosSeleccionados) {
+        alumnosFiltrados.forEach((a) => siguiente.delete(a.noControl));
+      } else {
+        alumnosFiltrados.forEach((a) => siguiente.add(a.noControl));
+      }
+      return siguiente;
+    });
+  };
+
+  const handleDescargarSeleccionados = async () => {
+    const data = alumnosDisponibles.filter((a) =>
+      seleccionados.has(a.noControl),
+    );
+    if (data.length === 0) return;
+
+    setModalAbierto(false);
     setDescargando(true);
     setProgreso(0);
     const directorActualizado = await obtenerDirector();
     setFirmante(directorActualizado);
-
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${API_URL}/estudiantes/credenciales`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    let data = await res.json();
-    if (!Array.isArray(data)) {
-      data = [];
-    }
     setAlumnos(data);
 
-    if (data.length === 0) {
-      setDescargando(false);
-      return;
-    }
-    const pdf = new jsPDF({
-      orientation: "landscape",
-      unit: "mm",
-      format: "letter",
-    });
-
-    const cardWidth = 171.2;
-    const cardHeight = 54;
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const cardsPerPage = 3;
-    const verticalGap = 6;
-    const totalHeight =
-      cardsPerPage * cardHeight + (cardsPerPage - 1) * verticalGap;
-    const startX = (pageWidth - cardWidth) / 2;
-    const startY = (pageHeight - totalHeight) / 2;
+    // Capturar ambas caras de cada alumno
+    const frentesImg: string[] = [];
+    const reversosImg: string[] = [];
 
     for (let i = 0; i < data.length; i++) {
       try {
-        const imgData = await capturarAlumno(data[i]);
-
-        if (i > 0 && i % cardsPerPage === 0) {
-          pdf.addPage("letter", "landscape");
-        }
-
-        const positionInPage = i % cardsPerPage;
-        const y = startY + positionInPage * (cardHeight + verticalGap);
-
-        pdf.addImage(imgData, "PNG", startX, y, cardWidth, cardHeight);
+        const { frente, reverso } = await capturarAlumno(data[i]);
+        frentesImg.push(frente);
+        reversosImg.push(reverso);
       } catch (error) {
-        console.error(
-          `Error al generar credencial de ${data[i].noControl}:`,
-          error,
-        );
+        console.error(`Error al capturar credencial de ${data[i].noControl}:`, error);
+        // Placeholder vacío para mantener el índice alineado
+        frentesImg.push("");
+        reversosImg.push("");
       }
       setProgreso(i + 1);
-
-      if (i % 5 === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      }
+      if (i % 5 === 0) await new Promise((r) => setTimeout(r, 0));
     }
+
+    // Carta vertical: 2 columnas × 4 filas = 8 por hoja
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
+
+    const pageW = pdf.internal.pageSize.getWidth();   // 215.9 mm
+    const pageH = pdf.internal.pageSize.getHeight();  // 279.4 mm
+    const cardW = 85.6;  // CR80 standard
+    const cardH = 54;
+    const cols = 2;
+    const rows = 4;
+    const cardsPerPage = cols * rows;
+    const marginX = (pageW - cols * cardW) / (cols + 1);
+    const marginY = (pageH - rows * cardH) / (rows + 1);
+
+    const posX = (idx: number) => marginX + (idx % cols) * (cardW + marginX);
+    const posY = (idx: number) =>
+      marginY + Math.floor(idx / cols) * (cardH + marginY);
+
+    const agregarImagenes = (imagenes: string[], primeraPagina: boolean) => {
+      for (let i = 0; i < imagenes.length; i++) {
+        const img = imagenes[i];
+        if (!img) continue;
+
+        const posEnPagina = i % cardsPerPage;
+
+        if (i > 0 && posEnPagina === 0) {
+          pdf.addPage("letter", "portrait");
+        } else if (i === 0 && !primeraPagina) {
+          pdf.addPage("letter", "portrait");
+        }
+
+        pdf.addImage(img, "PNG", posX(posEnPagina), posY(posEnPagina), cardW, cardH);
+      }
+    };
+
+    agregarImagenes(frentesImg, true);
+    agregarImagenes(reversosImg, false);
+
     pdf.save("Credenciales.pdf");
     setDescargando(false);
     setAlumnoActual(null);
@@ -181,17 +268,103 @@ export default function DescargarCredencialesMasivo() {
 
   return (
     <div>
-      <Button onClick={handleDescargarTodas} disabled={descargando}>
+      <Button onClick={abrirModalSeleccion} disabled={descargando}>
         {descargando
           ? `Procesando... (${progreso})`
-          : "Descargar todas las credenciales"}
+          : "Descargar credenciales"}
       </Button>
-      {/* Renderiza cada credencial oculta para capturarla */}
+
+      <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Seleccionar alumnos</DialogTitle>
+            <DialogDescription>
+              Elige los alumnos cuyas credenciales quieres descargar.
+            </DialogDescription>
+          </DialogHeader>
+
+          {cargandoAlumnos ? (
+            <p className="text-sm text-muted-foreground">
+              Cargando alumnos...
+            </p>
+          ) : (
+            <>
+              <Input
+                placeholder="Buscar por nombre o No. de control"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+              />
+
+              <label className="flex items-center gap-2 border-b pb-2 text-sm font-medium">
+                <Checkbox
+                  checked={todosSeleccionados}
+                  onCheckedChange={alternarSeleccionarTodos}
+                />
+                Seleccionar todos ({alumnosFiltrados.length})
+              </label>
+
+              <div className="max-h-72 overflow-y-auto flex flex-col gap-1">
+                {alumnosFiltrados.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No se encontraron alumnos.
+                  </p>
+                ) : (
+                  alumnosFiltrados.map((a) => (
+                    <label
+                      key={a.noControl}
+                      className="flex items-center gap-2 text-sm py-1"
+                    >
+                      <Checkbox
+                        checked={seleccionados.has(a.noControl)}
+                        onCheckedChange={() =>
+                          alternarSeleccion(a.noControl)
+                        }
+                      />
+                      {a.nombre} {a.apellidoPaterno} {a.apellidoMaterno} (
+                      {a.noControl})
+                    </label>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setModalAbierto(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleDescargarSeleccionados}
+              disabled={seleccionados.size === 0 || cargandoAlumnos}
+            >
+              Descargar ({seleccionados.size})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Renders ocultos para captura de cada cara por separado */}
       <div style={{ position: "absolute", left: "-9999px", top: 0 }}>
         {alumnoActual && (
-          <div ref={capturaRef}>
-            <CredencialCard estudiante={alumnoActual} firmante={firmante} />
-          </div>
+          <>
+            <div ref={frenteRef}>
+              <CredencialCard
+                estudiante={alumnoActual}
+                firmante={firmante}
+                lado="frente"
+              />
+            </div>
+            <div ref={reversoRef}>
+              <CredencialCard
+                estudiante={alumnoActual}
+                firmante={firmante}
+                lado="reverso"
+              />
+            </div>
+          </>
         )}
       </div>
     </div>
