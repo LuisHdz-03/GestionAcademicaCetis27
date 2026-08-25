@@ -108,7 +108,6 @@ export default function DescargarCredencialesMasivo() {
         };
       }
     } catch {
-      // Usar valores por defecto cuando no se pueda obtener el firmante.
     }
 
     return {
@@ -216,7 +215,6 @@ export default function DescargarCredencialesMasivo() {
         reversosImg.push(reverso);
       } catch (error) {
         console.error(`Error al capturar credencial de ${data[i].noControl}:`, error);
-        // Placeholder vacío para mantener el índice alineado
         frentesImg.push("");
         reversosImg.push("");
       }
@@ -224,12 +222,11 @@ export default function DescargarCredencialesMasivo() {
       if (i % 5 === 0) await new Promise((r) => setTimeout(r, 0));
     }
 
-    // Carta vertical: 2 columnas × 4 filas = 8 por hoja
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
 
-    const pageW = pdf.internal.pageSize.getWidth();   // 215.9 mm
-    const pageH = pdf.internal.pageSize.getHeight();  // 279.4 mm
-    const cardW = 85.6;  // CR80 standard
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const cardW = 85.6;
     const cardH = 54;
     const cols = 2;
     const rows = 4;
@@ -237,29 +234,29 @@ export default function DescargarCredencialesMasivo() {
     const marginX = (pageW - cols * cardW) / (cols + 1);
     const marginY = (pageH - rows * cardH) / (rows + 1);
 
-    const posX = (idx: number) => marginX + (idx % cols) * (cardW + marginX);
-    const posY = (idx: number) =>
-      marginY + Math.floor(idx / cols) * (cardH + marginY);
+    const posX = (pos: number) => marginX + (pos % cols) * (cardW + marginX);
+    const posY = (pos: number) => marginY + Math.floor(pos / cols) * (cardH + marginY);
+    const backPosX = (pos: number) =>
+      marginX + (cols - 1 - (pos % cols)) * (cardW + marginX);
 
-    const agregarImagenes = (imagenes: string[], primeraPagina: boolean) => {
-      for (let i = 0; i < imagenes.length; i++) {
-        const img = imagenes[i];
-        if (!img) continue;
+    let primeraPagina = true;
 
-        const posEnPagina = i % cardsPerPage;
+    for (let inicio = 0; inicio < frentesImg.length; inicio += cardsPerPage) {
+      const lotFrente = frentesImg.slice(inicio, inicio + cardsPerPage);
+      const lotReverso = reversosImg.slice(inicio, inicio + cardsPerPage);
 
-        if (i > 0 && posEnPagina === 0) {
-          pdf.addPage("letter", "portrait");
-        } else if (i === 0 && !primeraPagina) {
-          pdf.addPage("letter", "portrait");
-        }
+      if (!primeraPagina) pdf.addPage("letter", "portrait");
+      primeraPagina = false;
 
-        pdf.addImage(img, "PNG", posX(posEnPagina), posY(posEnPagina), cardW, cardH);
-      }
-    };
+      lotFrente.forEach((img, i) => {
+        if (img) pdf.addImage(img, "PNG", posX(i), posY(i), cardW, cardH);
+      });
 
-    agregarImagenes(frentesImg, true);
-    agregarImagenes(reversosImg, false);
+      pdf.addPage("letter", "portrait");
+      lotReverso.forEach((img, i) => {
+        if (img) pdf.addImage(img, "PNG", backPosX(i), posY(i), cardW, cardH);
+      });
+    }
 
     pdf.save("Credenciales.pdf");
     setDescargando(false);
