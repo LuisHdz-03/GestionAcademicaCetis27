@@ -217,11 +217,11 @@ export default function Sidebar({
 
         {/* Navegación con scroll interno */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-          {itemsPermitidos.map((item, index) => {
+          {itemsPermitidos.map((item) => {
             const Icon = item.icon;
             const menuButton = (
               <Button
-                key={index}
+                key={item.href}
                 variant="ghost"
                 asChild
                 className={cn(
@@ -247,7 +247,7 @@ export default function Sidebar({
             );
 
             return !expanded ? (
-              <Tooltip key={index} delayDuration={0}>
+              <Tooltip key={item.href} delayDuration={0}>
                 <TooltipTrigger asChild>{menuButton}</TooltipTrigger>
                 <TooltipContent
                   side="right"
