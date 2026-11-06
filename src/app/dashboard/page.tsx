@@ -145,6 +145,7 @@ export default function DashboardPage() {
     const cargoUsuario = normalizarTexto(user?.cargo || "");
 
     const cargosDirectivos = [
+      "ADMINISTRADOR",
       "DIRECTOR",
       "SUBDIRECTORA ACADEMICA",
       "COORDINADOR",
