@@ -54,6 +54,7 @@ export default function CommunityManagementPage() {
     );
     const cargoUsuario = normalizarTexto(user?.cargo || "");
     const cargosPermitidos = [
+      "ADMINISTRADOR",
       "DIRECTOR",
       "SUBDIRECTORA ACADEMICA",
       "COORDINADOR",
