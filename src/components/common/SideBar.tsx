@@ -54,6 +54,7 @@ export default function Sidebar({
   const cargoUsuario = normalizarTexto(user?.cargo || "");
 
   const cargosDirectivos = [
+    "ADMINIISTRADOR",
     "DIRECTOR",
     "SUBDIRECTORA ACADEMICA",
     "COORDINADOR",
